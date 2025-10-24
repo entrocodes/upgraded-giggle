@@ -8,6 +8,7 @@
 #include "../components/Velocity.hpp"
 #include "../components/Sprite.hpp"
 #include "../components/Player.hpp"
+#include "../components/BoundingBox.hpp"
 #include "../math/GridTransform.hpp"
 #include <SFML/Graphics.hpp>
 #include <memory>
@@ -35,7 +36,7 @@ void Game::run() {
     auto texturePlayer = std::make_shared<sf::Texture>();
     texturePlayer->loadFromFile("assets/ball.png");
     spritePlayer.setTexture(texturePlayer);
-
+    registry.addComponent<BoundingBox>(player, spritePlayer.sprite.getLocalBounds());
 
     // -------------------------
     // Main game loop
@@ -54,8 +55,7 @@ void Game::run() {
 
         // Update ECS systems
         playerInput.update(registry, dt.asSeconds());
-        movement.update(registry, dt.asSeconds());
-
+        movement.update(registry, window, dt.asSeconds());
         // Render
         window.clear();
         renderer.render(window, registry);

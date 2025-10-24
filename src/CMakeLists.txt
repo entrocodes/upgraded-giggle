@@ -6,6 +6,7 @@ add_executable(PixelPong
     systems/PlayerInputSystem.cpp
     systems/GridDebugSystem.cpp
     systems/MovementSystem.cpp
+    systems/BoundarySystem.cpp
     imgui/ImGuiLayer.cpp
 )
 
