@@ -4,7 +4,7 @@
 namespace Grid
 {
     constexpr float CELL_SIZE = 64.f;
-    constexpr float WORLD_HEIGHT = 600.f; // match your window height
+    constexpr float WORLD_HEIGHT = 640.f; // match your window height
 
     // Convert grid coordinates to world-space (bottom-left = 0,0)
     inline Vec2 toWorld(int gridX, int gridY)
@@ -18,9 +18,10 @@ namespace Grid
     inline Vec2 toWorldCentered(int gridX, int gridY)
     {
         float worldX = (gridX + 0.5f) * CELL_SIZE;
-        float worldY = WORLD_HEIGHT - (gridY + 0.5f) * CELL_SIZE;
+        float worldY = Grid::WORLD_HEIGHT - (gridY + 0.5f) * CELL_SIZE; // flip Y
         return { worldX, worldY };
     }
+
 
     // Convert from world-space position to grid coordinates
     inline Vec2 fromWorld(const Vec2& worldPos)

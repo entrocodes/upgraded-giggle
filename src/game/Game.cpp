@@ -13,7 +13,7 @@
 #include <memory>
 
 void Game::run() {
-    sf::RenderWindow window(sf::VideoMode(800, 600), "PixelPong ECS");
+    sf::RenderWindow window(sf::VideoMode(640, 640), "PixelPong ECS");
     sf::Clock deltaClock;
 
     ImGuiLayer imgui;
@@ -36,12 +36,13 @@ void Game::run() {
     texturePlayer->loadFromFile("assets/ball.png");
     spritePlayer.setTexture(texturePlayer);
 
+
     // -------------------------
     // Main game loop
     // -------------------------
     while (window.isOpen()) {
         sf::Event event;
-        float dt = deltaClock.restart().asSeconds();
+        sf::Time dt = deltaClock.restart();
 
         while (window.pollEvent(event)) {
             ImGui::SFML::ProcessEvent(window, event);
@@ -49,11 +50,11 @@ void Game::run() {
         }
 
         // Update ImGui
-        imgui.update(window, deltaClock);
+        imgui.update(window, dt);
 
         // Update ECS systems
-        playerInput.update(registry, dt);
-        movement.update(registry, dt);
+        playerInput.update(registry, dt.asSeconds());
+        movement.update(registry, dt.asSeconds());
 
         // Render
         window.clear();
@@ -61,6 +62,7 @@ void Game::run() {
 
         imgui.render();
         ImGui::SFML::Render(window);
+
         window.display();
     }
 

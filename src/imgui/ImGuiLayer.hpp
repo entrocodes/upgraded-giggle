@@ -7,7 +7,7 @@
 class ImGuiLayer {
 public:
     void init(sf::RenderWindow& window);
-    void update(sf::RenderWindow& window, sf::Clock& deltaClock);
+    void update(sf::RenderWindow& window, sf::Time dt);
     void render();
     void shutdown();
 };

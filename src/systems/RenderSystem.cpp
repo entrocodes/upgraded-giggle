@@ -4,13 +4,18 @@
 #include "../systems/GridDebugSystem.hpp"
 
 
-
 void RenderSystem::render(sf::RenderWindow& window, Registry& registry) {
     for (auto e : registry.getEntitiesWith<Transform, Sprite>()) {
         auto* transform = registry.getComponent<Transform>(e);
         auto* spriteComp = registry.getComponent<Sprite>(e);
 
         if (!transform || !spriteComp) continue;
+
+        // Center the sprite's origin
+        spriteComp->sprite.setOrigin(
+            spriteComp->sprite.getLocalBounds().width / 2.f,
+            spriteComp->sprite.getLocalBounds().height / 2.f
+        );
 
         // Update sprite's position and rotation
         spriteComp->sprite.setPosition(transform->position.x, transform->position.y);
@@ -21,8 +26,7 @@ void RenderSystem::render(sf::RenderWindow& window, Registry& registry) {
     }
 
     // Debug Grid
-    if (GridDebug.drawGrid) {
-        GridDebug.debugShowGrid(window);
+    if (gGridDebug.drawGrid) {
+        gGridDebug.debugShowGrid(window);
     }
-
 }

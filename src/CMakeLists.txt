@@ -4,6 +4,7 @@ add_executable(PixelPong
     ecs/Registry.cpp
     systems/RenderSystem.cpp
     systems/PlayerInputSystem.cpp
+    systems/GridDebugSystem.cpp
     systems/MovementSystem.cpp
     imgui/ImGuiLayer.cpp
 )
