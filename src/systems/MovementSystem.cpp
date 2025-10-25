@@ -14,7 +14,7 @@ void MovementSystem::update(Registry& registry, sf::RenderWindow& window, float 
         if (transform && velocity) {
             transform->position += velocity->velocity * dt;
         }
-        Boundaries.updatePlayer(registry, window, dt);
+        Boundaries.update(registry, window, dt);
     }
   
 

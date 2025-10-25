@@ -10,6 +10,7 @@ Game::Game(Registry& registry)
 
 void Game::init() {
     EntityFactory::createPlayer(registry);
+    EntityFactory::createEnemy(registry, Vec2(4,4));
 }
 
 void Game::update(sf::RenderWindow& window, float dt, MovementSystem& movement) {

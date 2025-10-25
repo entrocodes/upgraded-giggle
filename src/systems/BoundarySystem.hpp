@@ -6,5 +6,5 @@
 #include <SFML/Graphics.hpp>
 class BoundarySystem {
 public:
-    void updatePlayer(Registry& registry, sf::RenderWindow& window, float deltaTime);
+    void update(Registry& registry, sf::RenderWindow& window, float deltaTime);
 };
