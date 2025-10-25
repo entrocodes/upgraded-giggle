@@ -1,6 +1,14 @@
 #pragma once
-
+#include "../ecs/Registry.hpp"
+#include "../systems/MovementSystem.hpp"
+#include <SFML/Graphics.hpp>
 class Game {
 public:
-    void run();
+    Game(Registry& registry);
+    void init();
+    void update(sf::RenderWindow& window, float dt, MovementSystem& movement);
+
+private:
+    Registry& registry;
 };
+

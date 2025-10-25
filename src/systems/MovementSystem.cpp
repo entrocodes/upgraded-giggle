@@ -4,7 +4,7 @@
 #include "../components/Transform.hpp"
 #include "../components/Velocity.hpp"
 #include <SFML/Graphics.hpp>
-
+#include <iostream>
 BoundarySystem Boundaries;
 
 void MovementSystem::update(Registry& registry, sf::RenderWindow& window, float dt) {

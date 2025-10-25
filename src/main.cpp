@@ -1,7 +1,7 @@
-#include "game/Game.hpp"
+#include "game/GameEngine.hpp"
 
 int main() {
-    Game game;
-    game.run();
+    GameEngine engine;
+    engine.run();
     return 0;
 }
