@@ -4,7 +4,7 @@
 
 class GridDebugSystem {
 public:
-    bool drawGrid = true;
+    bool drawGrid = false;
 
     // Declaration only
     void debugShowGrid(sf::RenderWindow& window) const;

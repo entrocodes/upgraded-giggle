@@ -1,9 +1,11 @@
 add_executable(PixelPong
     main.cpp
     game/Game.cpp
+    game/EntityFactory.cpp
     ecs/Registry.cpp
     systems/RenderSystem.cpp
     systems/PlayerInputSystem.cpp
+    systems/PlayerActionSystem.cpp
     systems/GridDebugSystem.cpp
     systems/MovementSystem.cpp
     systems/BoundarySystem.cpp

@@ -1,8 +1,10 @@
 #include "Game.hpp"
+#include "EntityFactory.hpp"
 #include "../ecs/Registry.hpp"
 #include "../systems/RenderSystem.hpp"
 #include "../systems/MovementSystem.hpp"
 #include "../systems/PlayerInputSystem.hpp"
+#include "../systems/PlayerActionSystem.hpp"
 #include "../imgui/ImGuiLayer.hpp"
 #include "../components/Transform.hpp"
 #include "../components/Velocity.hpp"
@@ -24,19 +26,9 @@ void Game::run() {
     RenderSystem renderer;
     MovementSystem movement;
     PlayerInputSystem playerInput;
+    PlayerActionSystem playerAction;
+    Entity player = EntityFactory::createPlayer(registry);
 
-    // create player
-    Entity player = registry.createEntity();
-    auto& transformPlayer = registry.addComponent<Transform>(player);
-    transformPlayer.position = Grid::toWorldCentered(1,1);
-    transformPlayer.rotation = 0.f;
-    registry.addComponent<Velocity>(player);
-    registry.addComponent<Player>(player);
-    auto& spritePlayer = registry.addComponent<Sprite>(player);
-    auto texturePlayer = std::make_shared<sf::Texture>();
-    texturePlayer->loadFromFile("assets/ball.png");
-    spritePlayer.setTexture(texturePlayer);
-    registry.addComponent<BoundingBox>(player, spritePlayer.sprite.getLocalBounds());
 
     // -------------------------
     // Main game loop
@@ -54,7 +46,8 @@ void Game::run() {
         imgui.update(window, dt);
 
         // Update ECS systems
-        playerInput.update(registry, dt.asSeconds());
+        playerInput.update(registry);
+        playerAction.update(registry, dt.asSeconds());
         movement.update(registry, window, dt.asSeconds());
         // Render
         window.clear();
