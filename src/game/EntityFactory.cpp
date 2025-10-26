@@ -31,12 +31,12 @@ Entity EntityFactory::createPlayer(Registry& registry) {
     return player;
 }
 
-Entity EntityFactory::createEnemy(Registry& registry, const Vec2& pos) {
+Entity EntityFactory::createEnemy(Registry& registry, const Vec2& pos, const Vec2& vel) {
     Entity enemy = registry.createEntity();
 
     auto& transform = registry.addComponent<Transform>(enemy, Grid::toWorldCentered(pos.x, pos.y));
 
-    registry.addComponent<Velocity>(enemy, Vec2(100, 100));
+    registry.addComponent<Velocity>(enemy, vel);
 
     auto& sprite = registry.addComponent<Sprite>(enemy);
     auto texture = std::make_shared<sf::Texture>();
