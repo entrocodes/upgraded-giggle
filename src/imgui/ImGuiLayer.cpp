@@ -11,11 +11,7 @@ void ImGuiLayer::update(sf::RenderWindow& window, sf::Time dt) {
 }
 
 void ImGuiLayer::render() {
-    ImGui::Begin("Debug");
-    // Toggle GridDebugSystem
-    ImGui::Checkbox("Show Grid", &gGridDebug.drawGrid);
-    ImGui::Text("Entities: %d", 5); // Example
-    ImGui::End();
+
 }
 
 void ImGuiLayer::shutdown() {

@@ -7,14 +7,14 @@
 #include <iostream>
 BoundarySystem Boundaries;
 
-void MovementSystem::update(Registry& registry, sf::RenderWindow& window, float dt) {
+void MovementSystem::update(Registry& registry, float dt, const Vec2& windowSize) {
     for (auto e : registry.getEntitiesWith<Transform, Velocity>()) {
         auto* transform = registry.getComponent<Transform>(e);
         auto* velocity = registry.getComponent<Velocity>(e);
         if (transform && velocity) {
             transform->position += velocity->velocity * dt;
         }
-        Boundaries.update(registry, window, dt);
+        Boundaries.update(registry, dt, windowSize);
     }
   
 

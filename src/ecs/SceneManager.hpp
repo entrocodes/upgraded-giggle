@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <string>
 #include "../game/scenes/Scene.hpp"
+#include "../game/GameEngine.hpp" // GameContext
 
 class SceneManager {
 public:
@@ -18,16 +19,20 @@ public:
         }
     }
 
-    void handleInput(sf::RenderWindow& window, float dt) {
-        if (m_current) m_current->handleInput(window, dt);
+    void handleInput(sf::RenderWindow& window, const GameContext& context) {
+        if (m_current) m_current->handleInput(window, context);
     }
 
-    void update(sf::RenderWindow& window, float dt) {
-        if (m_current) m_current->update(window, dt);
+    void update(const GameContext& context) {
+        if (m_current) m_current->update(context);
     }
 
     void render(sf::RenderWindow& window) {
         if (m_current) m_current->render(window);
+    }
+
+    void renderImGui() {
+        if (m_current) m_current->renderImGui();
     }
 
 private:

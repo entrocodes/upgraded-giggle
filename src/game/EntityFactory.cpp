@@ -1,11 +1,6 @@
 // EntityFactory.cpp
 #include "EntityFactory.hpp"
-#include "../components/Transform.hpp"
-#include "../components/Velocity.hpp"
-#include "../components/Sprite.hpp"
-#include "../components/Player.hpp"
-#include "../components/BoundingBox.hpp"
-#include "../components/InputComponent.hpp"
+#include "../components/Components.hpp"
 #include "../math/GridTransform.hpp"
 #include <SFML/Graphics.hpp>
 #include <memory>
@@ -37,7 +32,7 @@ Entity EntityFactory::createEnemy(Registry& registry, const Vec2& pos, const Vec
     auto& transform = registry.addComponent<Transform>(enemy, Grid::toWorldCentered(pos.x, pos.y));
 
     registry.addComponent<Velocity>(enemy, vel);
-
+    registry.addComponent<Enemy>(enemy);
     auto& sprite = registry.addComponent<Sprite>(enemy);
     auto texture = std::make_shared<sf::Texture>();
     texture->loadFromFile("assets/images/ball.png");

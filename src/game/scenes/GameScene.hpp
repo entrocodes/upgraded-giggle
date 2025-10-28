@@ -1,6 +1,8 @@
 #pragma once
 #include "Scene.hpp"
-#include "../game/Game.hpp"
+#include "../math/Random.hpp"
+#include "../math/Vec2.hpp"
+#include "../game/EntityFactory.hpp"
 #include "../ecs/Registry.hpp"
 #include "../systems/MovementSystem.hpp"
 #include "../systems/RenderSystem.hpp"
@@ -15,13 +17,15 @@ class GameScene : public Scene {
 public:
     GameScene();
 
-    void handleInput(sf::RenderWindow& window, float dt) override;
-    void update(sf::RenderWindow& window, float dt) override;
+    void handleInput(sf::RenderWindow& window, const GameContext& context) override;
+    void update(const GameContext& context) override;
     void render(sf::RenderWindow& window) override;
+    void renderImGui() override;
 
 private:
+    int entitySpawnTimer = 0;
+
     Registry registry;
-    Game game;
     MovementSystem movement;
     RenderSystem renderer;
     InputSystem inputSystem;

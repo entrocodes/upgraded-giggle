@@ -1,5 +1,6 @@
 #pragma once
 #include <SFML/Graphics.hpp>
+#include "../ecs/Component.hpp"
 struct BoundingBox : public Component {
     sf::FloatRect rect;  // could be IntRect if you prefer
 
