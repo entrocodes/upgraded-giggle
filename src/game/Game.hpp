@@ -5,6 +5,7 @@
 class Game {
 public:
     Game(Registry& registry);
+    int entitySpawnTimer = 0;
     void init();
     void update(sf::RenderWindow& window, float dt, MovementSystem& movement);
 

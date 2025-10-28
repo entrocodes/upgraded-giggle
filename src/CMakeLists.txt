@@ -1,7 +1,9 @@
 add_executable(PixelPong
     main.cpp
+    debug/Debug.cpp
     game/Game.cpp
     game/GameEngine.cpp
+    game/scenes/GameScene.cpp
     game/EntityFactory.cpp
     ecs/Registry.cpp
     systems/RenderSystem.cpp

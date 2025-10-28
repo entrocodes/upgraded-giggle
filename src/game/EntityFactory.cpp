@@ -22,7 +22,7 @@ Entity EntityFactory::createPlayer(Registry& registry) {
 
     auto& sprite = registry.addComponent<Sprite>(player);
     auto texture = std::make_shared<sf::Texture>();
-    texture->loadFromFile("assets/ball.png");
+    texture->loadFromFile("assets/images/player/stand.png");
     sprite.setTexture(texture);
 
     registry.addComponent<BoundingBox>(player, sprite.sprite.getLocalBounds());
@@ -40,7 +40,7 @@ Entity EntityFactory::createEnemy(Registry& registry, const Vec2& pos, const Vec
 
     auto& sprite = registry.addComponent<Sprite>(enemy);
     auto texture = std::make_shared<sf::Texture>();
-    texture->loadFromFile("assets/ball.png");
+    texture->loadFromFile("assets/images/ball.png");
     sprite.setTexture(texture);
 
     registry.addComponent<BoundingBox>(enemy, sprite.sprite.getLocalBounds());

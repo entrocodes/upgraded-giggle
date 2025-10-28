@@ -14,10 +14,12 @@ void Game::init() {
 }
 
 void Game::update(sf::RenderWindow& window, float dt, MovementSystem& movement) {
-    int i = 0;
+    entitySpawnTimer++;
     movement.update(registry, window, dt);
-    Vec2 randPos = Math::Random::rangeVec2({ 1, 1 }, { 5, 5 });
-    Vec2 randVel = Math::Random::rangeVec2({ -300, -300 }, { 300, 300});
-    if (i % 10000000 == 0) EntityFactory::createEnemy(registry, randPos, randVel);
-    i++;
+    if (entitySpawnTimer % 300 == 0) {
+        Vec2 randPos = Math::Random::rangeVec2({ 1, 1 }, { 5, 5 });
+        Vec2 randVel = Math::Random::rangeVec2({ -300, -300 }, { 300, 300 });
+        EntityFactory::createEnemy(registry, randPos, randVel);
+    }
+    
 }
