@@ -18,11 +18,11 @@ public:
         }
     }
 
-    void handleInput(sf::RenderWindow& window, float dt) {
-        if (m_current) m_current->handleInput(window, dt);
+    void handleInput(sf::RenderWindow& window) {
+        if (m_current) m_current->handleInput(window);
     }
 
-    void update(sf::RenderWindow& window, float dt) {
+    void update(sf::RenderWindow& window, sf::Time dt) {
         if (m_current) m_current->update(window, dt);
     }
 

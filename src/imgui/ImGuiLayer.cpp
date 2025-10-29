@@ -10,11 +10,11 @@ void ImGuiLayer::update(sf::RenderWindow& window, sf::Time dt) {
     ImGui::SFML::Update(window, dt);
 }
 
-void ImGuiLayer::render() {
+void ImGuiLayer::render(Registry& registry) {
     ImGui::Begin("Debug");
     // Toggle GridDebugSystem
     ImGui::Checkbox("Show Grid", &gGridDebug.drawGrid);
-    ImGui::Text("Entities: %d", 5); // Example
+    ImGui::Text("Entities: %d", registry.getEntityCount()); // Example
     ImGui::End();
 }
 

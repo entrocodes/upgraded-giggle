@@ -7,5 +7,5 @@
 
 class MovementSystem {
 public:
-    void update(Registry& registry, sf::RenderWindow& window, float deltaTime);
+    void update(Registry& registry, sf::RenderWindow& window, sf::Time dt);
 };

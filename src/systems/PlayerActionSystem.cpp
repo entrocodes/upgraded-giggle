@@ -2,7 +2,7 @@
 #include "../components/InputComponent.hpp"
 #include "../components/Velocity.hpp"
 
-void PlayerActionSystem::update(Registry& registry, float dt) {
+void PlayerActionSystem::update(Registry& registry) {
     for (auto e : registry.getEntitiesWith<InputComponent, Velocity>()) {
         auto* input = registry.getComponent<InputComponent>(e);
         auto* vel = registry.getComponent<Velocity>(e);

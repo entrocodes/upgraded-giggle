@@ -1,7 +1,7 @@
 #pragma once
 #include "Scene.hpp"
-#include "../game/Game.hpp"
 #include "../ecs/Registry.hpp"
+#include "../game/EntityFactory.hpp"
 #include "../systems/MovementSystem.hpp"
 #include "../systems/RenderSystem.hpp"
 #include "../systems/InputSystem.hpp"
@@ -10,18 +10,20 @@
 #include "../systems/MetaInputSystem.hpp"
 #include "../input/RawInputState.hpp"
 #include "../imgui/ImGuiLayer.hpp"
-
+#include "../math/Random.hpp"
 class GameScene : public Scene {
 public:
     GameScene();
 
-    void handleInput(sf::RenderWindow& window, float dt) override;
-    void update(sf::RenderWindow& window, float dt) override;
+    void handleInput(sf::RenderWindow& window) override;
+    void update(sf::RenderWindow& window, sf::Time dt) override;
     void render(sf::RenderWindow& window) override;
+
+    int entitySpawnTimer = 0;
+
 
 private:
     Registry registry;
-    Game game;
     MovementSystem movement;
     RenderSystem renderer;
     InputSystem inputSystem;

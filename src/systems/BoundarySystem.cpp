@@ -5,7 +5,7 @@
 #include "../components/Player.hpp"
 #include "../components/Velocity.hpp"
 
-void BoundarySystem::update(Registry& registry, sf::RenderWindow& window, float dt) {
+void BoundarySystem::update(Registry& registry, sf::RenderWindow& window) {
     for (auto e : registry.getEntitiesWith<Transform, BoundingBox, Velocity>()) {
         auto* transform = registry.getComponent<Transform>(e);
         auto* boundingBox = registry.getComponent<BoundingBox>(e);

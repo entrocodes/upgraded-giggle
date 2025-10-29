@@ -1,4 +1,5 @@
 #pragma once
+#include "../ecs/Registry.hpp"
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/System/Clock.hpp>    //  needed for sf::Clock
 #include <imgui.h>                  //  core ImGui
@@ -8,6 +9,6 @@ class ImGuiLayer {
 public:
     void init(sf::RenderWindow& window);
     void update(sf::RenderWindow& window, sf::Time dt);
-    void render();
+    void render(Registry& registry);
     void shutdown();
 };

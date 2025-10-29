@@ -3,5 +3,5 @@
 
 class PlayerActionSystem {
 public:
-    void update(Registry& registry, float dt);
+    void update(Registry& registry);
 };

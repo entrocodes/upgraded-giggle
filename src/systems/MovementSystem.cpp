@@ -1,20 +1,19 @@
 #include "MovementSystem.hpp"
 #include "BoundarySystem.hpp"
 #include "../ecs/Registry.hpp"
-#include "../components/Transform.hpp"
-#include "../components/Velocity.hpp"
+#include "../components/Components.hpp"
 #include <SFML/Graphics.hpp>
 #include <iostream>
 BoundarySystem Boundaries;
 
-void MovementSystem::update(Registry& registry, sf::RenderWindow& window, float dt) {
+void MovementSystem::update(Registry& registry, sf::RenderWindow& window, sf::Time dt) {
     for (auto e : registry.getEntitiesWith<Transform, Velocity>()) {
         auto* transform = registry.getComponent<Transform>(e);
         auto* velocity = registry.getComponent<Velocity>(e);
         if (transform && velocity) {
-            transform->position += velocity->velocity * dt;
+            transform->position += velocity->velocity * dt.asSeconds();
         }
-        Boundaries.update(registry, window, dt);
+        Boundaries.update(registry, window);
     }
   
 

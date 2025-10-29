@@ -1,0 +1,7 @@
+Texture   TexStand     bin/assets/images/player/stand64.png
+Texture   TexRun       bin/assets/images/player/run64.png
+Texture   TexBrick     bin/assets/images/stage/brick.png
+Animation Stand        TexStand      1    0
+Animation Run          TexRun        4    10
+Animation Brick        TexBrick      1    0
+Font      Tech         bin/assets/fonts/tech.ttf

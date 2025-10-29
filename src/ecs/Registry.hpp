@@ -60,7 +60,9 @@ public:
         }
         return result;
     }
-
+    size_t getEntityCount() const {
+        return m_entities.size();
+    }
 private:
     Entity m_nextEntity = 0;
     std::vector<Entity> m_entities;

@@ -1,30 +1,36 @@
 #include "GameScene.hpp"
 
 GameScene::GameScene()
-    : game(registry)
 {
-    game.init();
+    EntityFactory::createPlayer(registry);
 }
 
-void GameScene::handleInput(sf::RenderWindow& window, float dt) {
+void GameScene::handleInput(sf::RenderWindow& window) {
     inputSystem.update(window, rawInput);
     metaInput.update(rawInput, metaState);
 }
 
-void GameScene::update(sf::RenderWindow& window, float dt) {
+void GameScene::update(sf::RenderWindow& window, sf::Time dt) {
     if (metaState.quit) {
         window.close();
         return;
     }
 
     playerInput.update(registry, rawInput);
-    playerAction.update(registry, dt);
-
+    playerAction.update(registry);
+    imgui.update(window, dt);
     if (!metaState.paused) {
-        game.update(window, dt, movement);
+        entitySpawnTimer++;
+        movement.update(registry, window, dt);
+        if (entitySpawnTimer % 300 == 0) {
+            Vec2 randPos = Math::Random::rangeVec2({ 1, 1 }, { 5, 5 });
+            Vec2 randVel = Math::Random::rangeVec2({ -300, -300 }, { 300, 300 });
+            EntityFactory::createEnemy(registry, randPos, randVel);
+        }
     }
 }
 
 void GameScene::render(sf::RenderWindow& window) {
     renderer.render(window, registry);
+    imgui.render(registry);
 }
