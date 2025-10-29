@@ -6,7 +6,8 @@ class GameEngine {
 public:
     GameEngine();
     void run();
-
+    const Assets& assets() const;
+    sf::RenderWindow& window();
 private:
     sf::RenderWindow m_window;
     SceneManager m_sceneManager;

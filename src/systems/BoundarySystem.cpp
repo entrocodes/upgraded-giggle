@@ -1,13 +1,10 @@
 #include "BoundarySystem.hpp"
 #include "../ecs/Registry.hpp"
-#include "../components/Transform.hpp"
-#include "../components/BoundingBox.hpp"
-#include "../components/Player.hpp"
-#include "../components/Velocity.hpp"
+
 
 void BoundarySystem::update(Registry& registry, sf::RenderWindow& window) {
-    for (auto e : registry.getEntitiesWith<Transform, BoundingBox, Velocity>()) {
-        auto* transform = registry.getComponent<Transform>(e);
+    for (auto e : registry.getEntitiesWith<CTransform, BoundingBox, Velocity>()) {
+        auto* transform = registry.getComponent<CTransform>(e);
         auto* boundingBox = registry.getComponent<BoundingBox>(e);
         auto* velocity = registry.getComponent<Velocity>(e);
         if (transform && boundingBox && velocity) {

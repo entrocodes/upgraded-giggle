@@ -5,7 +5,7 @@ GameEngine::GameEngine()
     : m_window(sf::VideoMode(640, 640), "PixelPong ECS")
 {
     m_assets.loadFromFile("bin/assets.txt");
-    m_sceneManager.registerScene<GameScene>("game");
+    m_sceneManager.registerScene<GameScene>("game", this);
     m_sceneManager.switchTo("game");
 }
 
@@ -29,4 +29,11 @@ void GameEngine::run() {
         ImGui::SFML::Render(m_window);
         m_window.display();
     }
+}
+const Assets& GameEngine::assets() const
+{
+    return m_assets;
+}
+sf::RenderWindow& GameEngine::window() {
+    return m_window;
 }

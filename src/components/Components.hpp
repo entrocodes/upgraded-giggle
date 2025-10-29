@@ -3,5 +3,6 @@
 #include "InputComponent.hpp"
 #include "Player.hpp"
 #include "Sprite.hpp"
-#include "Transform.hpp"
+#include "CTransform.hpp"
 #include "Velocity.hpp"
+#include "CAnimation.hpp"

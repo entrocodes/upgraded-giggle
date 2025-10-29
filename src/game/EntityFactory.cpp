@@ -1,48 +1,66 @@
-// EntityFactory.cpp
 #include "EntityFactory.hpp"
-#include "../components/Transform.hpp"
-#include "../components/Velocity.hpp"
-#include "../components/Sprite.hpp"
-#include "../components/Player.hpp"
-#include "../components/BoundingBox.hpp"
-#include "../components/InputComponent.hpp"
+#include "../components/Components.hpp"
 #include "../math/GridTransform.hpp"
 #include <SFML/Graphics.hpp>
-#include <memory>
+
+EntityFactory::EntityFactory(GameEngine* gameEngine)
+    : m_game(gameEngine)
+{
+}
 
 Entity EntityFactory::createPlayer(Registry& registry) {
     Entity player = registry.createEntity();
 
-    auto& transform = registry.addComponent<Transform>(player);
+    // --- Transform ---
+    auto& transform = registry.addComponent<CTransform>(player);
     transform.position = Grid::toWorldCentered(1, 1);
     transform.rotation = 0.f;
 
+    // --- Motion & Gameplay Components ---
     registry.addComponent<Velocity>(player);
     registry.addComponent<Player>(player);
-
-    auto& sprite = registry.addComponent<Sprite>(player);
-    auto texture = std::make_shared<sf::Texture>();
-    texture->loadFromFile("assets/images/player/stand.png");
-    sprite.setTexture(texture);
-
-    registry.addComponent<BoundingBox>(player, sprite.sprite.getLocalBounds());
-
     registry.addComponent<InputComponent>(player);
+
+    // --- Animation ---
+    const Animation& standAnim = m_game->assets().getAnimation("Stand");
+    auto& animationComp = registry.addComponent<CAnimation>(player, standAnim, false);
+
+    // --- Sprite setup ---
+    sf::Sprite& sprite = animationComp.animation.getSprite();
+    sprite.setOrigin(
+        sprite.getLocalBounds().width / 2.f,
+        sprite.getLocalBounds().height / 2.f
+    );
+
+    // --- Bounding Box ---
+    registry.addComponent<BoundingBox>(player, sprite.getLocalBounds());
+
     return player;
 }
 
 Entity EntityFactory::createEnemy(Registry& registry, const Vec2& pos, const Vec2& vel) {
     Entity enemy = registry.createEntity();
 
-    auto& transform = registry.addComponent<Transform>(enemy, Grid::toWorldCentered(pos.x, pos.y));
+    // --- Transform ---
+    auto& transform = registry.addComponent<CTransform>(enemy);
+    transform.position = Grid::toWorldCentered(pos.x, pos.y);
+    transform.rotation = 0.f;
 
+    // --- Motion ---
     registry.addComponent<Velocity>(enemy, vel);
 
-    auto& sprite = registry.addComponent<Sprite>(enemy);
-    auto texture = std::make_shared<sf::Texture>();
-    texture->loadFromFile("assets/images/ball.png");
-    sprite.setTexture(texture);
+    // --- Sprite ---
+    auto& spriteComp = registry.addComponent<Sprite>(enemy);
+    sf::Texture texture;
+    texture.loadFromFile("assets/images/ball.png"); // Consider storing in Assets for reuse
+    spriteComp.sprite.setTexture(texture);
+    spriteComp.sprite.setOrigin(
+        spriteComp.sprite.getLocalBounds().width / 2.f,
+        spriteComp.sprite.getLocalBounds().height / 2.f
+    );
 
-    registry.addComponent<BoundingBox>(enemy, sprite.sprite.getLocalBounds());
+    // --- Bounding Box ---
+    registry.addComponent<BoundingBox>(enemy, spriteComp.sprite.getLocalBounds());
+
     return enemy;
 }

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../math/Vec2.hpp"
-
 #include <vector>
 #include <SFML/Graphics.hpp>
 

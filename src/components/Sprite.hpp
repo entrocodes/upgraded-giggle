@@ -1,5 +1,6 @@
 #pragma once
 #include "../ecs/Component.hpp"
+#include "../math/Vec2.hpp"
 #include <SFML/Graphics/Sprite.hpp>
 #include <memory>
 

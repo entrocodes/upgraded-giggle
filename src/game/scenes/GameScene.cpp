@@ -1,9 +1,12 @@
 #include "GameScene.hpp"
-
-GameScene::GameScene()
+#include "../game/EntityFactory.hpp"
+#include "../game/GameEngine.hpp"
+GameScene::GameScene(GameEngine* gameEngine)
+    : entityFactory(gameEngine)
 {
-    EntityFactory::createPlayer(registry);
+    entityFactory.createPlayer(registry);
 }
+
 
 void GameScene::handleInput(sf::RenderWindow& window) {
     inputSystem.update(window, rawInput);
@@ -25,7 +28,7 @@ void GameScene::update(sf::RenderWindow& window, sf::Time dt) {
         if (entitySpawnTimer % 300 == 0) {
             Vec2 randPos = Math::Random::rangeVec2({ 1, 1 }, { 5, 5 });
             Vec2 randVel = Math::Random::rangeVec2({ -300, -300 }, { 300, 300 });
-            EntityFactory::createEnemy(registry, randPos, randVel);
+            entityFactory.createEnemy(registry, randPos, randVel);
         }
     }
 }

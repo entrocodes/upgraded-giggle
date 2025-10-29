@@ -11,19 +11,22 @@
 #include "../input/RawInputState.hpp"
 #include "../imgui/ImGuiLayer.hpp"
 #include "../math/Random.hpp"
+
+// Forward declare to avoid circular include
+class GameEngine;
+
 class GameScene : public Scene {
 public:
-    GameScene();
+    explicit GameScene(GameEngine* gameEngine);
 
     void handleInput(sf::RenderWindow& window) override;
     void update(sf::RenderWindow& window, sf::Time dt) override;
     void render(sf::RenderWindow& window) override;
 
-    int entitySpawnTimer = 0;
-
-
 private:
+    GameEngine* m_game = nullptr;
     Registry registry;
+    EntityFactory entityFactory;
     MovementSystem movement;
     RenderSystem renderer;
     InputSystem inputSystem;
@@ -34,4 +37,5 @@ private:
     MetaInputState metaState;
     ImGuiLayer imgui;
     sf::Clock deltaClock;
+    int entitySpawnTimer = 0;
 };
