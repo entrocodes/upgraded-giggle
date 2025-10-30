@@ -14,7 +14,8 @@ void ImGuiLayer::render(Registry& registry) {
     ImGui::Begin("Debug");
     // Toggle GridDebugSystem
     ImGui::Checkbox("Show Grid", &gGridDebug.drawGrid);
-    ImGui::Text("Entities: %d", registry.getEntityCount()); // Example
+    ImGui::Text("Entities: %d", registry.getEntityCount());
+    //ImGui::Checkbox("Entity Drag Mode", &gEntityDrag.dragMode);
     ImGui::End();
 }
 
