@@ -5,9 +5,10 @@
 
 struct CTransform : public Component {
     Vec2 position;
+    Vec2 scale;
     float rotation = 0.f;
     CTransform() = default;
-    CTransform(const Vec2 pos, float rot = 0.f)
-        : position(pos), rotation(rot) {
+    CTransform(const Vec2 pos, const Vec2 s = { 0.f, 0.f }, float rot = 0.f)
+        : position(pos), scale(s), rotation(rot){
     }
 };

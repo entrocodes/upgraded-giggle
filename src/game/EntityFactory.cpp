@@ -1,39 +1,56 @@
 #include "EntityFactory.hpp"
-#include "../components/Components.hpp"
+#include "../game/GameEngine.hpp"
+#include "../components/Components.hpp" // CTransform, CAnimation, Sprite, BoundingBox, Velocity, Player, InputComponent, Enemy, etc.
 #include "../math/GridTransform.hpp"
 #include <SFML/Graphics.hpp>
+#include <memory>
+#include <iostream>
 
 EntityFactory::EntityFactory(GameEngine* gameEngine)
     : m_game(gameEngine)
 {
 }
 
+Entity EntityFactory::createBackground(Registry& registry) {
+    Entity background = registry.createEntity();
+
+    auto& transform = registry.addComponent<CTransform>(background);
+    transform.position = Grid::centerOfScreen();
+    transform.scale = { 2.f, 2.f };
+    const Animation& roomAnim = m_game->assets().getAnimation("OrangeRoom");
+    auto& animComp = registry.addComponent<CAnimation>(background, roomAnim, false);
+
+    // Ensure sprite origin is set and bounding box uses the animation sprite
+    sf::Sprite& s = animComp.animation.getSprite();
+    s.setOrigin(s.getLocalBounds().width / 2.f, s.getLocalBounds().height / 2.f);
+
+    return background;
+}
+
 Entity EntityFactory::createPlayer(Registry& registry) {
     Entity player = registry.createEntity();
 
-    // --- Transform ---
+    // Transform
     auto& transform = registry.addComponent<CTransform>(player);
     transform.position = Grid::toWorldCentered(1, 1);
-    transform.rotation = 0.f;
+    transform.scale = { 1.5f, 1.5f };
 
-    // --- Motion & Gameplay Components ---
+    // Gameplay components
     registry.addComponent<Velocity>(player);
     registry.addComponent<Player>(player);
     registry.addComponent<InputComponent>(player);
 
-    // --- Animation ---
+    // Animation from Assets (keeps texture ownership in Assets)
+
     const Animation& standAnim = m_game->assets().getAnimation("Stand");
-    auto& animationComp = registry.addComponent<CAnimation>(player, standAnim, false);
+    auto& animComp = registry.addComponent<CAnimation>(player, standAnim, false);
 
-    // --- Sprite setup ---
-    sf::Sprite& sprite = animationComp.animation.getSprite();
-    sprite.setOrigin(
-        sprite.getLocalBounds().width / 2.f,
-        sprite.getLocalBounds().height / 2.f
-    );
+    // Ensure sprite origin is set and bounding box uses the animation sprite
+    sf::Sprite& s = animComp.animation.getSprite();
+    s.setOrigin(s.getLocalBounds().width / 2.f, s.getLocalBounds().height / 2.f);
 
-    // --- Bounding Box ---
-    registry.addComponent<BoundingBox>(player, sprite.getLocalBounds());
+    registry.addComponent<BoundingBox>(player, s.getLocalBounds());
+   
 
     return player;
 }
@@ -41,26 +58,26 @@ Entity EntityFactory::createPlayer(Registry& registry) {
 Entity EntityFactory::createEnemy(Registry& registry, const Vec2& pos, const Vec2& vel) {
     Entity enemy = registry.createEntity();
 
-    // --- Transform ---
+    // Transform
     auto& transform = registry.addComponent<CTransform>(enemy);
     transform.position = Grid::toWorldCentered(pos.x, pos.y);
     transform.rotation = 0.f;
+    transform.scale = { 0.25f, 0.25f };
 
-    // --- Motion ---
+    // Motion & gameplay
     registry.addComponent<Velocity>(enemy, vel);
+    //registry.addComponent<Enemy>(enemy);
 
-    // --- Sprite ---
-    auto& spriteComp = registry.addComponent<Sprite>(enemy);
-    sf::Texture texture;
-    texture.loadFromFile("assets/images/ball.png"); // Consider storing in Assets for reuse
-    spriteComp.sprite.setTexture(texture);
-    spriteComp.sprite.setOrigin(
-        spriteComp.sprite.getLocalBounds().width / 2.f,
-        spriteComp.sprite.getLocalBounds().height / 2.f
-    );
+    // Prefer animation if available
+    const Animation& runAnim = m_game->assets().getAnimation("TopspinBall");
+    auto& animComp = registry.addComponent<CAnimation>(enemy, runAnim, true);
 
-    // --- Bounding Box ---
-    registry.addComponent<BoundingBox>(enemy, spriteComp.sprite.getLocalBounds());
+    sf::Sprite& s = animComp.animation.getSprite();
+    s.setOrigin(s.getLocalBounds().width / 2.f, s.getLocalBounds().height / 2.f);
+
+    registry.addComponent<BoundingBox>(enemy, s.getLocalBounds());
+
+
 
     return enemy;
 }

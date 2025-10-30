@@ -4,6 +4,7 @@
 GameScene::GameScene(GameEngine* gameEngine)
     : entityFactory(gameEngine)
 {
+    entityFactory.createBackground(registry);
     entityFactory.createPlayer(registry);
 }
 

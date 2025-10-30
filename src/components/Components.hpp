@@ -6,3 +6,5 @@
 #include "CTransform.hpp"
 #include "Velocity.hpp"
 #include "CAnimation.hpp"
+#include "CEnemy.hpp"
+#include "CState.hpp"
