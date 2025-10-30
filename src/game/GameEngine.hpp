@@ -10,6 +10,8 @@ public:
     sf::RenderWindow& window();
 private:
     sf::RenderWindow m_window;
+    sf::RenderTexture m_renderTexture;
+    sf::Sprite m_renderSprite;
     SceneManager m_sceneManager;
     Assets m_assets;
 };

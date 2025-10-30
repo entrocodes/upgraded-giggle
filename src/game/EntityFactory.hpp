@@ -11,7 +11,8 @@ public:
     // create entities into the given registry
     Entity createBackground(Registry& registry);
     Entity createPlayer(Registry& registry);
-    Entity createEnemy(Registry& registry, const Vec2& pos, const Vec2& vel);
+    Entity createBallShadow(Registry& registry, const Vec2& pos, const Vec2& vel);
+    Entity createBall(Registry& registry, const Vec2& pos, const Vec2& vel, const float height);
 
 private:
     GameEngine* m_game;

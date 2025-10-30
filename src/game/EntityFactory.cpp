@@ -54,30 +54,44 @@ Entity EntityFactory::createPlayer(Registry& registry) {
 
     return player;
 }
+Entity EntityFactory::createBall(Registry& registry, const Vec2& pos, const Vec2& vel, const float height) {
+    Entity ballShadow = EntityFactory::createBallShadow(registry, pos, vel);
 
-Entity EntityFactory::createEnemy(Registry& registry, const Vec2& pos, const Vec2& vel) {
-    Entity enemy = registry.createEntity();
+    Entity ball = registry.createEntity();
+    Vec2 ballPos = Grid::toWorldCentered(pos.x, pos.y + height);
+    Vec2 ballScale = { 0.12f, 0.12f };
+    auto& transform = registry.addComponent<CTransform>(ball, ballPos, ballScale, 0.f);
+    registry.addComponent<Velocity>(ball, vel);
 
-    // Transform
-    auto& transform = registry.addComponent<CTransform>(enemy);
-    transform.position = Grid::toWorldCentered(pos.x, pos.y);
-    transform.rotation = 0.f;
-    transform.scale = { 0.10f, 0.10f };
-
-    // Motion & gameplay
-    registry.addComponent<Velocity>(enemy, vel);
-    //registry.addComponent<Enemy>(enemy);
-
-    // Prefer animation if available
-    const Animation& runAnim = m_game->assets().getAnimation("TopspinBall");
-    auto& animComp = registry.addComponent<CAnimation>(enemy, runAnim, true);
+    // animation
+    const Animation& animBall = m_game->assets().getAnimation("TopspinBall");
+    auto& animComp = registry.addComponent<CAnimation>(ball, animBall, true);
 
     sf::Sprite& s = animComp.animation.getSprite();
     s.setOrigin(s.getLocalBounds().width / 2.f, s.getLocalBounds().height / 2.f);
 
-    registry.addComponent<BoundingBox>(enemy, s.getLocalBounds());
 
+    registry.addComponent<BoundingBox>(ball, s.getLocalBounds());
+    std::cout << "Ball pos: " << ballPos.x << ", " << ballPos.y << "\n";
+    return ball;
+}
+Entity EntityFactory::createBallShadow(Registry& registry, const Vec2& pos, const Vec2& vel) {
+    Entity ballShadow = registry.createEntity();
 
+    // Transform
+    auto& transform = registry.addComponent<CTransform>(ballShadow, Grid::toWorldCentered(pos.x, pos.y), Vec2(2.0f,2.0f), 0.f);
 
-    return enemy;
+    // Motion & gameplay
+    registry.addComponent<Velocity>(ballShadow, vel);
+
+    // animation
+    const Animation& animShadow = m_game->assets().getAnimation("BallShadow");
+    auto& animComp = registry.addComponent<CAnimation>(ballShadow, animShadow, true);
+
+    sf::Sprite& s = animComp.animation.getSprite();
+    s.setOrigin(s.getLocalBounds().width / 2.f, s.getLocalBounds().height / 2.f);
+
+    registry.addComponent<BoundingBox>(ballShadow, s.getLocalBounds());
+
+    return ballShadow;
 }
