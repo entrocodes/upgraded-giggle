@@ -62,7 +62,7 @@ Entity EntityFactory::createBall(Registry& registry, const Vec2& pos, const Vec2
     Vec2 ballScale = { 0.12f, 0.12f };
     auto& transform = registry.addComponent<CTransform>(ball, ballPos, ballScale, 0.f);
     registry.addComponent<Velocity>(ball, vel);
-
+    registry.addComponent<CBall>(ball, ballShadow, height);
     // animation
     const Animation& animBall = m_game->assets().getAnimation("TopspinBall");
     auto& animComp = registry.addComponent<CAnimation>(ball, animBall, true);
@@ -72,7 +72,6 @@ Entity EntityFactory::createBall(Registry& registry, const Vec2& pos, const Vec2
 
 
     registry.addComponent<BoundingBox>(ball, s.getLocalBounds());
-    std::cout << "Ball pos: " << ballPos.x << ", " << ballPos.y << "\n";
     return ball;
 }
 Entity EntityFactory::createBallShadow(Registry& registry, const Vec2& pos, const Vec2& vel) {
@@ -91,7 +90,6 @@ Entity EntityFactory::createBallShadow(Registry& registry, const Vec2& pos, cons
     sf::Sprite& s = animComp.animation.getSprite();
     s.setOrigin(s.getLocalBounds().width / 2.f, s.getLocalBounds().height / 2.f);
 
-    registry.addComponent<BoundingBox>(ballShadow, s.getLocalBounds());
 
     return ballShadow;
 }

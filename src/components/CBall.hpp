@@ -1,15 +1,17 @@
 #pragma once
-#include "../components/CBallShadow.hpp"
-class CBall : public Component
-{
+#include "../ecs/Entity.hpp"
+#include "../ecs/Component.hpp" // make sure Component is included
+
+class CBall : public Component {
 public:
-	float ballHeight;
-	CBallShadow m_ballShadow;
-	const float getBallHeight() const {
-		return ballHeight;
-	}
-	CBall() {}
-	CBall(CBallShadow ballShadow)
-		:m_ballShadow(ballShadow)
-	{}
+    float ballHeight = 0.f;
+    Entity ballShadow;
+
+    CBall() = default;
+
+    explicit CBall(const Entity& shadow, float height = 0.f)
+        : ballHeight(height), ballShadow(shadow) {
+    }
+
+    float getBallHeight() const { return ballHeight; }
 };

@@ -6,7 +6,7 @@
 #include <SFML/Graphics.hpp>
 #include <iostream>
 BoundarySystem Boundaries;
-
+BallGravitySystem BallGravity;
 void MovementSystem::update(Registry& registry, sf::RenderWindow& window, sf::Time dt) {
     for (auto e : registry.getEntitiesWith<CTransform, Velocity>()) {
         auto* transform = registry.getComponent<CTransform>(e);
@@ -14,10 +14,9 @@ void MovementSystem::update(Registry& registry, sf::RenderWindow& window, sf::Ti
         if (transform && velocity) {
             transform->position += velocity->velocity * dt.asSeconds();
         }
-        BallGravitySystem.update(registry, window);
-        Boundaries.update(registry, window);
     }
-  
+    /*BallGravity.update(registry);*/
+    Boundaries.update(registry, window);
 
 }
 

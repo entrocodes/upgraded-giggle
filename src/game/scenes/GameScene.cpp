@@ -6,7 +6,7 @@ GameScene::GameScene(GameEngine* gameEngine)
 {
     entityFactory.createBackground(registry);
     entityFactory.createPlayer(registry);
-    entityFactory.createBall(registry, {4,4}, {0,0}, .8);
+    entityFactory.createBall(registry, {4,4}, {0,0}, 1);
 }
 
 

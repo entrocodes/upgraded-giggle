@@ -5,5 +5,5 @@
 
 class BallGravitySystem {
 public:
-    void update(Registry& registry, sf::RenderWindow& window);
+    void update(Registry& registry);
 };

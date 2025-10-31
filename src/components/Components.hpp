@@ -8,3 +8,5 @@
 #include "CAnimation.hpp"
 #include "CEnemy.hpp"
 #include "CState.hpp"
+#include "CBallShadow.hpp"
+#include "CBall.hpp"
