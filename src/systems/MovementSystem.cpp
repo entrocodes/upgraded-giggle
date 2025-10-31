@@ -1,5 +1,6 @@
 #include "MovementSystem.hpp"
 #include "BoundarySystem.hpp"
+#include "BallGravitySystem.hpp"
 #include "../ecs/Registry.hpp"
 #include "../components/Components.hpp"
 #include <SFML/Graphics.hpp>
@@ -13,6 +14,7 @@ void MovementSystem::update(Registry& registry, sf::RenderWindow& window, sf::Ti
         if (transform && velocity) {
             transform->position += velocity->velocity * dt.asSeconds();
         }
+        BallGravitySystem.update(registry, window);
         Boundaries.update(registry, window);
     }
   

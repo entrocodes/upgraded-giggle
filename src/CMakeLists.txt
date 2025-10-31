@@ -7,7 +7,7 @@ add_executable(PixelPong
     game/utils/Assets.cpp
     game/utils/Animation.cpp
     ecs/Registry.cpp
-    systems/RenderBallShadow.cpp
+    systems/BallGravitySystem.cpp
     systems/RenderSystem.cpp
     systems/InputSystem.cpp
     systems/PlayerInputSystem.cpp
