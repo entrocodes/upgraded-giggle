@@ -3,25 +3,31 @@
 #include "../components/Components.hpp"
 #include "../ecs/Entity.hpp"
 #include "../debug/Debug.hpp"
+#include "../math/GridTransform.hpp"
+#include <iostream>
 void BallGravitySystem::update(Registry& registry) {
     for (auto e : registry.getEntitiesWith<CBall, CTransform>()) {
         auto* transform = registry.getComponent<CTransform>(e);
         auto* ballComp = registry.getComponent<CBall>(e);
-
-        if (!transform || !ballComp) continue; // safety check
-
+        if (!transform || !ballComp) {
+            std::cout << "transform or ball component doesn't exist" << std::endl;
+            continue; // safety check
+        }
         // Access the shadow entity
         Entity shadowEntity = ballComp->ballShadow;
         auto* shadowTransform = registry.getComponent<CTransform>(shadowEntity);
-
+        Vec2 shadowPos = shadowTransform->position;
         // Safety check (shadow might have been destroyed or not have a CTransform)
-        if (!shadowTransform) continue;
+        if (!shadowTransform) {
+            std::cout << "shadow component doesn't exist" << std::endl;
+            continue;
+        }
 
         float& ballHeight = ballComp->ballHeight;
 
         if (ballHeight > 0.f) {
-            /*ballHeight -= 0.0005f;*/
-            transform->position = shadowTransform->position + Vec2(0.f, ballHeight);
+            ballHeight -= Grid::toWorldX(0.001f);
+            transform->position = shadowPos - Vec2(0.f, ballHeight);
         }
         else {
             ballHeight = 0.f;
@@ -29,7 +35,7 @@ void BallGravitySystem::update(Registry& registry) {
         }
         /*shadowTransform->scale = Vec2(ballHeight * 3, ballHeight * 3);*/ //adjust
         Debug::debugPrint("Ball Position", transform->position);
-        Debug::debugPrint("Ball Shadow Position", shadowTransform->position);
+        Debug::debugPrint("Ball Shadow Position", shadowPos);
         Debug::debugPrint("Ball Height", ballHeight);
         Debug::debugPrint("Ball Shadow Scale", shadowTransform->scale);
     }

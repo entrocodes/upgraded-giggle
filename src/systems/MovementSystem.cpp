@@ -15,7 +15,7 @@ void MovementSystem::update(Registry& registry, sf::RenderWindow& window, sf::Ti
             transform->position += velocity->velocity * dt.asSeconds();
         }
     }
-    /*BallGravity.update(registry);*/
+    BallGravity.update(registry);
     Boundaries.update(registry, window);
 
 }

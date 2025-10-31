@@ -39,7 +39,11 @@ namespace Grid
         int gridY = static_cast<int>((WORLD_HEIGHT - worldPos.y) / CELL_SIZE) - 1;
         return { static_cast<float>(gridX), static_cast<float>(gridY) };
     }
-
+    inline float fromWorld(const float worldPosX)
+    {
+        float gridX = static_cast<float>(worldPosX / CELL_SIZE);
+        return static_cast<float>(gridX);
+    }
     inline Vec2 centerOfScreen()
     {
         // Flip Y so it’s consistent with Grid’s bottom-left origin
