@@ -10,6 +10,7 @@
 #include "../systems/MetaInputSystem.hpp"
 #include "../input/RawInputState.hpp"
 #include "../imgui/ImGuiLayer.hpp"
+#include "../game/utils/Camera.hpp"
 #include "../math/Random.hpp"
 
 // Forward declare to avoid circular include
@@ -36,6 +37,7 @@ private:
     RawInputState rawInput;
     MetaInputState metaState;
     ImGuiLayer imgui;
+    Camera camera;
     sf::Clock deltaClock;
     int entitySpawnTimer = 0;
 };

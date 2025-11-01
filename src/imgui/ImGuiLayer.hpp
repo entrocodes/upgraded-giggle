@@ -4,11 +4,11 @@
 #include <SFML/System/Clock.hpp>    //  needed for sf::Clock
 #include <imgui.h>                  //  core ImGui
 #include <imgui-SFML.h>             //  ImGui-SFML bridge
-
+#include "../game/utils/Camera.hpp"
 class ImGuiLayer {
 public:
     void init(sf::RenderWindow& window);
     void update(sf::RenderWindow& window, sf::Time dt);
-    void render(Registry& registry);
+    void render(Registry& registry, Camera& camera);
     void shutdown();
 };

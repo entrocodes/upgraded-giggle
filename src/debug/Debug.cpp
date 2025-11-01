@@ -9,3 +9,6 @@ void Debug::debugPrint(std::string varName, int varValue) {
 void Debug::debugPrint(std::string varName, std::string varValue) {
 	std::cout << varName << ": " << varValue << std::endl;
 }
+void Debug::debugPrint(std::string str) {
+	std::cout << str << std::endl;
+}

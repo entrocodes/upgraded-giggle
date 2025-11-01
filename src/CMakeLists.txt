@@ -16,7 +16,9 @@ add_executable(PixelPong
     systems/GridDebugSystem.cpp
     systems/MovementSystem.cpp
     systems/BoundarySystem.cpp
+    systems/BallBounceSystem.cpp
     imgui/ImGuiLayer.cpp
+    math/TableHomography.cpp
 )
 
 target_include_directories(PixelPong PRIVATE src)
@@ -27,11 +29,6 @@ target_link_libraries(PixelPong
 )
 
 include(Install.cmake)
-
-add_custom_command(TARGET PixelPong POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    ${CMAKE_SOURCE_DIR}/assets $<TARGET_FILE_DIR:PixelPong>/assets
-)
 add_custom_command(TARGET PixelPong POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     ${CMAKE_SOURCE_DIR}/bin $<TARGET_FILE_DIR:PixelPong>/bin
