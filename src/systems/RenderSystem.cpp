@@ -1,7 +1,7 @@
 #include "RenderSystem.hpp"
 #include "../systems/GridDebugSystem.hpp"
 #include "../components/Components.hpp"
-
+#include "../debug/Debug.hpp"
 void RenderSystem::render(sf::RenderWindow& window, Registry& registry, const Camera& camera) {
     Vec2 windowSize{
         static_cast<float>(window.getSize().x),
