@@ -6,31 +6,60 @@
 #include "../math/GridTransform.hpp"
 #include <algorithm>
 #include <iostream>
-void BallGravitySystem::update(Registry& registry) {
+
+void BallGravitySystem::update(Registry& registry, float dt) {
+    const float pixelsPerMeter = 90; // tune this to match table/asset scale
+
     for (auto e : registry.getEntitiesWith<CBall, CTransform>()) {
         auto* transform = registry.getComponent<CTransform>(e);
         auto* ballComp = registry.getComponent<CBall>(e);
-        // Access the shadow entity
+        if (!transform || !ballComp) continue;
+
+        // Access shadow position
         Entity shadowEntity = ballComp->ballShadow;
         auto* shadowTransform = registry.getComponent<CTransform>(shadowEntity);
+        if (!shadowTransform) continue;
         Vec2 shadowPos = shadowTransform->position;
-        // Safety check (shadow might have been destroyed or not have a CTransform)
 
-        float& ballHeight = ballComp->ballHeight;
+        // Integrate gravity
+        ballComp->verticalVel -= ballComp->gravity * dt;         // velocity update
+        ballComp->ballHeight += ballComp->verticalVel * dt;      // position update
 
-        if (ballHeight > 0.f) {
-            ballHeight -= Grid::toWorldX(0.005f);
-            transform->position = shadowPos - Vec2(0.f, ballHeight);
+        if (shadowPos.y <= 494) {
+            // Bounce when hitting table (height <= 0)
+            if (ballComp->ballHeight <= 0.0f) {
+                ballComp->ballHeight = 0.0f;
+                ballComp->verticalVel = -ballComp->verticalVel * ballComp->restitution;
+
+                // Stop tiny residual bounces
+                if (std::abs(ballComp->verticalVel) < 0.5f)
+                    ballComp->verticalVel = 0.0f;
+            }
         }
         else {
-            ballHeight = 0.f;
-            transform->position = shadowTransform->position; // snap to ground
+            if (ballComp->ballHeight <= -20.0f) {
+                ballComp->ballHeight = -20.0f;
+                ballComp->verticalVel = -ballComp->verticalVel * ballComp->restitution;
+
+                // Stop tiny residual bounces
+                if (std::abs(ballComp->verticalVel) < 0.5f)
+                    ballComp->verticalVel = 0.0f;
+            }
         }
-        float shadowScale = std::max(2.0f, (1.0f - ballHeight * 0.1f) * 2);
-        shadowTransform->scale = Vec2(shadowScale, shadowScale); //adjust
-        //Debug::debugPrint("Ball Position", transform->position);
-        //Debug::debugPrint("Ball Shadow Position", shadowPos);
-        //Debug::debugPrint("Ball Height", ballHeight);
-        //Debug::debugPrint("Ball Shadow Scale", shadowTransform->scale);
+
+        // Apply vertical offset to sprite (Y goes up as height increases)
+        transform->position = shadowPos - Vec2(0.f, ballComp->ballHeight * pixelsPerMeter);
+
+        // Shadow scale (shrinks slightly as ball rises)
+        float shadowScale = std::max(0.5f, 1.5f - ballComp->ballHeight * 0.2f);
+        if (shadowPos.y <= 494) {
+            shadowTransform->scale = Vec2(shadowScale, shadowScale);
+        }
+        else {
+            shadowTransform->scale = Vec2(0, 0);
+        }
+        // Optional debugging
+         Debug::debugPrint("Ball Height", ballComp->ballHeight);
+         Debug::debugPrint("Vertical Velocity", ballComp->verticalVel);
     }
 }

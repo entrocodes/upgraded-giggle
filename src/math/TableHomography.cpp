@@ -1,31 +1,53 @@
-#include "TableHomography.hpp"
+﻿#include "TableHomography.hpp"
+#include "../debug/Debug.hpp"
+#include "../math/Vec2.hpp"
 #include <SFML/Graphics.hpp>
+#include <Eigen/Dense>
 #include <cmath>
 #include <iostream>
-#include "../debug/Debug.hpp"
+
 TableHomography::TableHomography() = default;
 
-// Helper to compute a simple affine transform approximation (not full perspective)
-static sf::Transform computeHomography(const std::array<Vec2, 4>& src, const std::array<Vec2, 4>& dst) {
-    sf::Transform t;
+// Compute full perspective homography using Eigen
+static Eigen::Matrix3f computeHomographyEigen(const std::array<Vec2, 4>& src, const std::array<Vec2, 4>& dst) {
+    Eigen::Matrix<float, 8, 8> A;
+    Eigen::Matrix<float, 8, 1> b;
 
-    // Compute scale using full table size in X/Y
-    float srcWidth = src[2].x - src[0].x; // 2.74 - 0 = 2.74
-    float srcHeight = src[1].y - src[0].y; // 1.525 - 0 = 1.525
+    for (int i = 0; i < 4; ++i) {
+        float x = src[i].x;
+        float y = src[i].y;
+        float X = dst[i].x;
+        float Y = dst[i].y;
 
-    float dstWidth = dst[2].x - dst[0].x;
-    float dstHeight = dst[1].y - dst[0].y;
+        A(2 * i, 0) = x;
+        A(2 * i, 1) = y;
+        A(2 * i, 2) = 1.0f;
+        A(2 * i, 3) = 0.0f;
+        A(2 * i, 4) = 0.0f;
+        A(2 * i, 5) = 0.0f;
+        A(2 * i, 6) = -x * X;
+        A(2 * i, 7) = -y * X;
+        b(2 * i, 0) = X;
 
-    float scaleX = dstWidth / srcWidth;
-    float scaleY = dstHeight / srcHeight;
+        A(2 * i + 1, 0) = 0.0f;
+        A(2 * i + 1, 1) = 0.0f;
+        A(2 * i + 1, 2) = 0.0f;
+        A(2 * i + 1, 3) = x;
+        A(2 * i + 1, 4) = y;
+        A(2 * i + 1, 5) = 1.0f;
+        A(2 * i + 1, 6) = -x * Y;
+        A(2 * i + 1, 7) = -y * Y;
+        b(2 * i + 1, 0) = Y;
+    }
 
-    Vec2 srcOrigin = src[0];
-    Vec2 dstOrigin = dst[0];
+    Eigen::Matrix<float, 8, 1> h = A.colPivHouseholderQr().solve(b);
 
-    t.scale(scaleX, scaleY);
-    t.translate(dstOrigin.x - srcOrigin.x * scaleX, dstOrigin.y - srcOrigin.y * scaleY);
+    Eigen::Matrix3f H;
+    H << h(0), h(1), h(2),
+        h(3), h(4), h(5),
+        h(6), h(7), 1.0f;
 
-    return t;
+    return H;
 }
 
 void TableHomography::calibrate(const std::array<Vec2, 4>& src, const std::array<Vec2, 4>& dst) {
@@ -33,67 +55,65 @@ void TableHomography::calibrate(const std::array<Vec2, 4>& src, const std::array
     dstPoints = dst;
 
     Debug::debugPrint("=== TableHomography::calibrate ===");
-
-    // Print all source (world) and destination (image) points
     for (int i = 0; i < 4; ++i) {
         Debug::debugPrint("src[" + std::to_string(i) + "]", src[i]);
         Debug::debugPrint("dst[" + std::to_string(i) + "]", dst[i]);
     }
 
-    H = computeHomography(src, dst);
-    H_inv = H.getInverse();
+    // Compute Eigen homography
+    H_eigen = computeHomographyEigen(src, dst);
+    H_inv_eigen = H_eigen.inverse();
 
-    // Debug: print matrices
-    Debug::debugPrint("Computed Homography (H)", H);
-    Debug::debugPrint("Inverse Homography (H_inv)", H_inv);
+    // Convert to sf::Transform for drawing
+    sf::Transform H_sf(
+        H_eigen(0, 0), H_eigen(0, 1), H_eigen(0, 2),
+        H_eigen(1, 0), H_eigen(1, 1), H_eigen(1, 2),
+        H_eigen(2, 0), H_eigen(2, 1), H_eigen(2, 2)
+    );
 
-    // Compute a simple determinant approximation to catch invalid matrices
-    const float* m = H.getMatrix();
-    float det = m[0] * (m[5] * m[15] - m[7] * m[13]) -
-        m[4] * (m[1] * m[15] - m[3] * m[13]) +
-        m[12] * (m[1] * m[7] - m[3] * m[5]);
+    H = H_sf;
+    H_inv = H_sf.getInverse();
+
+    Debug::debugPrint("Computed Homography (Eigen):", "--------------------------------");
+    std::cout << H_eigen << std::endl;
+
+    float det = H_eigen.determinant();
     Debug::debugPrint("Homography determinant", std::to_string(det));
 
-    // Validation
-    if (std::isnan(det) || std::abs(det) < 1e-6f) {
+    if (std::isnan(det) || std::abs(det) < 1e-6f)
         Debug::debugPrint("Warning", "Degenerate or invalid homography matrix!");
-    }
 
     calibrated = true;
-    Debug::debugPrint("Calibration complete", "Homography successfully initialized");
+    Debug::debugPrint("Calibration complete", "True perspective homography initialized");
 }
 
-
 Vec2 TableHomography::imageToWorld(const Vec2& p) const {
-    if (!calibrated) return p;
-    sf::Vector2f out = H.transformPoint(p.x, p.y);
-    return Vec2(out.x, out.y);
+    Eigen::Vector3f pi(p.x, p.y, 1.0f);
+    Eigen::Vector3f pw = H_eigen * pi;
+    return Vec2(pw(0) / pw(2), pw(1) / pw(2));
 }
 
 Vec2 TableHomography::worldToImage(const Vec2& p) const {
-    if (!calibrated) return p;
-    sf::Vector2f out = H_inv.transformPoint(p.x, p.y);
-    return Vec2(out.x, out.y);
+    Eigen::Vector3f pw(p.x, p.y, 1.0f);
+    Eigen::Vector3f pi = H_inv_eigen * pw;
+    return Vec2(pi(0) / pi(2), pi(1) / pi(2));
 }
-void TableHomography::drawDebugGrid(sf::RenderWindow& window, int divX, int divY) const {
-    if (!drawGrid) {
-        return;
-    }
 
+void TableHomography::drawDebugGrid(sf::RenderWindow& window, int divX, int divY) const{
     if (!calibrated) {
-        Debug::debugPrint("TableHomography", "not calibrated");
+        if (printDebug) {
+            Debug::debugPrint("TableHomography", "not calibrated");
+        }
         return;
     }
 
     sf::VertexArray grid(sf::Lines);
 
-    float tableXRange = 2.74f;   // "width" of table (X direction)
-    float tableZRange = 1.525f;  // "depth" of table (Z direction)
-
-
-    Debug::debugPrint("Table size (X,Z)", Vec2(tableXRange, tableZRange));
-
-    // Track a flag to verify if any valid points were drawn
+    float tableXRange = 2.74f;   // Table width (X)
+    float tableZRange = 1.525f;  // Table depth (Y)
+    if (printDebug) {
+        Debug::debugPrint("Table size (X,Z)", Vec2(tableXRange, tableZRange));
+    }
     bool drewSomething = false;
 
     for (int i = 0; i <= divX; i++) {
@@ -103,8 +123,7 @@ void TableHomography::drawDebugGrid(sf::RenderWindow& window, int divX, int divY
         Vec2 startScreen = worldToImage(start);
         Vec2 endScreen = worldToImage(end);
 
-        // Print only the first and last line to avoid spam
-        if (i == 0 || i == divX) {
+        if ((i == 0 || i == divX) && printDebug) {
             Debug::debugPrint("Vertical Line Start", startScreen);
             Debug::debugPrint("Vertical Line End", endScreen);
         }
@@ -116,9 +135,6 @@ void TableHomography::drawDebugGrid(sf::RenderWindow& window, int divX, int divY
             grid.append(sf::Vertex({ endScreen.x, endScreen.y }, sf::Color(0, 255, 0, 120)));
             drewSomething = true;
         }
-        else {
-            Debug::debugPrint("Invalid transform for vertical line", i);
-        }
     }
 
     for (int j = 0; j <= divY; j++) {
@@ -129,7 +145,7 @@ void TableHomography::drawDebugGrid(sf::RenderWindow& window, int divX, int divY
         Vec2 startScreen = worldToImage(start);
         Vec2 endScreen = worldToImage(end);
 
-        if (j == 0 || j == divY) {
+        if ((j == 0 || j == divY) && printDebug) {
             Debug::debugPrint("Horizontal Line Start", startScreen);
             Debug::debugPrint("Horizontal Line End", endScreen);
         }
@@ -141,17 +157,9 @@ void TableHomography::drawDebugGrid(sf::RenderWindow& window, int divX, int divY
             grid.append(sf::Vertex({ endScreen.x, endScreen.y }, sf::Color(0, 255, 0, 120)));
             drewSomething = true;
         }
-        else {
-            Debug::debugPrint("Invalid transform for horizontal line", j);
-        }
     }
 
-    if (drewSomething) {
+    if (drewSomething)
         window.draw(grid);
-        Debug::debugPrint("drawDebugGrid", "Grid successfully drawn");
-    }
-    else {
-        Debug::debugPrint("drawDebugGrid", "No valid vertices to draw");
-    }
+    printDebug = false;
 }
-

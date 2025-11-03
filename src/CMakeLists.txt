@@ -22,6 +22,7 @@ add_executable(PixelPong
 )
 
 target_include_directories(PixelPong PRIVATE src)
+target_link_libraries(PixelPong PRIVATE Eigen3::Eigen)
 
 target_link_libraries(PixelPong
   PUBLIC

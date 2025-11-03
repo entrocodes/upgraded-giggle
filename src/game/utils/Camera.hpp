@@ -22,29 +22,14 @@ public:
 
     // Transform a world point to screen coordinates using homography and camera
     Vec2 worldToScreen(const Vec2& worldPos, const Vec2& windowSize) const {
-        //Vec2 p = homography.worldToImage(worldPos);
-        //p = (p - position) * zoom + windowSize * 0.5f; // center and scale
-        //return p;
-        Vec2 p = (worldPos - position) * zoom + windowSize * 0.5f;
+        Vec2 p = homography.worldToImage(worldPos);
+        p = (p - position) * zoom + windowSize * 0.5f; // center and scale
         return p;
     }
 
     // Optional: inverse, screen -> world
     Vec2 screenToWorld(const Vec2& screenPos, const Vec2& windowSize) const {
-        //Vec2 p = (screenPos - windowSize * 0.5f) / zoom + position;
-        //return homography.imageToWorld(p);
         Vec2 p = (screenPos - windowSize * 0.5f) / zoom + position;
-        return p;
+        return homography.imageToWorld(p);
     }
-    //Vec2 worldToScreenTest(const Vec2& worldPos, const Vec2& windowSize) const {
-    //    Vec2 p = homography.worldToImage(worldPos);
-    //    p = (p - position) * zoom + windowSize * 0.5f; // center and scale
-    //    return p;
-    //}
-
-    //// Optional: inverse, screen -> world
-    //Vec2 screenToWorldTest(const Vec2& screenPos, const Vec2& windowSize) const {
-    //    Vec2 p = (screenPos - windowSize * 0.5f) / zoom + position;
-    //    return homography.imageToWorld(p);
-    //}
 };

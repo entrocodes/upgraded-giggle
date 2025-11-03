@@ -1,7 +1,8 @@
-#pragma once
+ï»¿#pragma once
 #include "../math/Vec2.hpp"
 #include <SFML/Graphics.hpp>
 #include <array>
+#include <Eigen/Dense>
 
 class TableHomography {
 public:
@@ -11,13 +12,17 @@ public:
     // Corresponding real-world coordinates (in meters)
     std::array<Vec2, 4> dstPoints;
 
-    // Computed transform matrices (still using SFML under the hood)
-    sf::Transform H;      // image ¡ú world
-    sf::Transform H_inv;  // world ¡ú image
+    // SFML transforms (for rendering convenience)
+    sf::Transform H;      // image â†’ world
+    sf::Transform H_inv;  // world â†’ image
+
+    // True 3x3 perspective matrices (used internally)
+    Eigen::Matrix3f H_eigen;      // image â†’ world
+    Eigen::Matrix3f H_inv_eigen;  // world â†’ image
 
     bool calibrated = false;
-
-public:
+    bool drawGrid = false;
+    mutable bool printDebug = true;
     TableHomography();
 
     // Assign corners and compute the homography
@@ -28,6 +33,5 @@ public:
     Vec2 worldToImage(const Vec2& p) const;
 
     // Debug draw
-    void drawDebugGrid(sf::RenderWindow& window, int divX = 10, int divY = 10) const;
-    bool drawGrid = false;
+    void drawDebugGrid(sf::RenderWindow& window, int divX = 10, int divY = 10) const ;
 };

@@ -31,13 +31,18 @@ void RenderSystem::render(sf::RenderWindow& window, Registry& registry, const Ca
         // Vec2 screenPos = camera.worldToScreen(transformComp->position, windowSize);
         // sprite.setPosition(screenPos.x, screenPos.y);
         // sprite.setScale(transformComp->scale.x * camera.zoom, transformComp->scale.y * camera.zoom);
-        // Optional debug grid
-        if (gGridDebug.drawGrid) {
-            gGridDebug.debugShowGrid(window);
-        }
+
         window.draw(sprite);
     }
-    camera.homography.drawDebugGrid(window, 10, 5);
+    if (gGridDebug.drawGrid) {
+        gGridDebug.debugShowGrid(window);
+    }
+    if (camera.homography.drawGrid) {
+        camera.homography.drawDebugGrid(window, 10, 5);
+    }
+    else {
+        camera.homography.printDebug = true; // this will reenable the debug message to print on the first frame the grid is displayed
+    }
     // --- Optional: reset view if drawing UI later ---
     window.setView(window.getDefaultView());
 }

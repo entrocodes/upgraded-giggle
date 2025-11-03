@@ -5,6 +5,9 @@
 class CBall : public Component {
 public:
     float ballHeight = 0.f;
+    float verticalVel = 0.f;
+    float gravity = 9.8f;      // m/s² (tune for your world scale)
+    float restitution = 0.8f;
     Entity ballShadow;
 
     CBall() = default;

@@ -32,7 +32,7 @@ Entity EntityFactory::createPlayer(Registry& registry) {
 
     // Transform
     auto& transform = registry.addComponent<CTransform>(player);
-    transform.position = Grid::toWorldCentered(4, 1);
+    transform.position = Grid::toWorldCentered(4, 1.4);
     transform.scale = { 1.5f, 1.5f };
 
     // Gameplay components
@@ -58,7 +58,7 @@ Entity EntityFactory::createBall(Registry& registry, const Vec2& pos, const Vec2
     Entity ballShadow = EntityFactory::createBallShadow(registry, pos, vel);
 
     Entity ball = registry.createEntity();
-    Vec2 ballPos = Grid::toWorldCentered(pos.x, pos.y + height);
+    Vec2 ballPos = Grid::toWorldCentered(pos.x, pos.y);
     Vec2 ballScale = { 0.12f, 0.12f };
     auto& transform = registry.addComponent<CTransform>(ball, ballPos, ballScale, 0.f);
     registry.addComponent<Velocity>(ball, vel);

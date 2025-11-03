@@ -5,10 +5,12 @@
 #include <imgui.h>                  //  core ImGui
 #include <imgui-SFML.h>             //  ImGui-SFML bridge
 #include "../game/utils/Camera.hpp"
+#include "../game/EntityFactory.hpp"
 class ImGuiLayer {
 public:
     void init(sf::RenderWindow& window);
     void update(sf::RenderWindow& window, sf::Time dt);
-    void render(Registry& registry, Camera& camera);
+    void render(Registry& registry, Camera& camera, EntityFactory& entityFactory);
     void shutdown();
 };
+

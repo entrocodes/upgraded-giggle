@@ -5,5 +5,5 @@
 
 class BallGravitySystem {
 public:
-    void update(Registry& registry);
+    void update(Registry& registry, float dt);
 };

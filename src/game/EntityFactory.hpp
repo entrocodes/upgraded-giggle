@@ -14,6 +14,7 @@ public:
     Entity createBallShadow(Registry& registry, const Vec2& pos, const Vec2& vel);
     Entity createBall(Registry& registry, const Vec2& pos, const Vec2& vel, const float height);
 
+    bool clickToSpawn = true;
 private:
     GameEngine* m_game;
 };
