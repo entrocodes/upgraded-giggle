@@ -11,11 +11,11 @@ EntityFactory::EntityFactory(GameEngine* gameEngine)
 {
 }
 
-Entity EntityFactory::createBackground(Registry& registry) {
+Entity EntityFactory::createBackground(Registry& registry, Display& display) {
     Entity background = registry.createEntity();
 
     auto& transform = registry.addComponent<CTransform>(background);
-    transform.position = Grid::centerOfScreen();
+    transform.position = Grid::centerOfScreen(display);
     transform.scale = { 2.f, 2.f };
     const Animation& roomAnim = m_game->assets().getAnimation("OrangeRoom");
     auto& animComp = registry.addComponent<CAnimation>(background, roomAnim, false);
@@ -27,12 +27,12 @@ Entity EntityFactory::createBackground(Registry& registry) {
     return background;
 }
 
-Entity EntityFactory::createPlayer(Registry& registry) {
+Entity EntityFactory::createPlayer(Registry& registry, DisplayConfig& display) {
     Entity player = registry.createEntity();
 
     // Transform
     auto& transform = registry.addComponent<CTransform>(player);
-    transform.position = Grid::toWorldCentered(4, 1.4);
+    transform.position = Grid::toWorldCentered(display, 4, 1.4);
     transform.scale = { 1.5f, 1.5f };
 
     // Gameplay components
@@ -54,11 +54,11 @@ Entity EntityFactory::createPlayer(Registry& registry) {
 
     return player;
 }
-Entity EntityFactory::createBall(Registry& registry, const Vec2& pos, const Vec2& vel, const float height) {
-    Entity ballShadow = EntityFactory::createBallShadow(registry, pos, vel);
+Entity EntityFactory::createBall(Registry& registry, const Vec2& pos, const Vec2& vel, const float height, Display& display) {
+    Entity ballShadow = EntityFactory::createBallShadow(registry, pos, vel, display);
 
     Entity ball = registry.createEntity();
-    Vec2 ballPos = Grid::toWorldCentered(pos.x, pos.y);
+    Vec2 ballPos = Grid::toWorldCentered(display, pos.x, pos.y);
     Vec2 ballScale = { 0.12f, 0.12f };
     auto& transform = registry.addComponent<CTransform>(ball, ballPos, ballScale, 0.f);
     registry.addComponent<Velocity>(ball, vel);
@@ -74,11 +74,11 @@ Entity EntityFactory::createBall(Registry& registry, const Vec2& pos, const Vec2
     registry.addComponent<BoundingBox>(ball, s.getLocalBounds());
     return ball;
 }
-Entity EntityFactory::createBallShadow(Registry& registry, const Vec2& pos, const Vec2& vel) {
+Entity EntityFactory::createBallShadow(Registry& registry, const Vec2& pos, const Vec2& vel, Display& display) {
     Entity ballShadow = registry.createEntity();
 
     // Transform
-    auto& transform = registry.addComponent<CTransform>(ballShadow, Grid::toWorldCentered(pos.x, pos.y), Vec2(2.0f,2.0f), 0.f);
+    auto& transform = registry.addComponent<CTransform>(ballShadow, Grid::toWorldCentered(display, pos.x, pos.y), Vec2(2.0f,2.0f), 0.f);
 
     // Motion & gameplay
     registry.addComponent<Velocity>(ballShadow, vel);

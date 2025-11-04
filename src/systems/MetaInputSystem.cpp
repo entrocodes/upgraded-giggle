@@ -1,7 +1,7 @@
 #include "MetaInputSystem.hpp"
 #include "../debug/Debug.hpp"
 #include "../math/GridTransform.hpp"
-void MetaInputSystem::update(const RawInputState& rawInput, MetaInputState& state, Registry& registry, EntityFactory& entityFactory) {
+void MetaInputSystem::update(const RawInputState& rawInput, MetaInputState& state, Registry& registry, DisplayConfig& display, EntityFactory& entityFactory) {
     // Quit on Escape
     if (rawInput.isKeyDown(sf::Keyboard::Escape)) {
         state.quit = true;
@@ -25,7 +25,7 @@ void MetaInputSystem::update(const RawInputState& rawInput, MetaInputState& stat
         state.mouseClickPos = rawInput.mousePosition;
         Debug::debugPrint("Mouse Position", state.mouseClickPos);
         if (entityFactory.clickToSpawn) {
-            entityFactory.createBall(registry, Grid::fromWorld(state.mouseClickPos), { 0, entityFactory.debugBallVelocity }, entityFactory.debugBallHeight);
+            entityFactory.createBall(registry, Grid::fromWorld(display, state.mouseClickPos), { 0, entityFactory.debugBallVelocity }, entityFactory.debugBallHeight);
         }
         
     }

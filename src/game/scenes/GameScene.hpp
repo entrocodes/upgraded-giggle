@@ -18,11 +18,11 @@ class GameEngine;
 
 class GameScene : public Scene {
 public:
-    explicit GameScene(GameEngine* gameEngine);
+    explicit GameScene(GameEngine* gameEngine, DisplayConfig& display);
 
-    void handleInput(sf::RenderWindow& window) override;
-    void update(sf::RenderWindow& window, sf::Time dt) override;
-    void render(sf::RenderWindow& window) override;
+    void handleInput(sf::RenderWindow& window, DisplayConfig& display) override;
+    void update(sf::RenderWindow& window, DisplayConfig& display, sf::Time dt) override;
+    void render(sf::RenderWindow& window, DisplayConfig& display) override;
 
 private:
     GameEngine* m_game = nullptr;

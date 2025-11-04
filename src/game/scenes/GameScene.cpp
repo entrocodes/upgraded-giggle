@@ -7,7 +7,7 @@
 #include "../game/GameEngine.hpp"
 #include <array>
 
-GameScene::GameScene(GameEngine* gameEngine)
+GameScene::GameScene(GameEngine* gameEngine, DisplayConfig& display)
     : entityFactory(gameEngine)
 {
     // Pixel coordinates (image space)
@@ -29,19 +29,19 @@ GameScene::GameScene(GameEngine* gameEngine)
     // Correct order: image → world
     camera.homography.calibrate(imagePoints, worldPoints);
 
-    entityFactory.createBackground(registry);
+    entityFactory.createBackground(registry, display);
     entityFactory.createBall(registry, { 4, 4 }, { 0, 40 }, .007);
     entityFactory.createPlayer(registry);
 }
 
 
 
-void GameScene::handleInput(sf::RenderWindow& window) {
+void GameScene::handleInput(sf::RenderWindow& window, DisplayConfig& display) {
     inputSystem.update(window, rawInput);
-    metaInput.update(rawInput, metaState, registry, entityFactory);
+    metaInput.update(rawInput, metaState, registry, display, entityFactory);
 }
 
-void GameScene::update(sf::RenderWindow& window, sf::Time dt) {
+void GameScene::update(sf::RenderWindow& window, DisplayConfig& display, sf::Time dt) {
     if (metaState.quit) {
         window.close();
         return;
@@ -52,11 +52,11 @@ void GameScene::update(sf::RenderWindow& window, sf::Time dt) {
     imgui.update(window, dt);
     if (!metaState.paused) {
         entitySpawnTimer++;
-        movement.update(registry, window, dt);
+        movement.update(registry, window, display, dt);
     }
 }
 
-void GameScene::render(sf::RenderWindow& window) {
-    renderer.render(window, registry, camera);
-    imgui.render(registry, camera, entityFactory);
+void GameScene::render(sf::RenderWindow& window, DisplayConfig& display) {
+    renderer.render(window, registry, display, camera);
+    imgui.render(registry, camera, entityFactory, display);
 }

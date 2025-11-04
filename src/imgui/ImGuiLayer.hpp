@@ -1,16 +1,17 @@
 #pragma once
 #include "../ecs/Registry.hpp"
 #include <SFML/Graphics/RenderWindow.hpp>
-#include <SFML/System/Clock.hpp>    //  needed for sf::Clock
-#include <imgui.h>                  //  core ImGui
-#include <imgui-SFML.h>             //  ImGui-SFML bridge
+#include <SFML/System/Clock.hpp>
+#include <imgui.h>
+#include <imgui-SFML.h>
 #include "../game/utils/Camera.hpp"
 #include "../game/EntityFactory.hpp"
+#include "../display/DisplayConfig.hpp"
+
 class ImGuiLayer {
 public:
     void init(sf::RenderWindow& window);
     void update(sf::RenderWindow& window, sf::Time dt);
-    void render(Registry& registry, Camera& camera, EntityFactory& entityFactory);
+    void render(Registry& registry, Camera& camera, EntityFactory& entityFactory, const DisplayConfig& display);
     void shutdown();
 };
-

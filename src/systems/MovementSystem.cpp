@@ -9,7 +9,7 @@
 BoundarySystem Boundaries;
 BallGravitySystem BallGravity;
 BallBounceSystem BallBounce;
-void MovementSystem::update(Registry& registry, sf::RenderWindow& window, sf::Time dt) {
+void MovementSystem::update(Registry& registry, sf::RenderWindow& window, DisplayConfig& display, sf::Time dt) {
     BallGravity.update(registry, dt.asSeconds()); //currently handles gravity and bounce
     //BallBounce.update(registry);
     for (auto e : registry.getEntitiesWith<CTransform, Velocity>()) {
@@ -31,7 +31,7 @@ void MovementSystem::update(Registry& registry, sf::RenderWindow& window, sf::Ti
             }
         }
     }
-    Boundaries.update(registry, window);
+    Boundaries.update(registry, window, display);
 
 }
 

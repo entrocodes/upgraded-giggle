@@ -1,7 +1,7 @@
 #include "BoundarySystem.hpp"
 #include "../ecs/Registry.hpp"
 #include "../math/GridTransform.hpp"
-void BoundarySystem::update(Registry& registry, sf::RenderWindow& window) {
+void BoundarySystem::update(Registry& registry, sf::RenderWindow& window, DisplayConfig& display) {
     for (auto e : registry.getEntitiesWith<CTransform, BoundingBox, Velocity>()) {
         auto* transform = registry.getComponent<CTransform>(e);
         auto* boundingBox = registry.getComponent<BoundingBox>(e);
@@ -12,15 +12,15 @@ void BoundarySystem::update(Registry& registry, sf::RenderWindow& window) {
             //float playerLowerY = transform->position.y + boundingBox->rect.height / 2;
             //float playerUpperY = transform->position.y - boundingBox->rect.height / 2;
             Vec2 windowSize = Vec2(window.getSize().x, window.getSize().y);
-            if (playerLeftX <= Grid::toWorldX(1.8)) {
+            if (playerLeftX <= Grid::toWorldX(display, 1.8)) {
                 if (velocity->velocity.x < 0) {
-                    transform->position.x = Grid::toWorldX(1.8) + boundingBox->rect.width / 2;
+                    transform->position.x = Grid::toWorldX(display, 1.8) + boundingBox->rect.width / 2;
                 }
                 
             }
-            else if (playerRightX >= Grid::toWorldX(8)) {
+            else if (playerRightX >= Grid::toWorldX(display, 8)) {
                 if (velocity->velocity.x > 0) {
-                    transform->position.x = Grid::toWorldX(8) - boundingBox->rect.width / 2;
+                    transform->position.x = Grid::toWorldX(display, 8) - boundingBox->rect.width / 2;
                 }
             }
             //if (playerUpperY <= 0) {

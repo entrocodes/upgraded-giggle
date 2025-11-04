@@ -2,7 +2,7 @@
 #include "../systems/GridDebugSystem.hpp"
 #include "../components/Components.hpp"
 #include "../debug/Debug.hpp"
-void RenderSystem::render(sf::RenderWindow& window, Registry& registry, const Camera& camera) {
+void RenderSystem::render(sf::RenderWindow& window, Registry& registry, DisplayConfig& display, const Camera& camera) {
     Vec2 windowSize{
         static_cast<float>(window.getSize().x),
         static_cast<float>(window.getSize().y)
@@ -35,7 +35,7 @@ void RenderSystem::render(sf::RenderWindow& window, Registry& registry, const Ca
         window.draw(sprite);
     }
     if (gGridDebug.drawGrid) {
-        gGridDebug.debugShowGrid(window);
+        gGridDebug.debugShowGrid(window, display);
     }
     if (camera.homography.drawGrid) {
         camera.homography.drawDebugGrid(window, 10, 5);

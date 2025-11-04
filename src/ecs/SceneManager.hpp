@@ -18,16 +18,16 @@ public:
         }
     }
 
-    void handleInput(sf::RenderWindow& window) {
-        if (m_current) m_current->handleInput(window);
+    void handleInput(sf::RenderWindow& window, DisplayConfig& display) {
+        if (m_current) m_current->handleInput(window, display);
     }
 
-    void update(sf::RenderWindow& window, sf::Time dt) {
-        if (m_current) m_current->update(window, dt);
+    void update(sf::RenderWindow& window, DisplayConfig& display, sf::Time dt) {
+        if (m_current) m_current->update(window, display, dt);
     }
 
-    void render(sf::RenderWindow& window) {
-        if (m_current) m_current->render(window);
+    void render(sf::RenderWindow& window, DisplayConfig& display) {
+        if (m_current) m_current->render(window, display);
     }
 
 private:

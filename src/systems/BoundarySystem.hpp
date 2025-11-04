@@ -3,7 +3,8 @@
 #include "../components/Components.hpp"
 #include <SFML/System.hpp> // for sf::Time or deltaTime
 #include <SFML/Graphics.hpp>
+#include "../display/DisplayConfig.hpp"
 class BoundarySystem {
 public:
-    void update(Registry& registry, sf::RenderWindow& window);
+    void update(Registry& registry, sf::RenderWindow& window, DisplayConfig& display);
 };
