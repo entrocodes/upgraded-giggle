@@ -25,7 +25,7 @@ void MetaInputSystem::update(const RawInputState& rawInput, MetaInputState& stat
         state.mouseClickPos = rawInput.mousePosition;
         Debug::debugPrint("Mouse Position", state.mouseClickPos);
         if (entityFactory.clickToSpawn) {
-            entityFactory.createBall(registry, Grid::fromWorld(state.mouseClickPos), { 0, 40 }, .007);
+            entityFactory.createBall(registry, Grid::fromWorld(state.mouseClickPos), { 0, entityFactory.debugBallVelocity }, entityFactory.debugBallHeight);
         }
         
     }

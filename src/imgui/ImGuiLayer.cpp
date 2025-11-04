@@ -15,6 +15,8 @@ void ImGuiLayer::render(Registry& registry, Camera& camera, EntityFactory& entit
     // Toggle GridDebugSystem
     ImGui::Checkbox("Show Grid", &gGridDebug.drawGrid);
     ImGui::Checkbox("Show Homography Grid", &camera.homography.drawGrid);
+    ImGui::SliderFloat("Ball Height", &entityFactory.debugBallHeight, 0, .04);
+    ImGui::SliderFloat("Ball Velocity", &entityFactory.debugBallVelocity, -100, 200);
     ImGui::Checkbox("Click to spawn ball", &entityFactory.clickToSpawn);
     ImGui::Text("Entities: %d", registry.getEntityCount());
     //ImGui::Checkbox("Entity Drag Mode", &gEntityDrag.dragMode);

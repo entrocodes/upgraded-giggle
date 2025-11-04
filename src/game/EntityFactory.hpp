@@ -14,6 +14,8 @@ public:
     Entity createBallShadow(Registry& registry, const Vec2& pos, const Vec2& vel);
     Entity createBall(Registry& registry, const Vec2& pos, const Vec2& vel, const float height);
 
+    float debugBallHeight = 0.f;
+    float debugBallVelocity = 0.f;
     bool clickToSpawn = true;
 private:
     GameEngine* m_game;
