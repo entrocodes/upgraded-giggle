@@ -22,7 +22,7 @@ namespace Grid
         float worldY = static_cast<float>(display.logicalSize.y) - (gridY + 1) * c;
         return { worldX, worldY };
     }
-    inline Vec2 toWorld(const DisplayConfig& display, float gridX)
+    inline float toWorldX(const DisplayConfig& display, float gridX)
     {
         float c = cellSize(display);
         float worldX = gridX * c;

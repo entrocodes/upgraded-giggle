@@ -1,6 +1,7 @@
 ﻿#include "GameEngine.hpp"
 #include "scenes/GameScene.hpp"
 #include "../imgui/ImGuiLayer.hpp"
+
 GameEngine::GameEngine()
     : m_window(sf::VideoMode(m_display.windowSize.x, m_display.windowSize.y), "PixelPong")
 {
@@ -10,6 +11,8 @@ GameEngine::GameEngine()
 }
 
 void GameEngine::run() {
+    m_window.setVerticalSyncEnabled(true);
+
     sf::Clock deltaClock;
     ImGui::SFML::Init(m_window);
 
@@ -33,8 +36,6 @@ void GameEngine::run() {
             case sf::Event::Resized:
                 handleResize(event.size.width, event.size.height);
 
-                // Optional but helpful: re-init ImGui fonts after context change
-                ImGui::SFML::UpdateFontTexture();
                 break;
 
             default:
@@ -46,6 +47,7 @@ void GameEngine::run() {
         m_display.updateFromWindow(m_window);
 
         // --- Update ImGui + game scene ---
+
         ImGui::SFML::Update(m_window, dt);
         m_sceneManager.handleInput(m_window, m_display);
         m_sceneManager.update(m_window, m_display, dt);
@@ -68,26 +70,26 @@ sf::RenderWindow& GameEngine::window() {
     return m_window;
 }
 
+void GameEngine::handleResize(float width, float height) {
+    m_display.windowSize = { width, height };
+    m_display.updateFromWindow(m_window);
+    ImGui::GetIO().DisplaySize = ImVec2(width, height);
+
+}
+
 void GameEngine::toggleFullscreen() {
+    ImGui::SFML::Shutdown();
     m_display.fullscreen = !m_display.fullscreen;
     m_window.close();
 
-    if (m_display.fullscreen) {
+    if (m_display.fullscreen)
         m_window.create(sf::VideoMode::getDesktopMode(), "PixelPong", sf::Style::Fullscreen);
-    }
-    else {
-        m_window.create(sf::VideoMode(m_display.windowSize.x, m_display.windowSize.y), "PixelPong ECS");
-    }
+    else
+        m_window.create(sf::VideoMode(m_display.windowSize.x, m_display.windowSize.y), "PixelPong");
 
     ImGui::SFML::Init(m_window);
+
     m_display.updateFromWindow(m_window);
 }
 
-void GameEngine::handleResize(unsigned width, unsigned height) {
-    m_display.windowSize = { width, height };
-    m_display.updateFromWindow(m_window);
-    ImGui::GetIO().DisplaySize = ImVec2(m_display.windowSize.x, m_display.windowSize.y);
 
-    sf::View view(sf::FloatRect(0.f, 0.f, m_display.logicalSize.x, m_display.logicalSize.y));
-    m_window.setView(view);
-}

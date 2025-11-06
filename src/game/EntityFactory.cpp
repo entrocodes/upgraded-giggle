@@ -5,25 +5,35 @@
 #include <SFML/Graphics.hpp>
 #include <memory>
 #include <iostream>
+#include "../debug/Debug.hpp" // at top
 
 EntityFactory::EntityFactory(GameEngine* gameEngine)
     : m_game(gameEngine)
 {
 }
 
-Entity EntityFactory::createBackground(Registry& registry, Display& display) {
+Entity EntityFactory::createBackground(Registry& registry, DisplayConfig& display) {
     Entity background = registry.createEntity();
 
     auto& transform = registry.addComponent<CTransform>(background);
-    transform.position = Grid::centerOfScreen(display);
-    transform.scale = { 2.f, 2.f };
+
     const Animation& roomAnim = m_game->assets().getAnimation("OrangeRoom");
     auto& animComp = registry.addComponent<CAnimation>(background, roomAnim, false);
-
     // Ensure sprite origin is set and bounding box uses the animation sprite
     sf::Sprite& s = animComp.animation.getSprite();
     s.setOrigin(s.getLocalBounds().width / 2.f, s.getLocalBounds().height / 2.f);
+    auto texSize = s.getTexture()->getSize();
 
+    // Use logical size for scaling (not raw window pixels)
+    float scaleX = display.logicalSize.x / static_cast<float>(texSize.x);
+    float scaleY = display.logicalSize.y / static_cast<float>(texSize.y);
+    float uniformScale = std::min(scaleX, scaleY);
+
+    // Apply scale to transform, not directly to sprite
+    transform.scale = { uniformScale, uniformScale };
+
+    // Center in camera space
+    transform.position = { display.logicalSize.x / 2.f, display.logicalSize.y / 2.f };
     return background;
 }
 
@@ -54,7 +64,7 @@ Entity EntityFactory::createPlayer(Registry& registry, DisplayConfig& display) {
 
     return player;
 }
-Entity EntityFactory::createBall(Registry& registry, const Vec2& pos, const Vec2& vel, const float height, Display& display) {
+Entity EntityFactory::createBall(Registry& registry, const Vec2& pos, const Vec2& vel, const float height, DisplayConfig& display) {
     Entity ballShadow = EntityFactory::createBallShadow(registry, pos, vel, display);
 
     Entity ball = registry.createEntity();
@@ -74,7 +84,7 @@ Entity EntityFactory::createBall(Registry& registry, const Vec2& pos, const Vec2
     registry.addComponent<BoundingBox>(ball, s.getLocalBounds());
     return ball;
 }
-Entity EntityFactory::createBallShadow(Registry& registry, const Vec2& pos, const Vec2& vel, Display& display) {
+Entity EntityFactory::createBallShadow(Registry& registry, const Vec2& pos, const Vec2& vel, DisplayConfig& display) {
     Entity ballShadow = registry.createEntity();
 
     // Transform

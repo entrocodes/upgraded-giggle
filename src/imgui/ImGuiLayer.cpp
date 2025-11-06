@@ -6,9 +6,6 @@ void ImGuiLayer::init(sf::RenderWindow& window) {
     ImGui::SFML::Init(window);
 }
 
-void ImGuiLayer::update(sf::RenderWindow& window, sf::Time dt) {
-    ImGui::SFML::Update(window, dt);
-}
 
 void ImGuiLayer::render(Registry& registry, Camera& camera, EntityFactory& entityFactory, const DisplayConfig& display) {
     // Begin window (autosize flag helps prevent clipping)
@@ -24,7 +21,7 @@ void ImGuiLayer::render(Registry& registry, Camera& camera, EntityFactory& entit
     ImGui::Checkbox("Show Homography Grid", &camera.homography.drawGrid);
 
     // Gameplay controls
-    ImGui::SliderFloat("Ball Height", &entityFactory.debugBallHeight, 0.0f, 0.04f);
+    ImGui::SliderFloat("Ball Height", &entityFactory.debugBallHeight, 0.0f, 1.0f);
     ImGui::SliderFloat("Ball Velocity", &entityFactory.debugBallVelocity, -100.0f, 200.0f);
     ImGui::Checkbox("Click to Spawn Ball", &entityFactory.clickToSpawn);
 

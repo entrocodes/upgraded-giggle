@@ -9,7 +9,7 @@
 
 void BallGravitySystem::update(Registry& registry, float dt) {
     const float pixelsPerMeter = 90; // tune this to match table/asset scale
-
+    const float tableBottom = 504.f;
     for (auto e : registry.getEntitiesWith<CBall, CTransform>()) {
         auto* transform = registry.getComponent<CTransform>(e);
         auto* ballComp = registry.getComponent<CBall>(e);
@@ -25,7 +25,7 @@ void BallGravitySystem::update(Registry& registry, float dt) {
         ballComp->verticalVel -= ballComp->gravity * dt;         // velocity update
         ballComp->ballHeight += ballComp->verticalVel * dt;      // position update
 
-        if (shadowPos.y <= 494) {
+        if (shadowPos.y <= tableBottom) {
             // Bounce when hitting table (height <= 0)
             if (ballComp->ballHeight <= 0.0f) {
                 ballComp->ballHeight = 0.0f;
@@ -52,14 +52,14 @@ void BallGravitySystem::update(Registry& registry, float dt) {
 
         // Shadow scale (shrinks slightly as ball rises)
         float shadowScale = std::max(0.5f, 1.5f - ballComp->ballHeight * 0.2f);
-        if (shadowPos.y <= 494) {
+        if (shadowPos.y <= tableBottom) {
             shadowTransform->scale = Vec2(shadowScale, shadowScale);
         }
         else {
             shadowTransform->scale = Vec2(0, 0);
         }
         // Optional debugging
-         Debug::debugPrint("Ball Height", ballComp->ballHeight);
-         Debug::debugPrint("Vertical Velocity", ballComp->verticalVel);
+         //Debug::debugPrint("Ball Height", ballComp->ballHeight);
+         //Debug::debugPrint("Vertical Velocity", ballComp->verticalVel);
     }
 }

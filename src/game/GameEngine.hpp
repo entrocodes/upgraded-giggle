@@ -3,6 +3,7 @@
 #include "../ecs/SceneManager.hpp"
 #include "../game/utils/Assets.hpp"
 #include "../display/DisplayConfig.hpp"
+#include "../display/DisplayUtils.hpp"
 class GameEngine {
 public:
     GameEngine();
@@ -12,7 +13,8 @@ public:
     DisplayConfig m_display;
 
     void toggleFullscreen();
-    void handleResize(unsigned width, unsigned height);
+    void handleResize(float width, float height);
+
 private:
     sf::RenderWindow m_window;
     SceneManager m_sceneManager;

@@ -2,20 +2,17 @@
 #include "../game/EntityFactory.hpp"
 #include "../game/GameEngine.hpp"
 #include <array>
-#include "GameScene.hpp"
-#include "../game/EntityFactory.hpp"
-#include "../game/GameEngine.hpp"
-#include <array>
-
+#include "../components/Components.hpp"
+#include "../display/DisplayUtils.hpp"
 GameScene::GameScene(GameEngine* gameEngine, DisplayConfig& display)
     : entityFactory(gameEngine)
 {
     // Pixel coordinates (image space)
     std::array<Vec2, 4> imagePoints = {
-        Vec2(156, 494),  // Bottom-Left
-        Vec2(243, 220),  // Top-Left
-        Vec2(478, 496),  // Bottom-Right
-        Vec2(393, 221)   // Top-Right
+        Vec2(531, 506),  // Bottom-Left
+        Vec2(618, 240),  // Top-Left
+        Vec2(844, 504),  // Bottom-Right
+        Vec2(761, 240)   // Top-Right
     };
 
     // Real-world coordinates (meters)
@@ -30,8 +27,8 @@ GameScene::GameScene(GameEngine* gameEngine, DisplayConfig& display)
     camera.homography.calibrate(imagePoints, worldPoints);
 
     entityFactory.createBackground(registry, display);
-    entityFactory.createBall(registry, { 4, 4 }, { 0, 40 }, .007);
-    entityFactory.createPlayer(registry);
+    entityFactory.createBall(registry, { 4, 4 }, { 0, 40 }, .45, display);
+    entityFactory.createPlayer(registry, display);
 }
 
 
@@ -49,11 +46,15 @@ void GameScene::update(sf::RenderWindow& window, DisplayConfig& display, sf::Tim
 
     playerInput.update(registry, rawInput);
     playerAction.update(registry);
-    imgui.update(window, dt);
+
     if (!metaState.paused) {
         entitySpawnTimer++;
         movement.update(registry, window, display, dt);
     }
+
+    camera.position = { display.logicalSize.x / 2.f, display.logicalSize.y / 2.f };
+
+    DisplayUtils::scaleSpritesToResolution(registry, display);
 }
 
 void GameScene::render(sf::RenderWindow& window, DisplayConfig& display) {

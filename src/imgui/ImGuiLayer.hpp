@@ -11,7 +11,6 @@
 class ImGuiLayer {
 public:
     void init(sf::RenderWindow& window);
-    void update(sf::RenderWindow& window, sf::Time dt);
     void render(Registry& registry, Camera& camera, EntityFactory& entityFactory, const DisplayConfig& display);
     void shutdown();
 };
