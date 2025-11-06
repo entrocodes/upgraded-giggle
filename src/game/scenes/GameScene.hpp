@@ -1,6 +1,7 @@
 #pragma once
 #include "Scene.hpp"
 #include "../ecs/Registry.hpp"
+#include "../game/utils/GameContext.hpp"
 #include "../game/EntityFactory.hpp"
 #include "../systems/MovementSystem.hpp"
 #include "../systems/RenderSystem.hpp"
@@ -13,19 +14,16 @@
 #include "../game/utils/Camera.hpp"
 #include "../math/Random.hpp"
 
-// Forward declare to avoid circular include
-class GameEngine;
-
 class GameScene : public Scene {
 public:
-    explicit GameScene(GameEngine* gameEngine, DisplayConfig& display);
+    explicit GameScene(GameContext* context);
 
-    void handleInput(sf::RenderWindow& window, DisplayConfig& display) override;
-    void update(sf::RenderWindow& window, DisplayConfig& display, sf::Time dt) override;
-    void render(sf::RenderWindow& window, DisplayConfig& display) override;
+    void handleInput() override;
+    void update(sf::Time dt) override;
+    void render() override;
 
 private:
-    GameEngine* m_game = nullptr;
+    GameContext* m_context = nullptr;
     Registry registry;
     EntityFactory entityFactory;
     MovementSystem movement;

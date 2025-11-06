@@ -1,11 +1,11 @@
 ﻿#include "GameScene.hpp"
 #include "../game/EntityFactory.hpp"
-#include "../game/GameEngine.hpp"
 #include <array>
 #include "../components/Components.hpp"
 #include "../display/DisplayUtils.hpp"
-GameScene::GameScene(GameEngine* gameEngine, DisplayConfig& display)
-    : entityFactory(gameEngine)
+GameScene::GameScene(GameContext* context)
+    : entityFactory(context)
+    , m_context(context)
 {
     // Pixel coordinates (image space)
     std::array<Vec2, 4> imagePoints = {
@@ -26,21 +26,21 @@ GameScene::GameScene(GameEngine* gameEngine, DisplayConfig& display)
     // Correct order: image → world
     camera.homography.calibrate(imagePoints, worldPoints);
 
-    entityFactory.createBackground(registry, display);
-    entityFactory.createBall(registry, { 4, 4 }, { 0, 40 }, .45, display);
-    entityFactory.createPlayer(registry, display);
+    entityFactory.createBackground(registry, m_context->display);
+    entityFactory.createBall(registry, { 4, 4 }, { 0, 40 }, .45, m_context->display);
+    entityFactory.createPlayer(registry, m_context->display);
 }
 
 
 
-void GameScene::handleInput(sf::RenderWindow& window, DisplayConfig& display) {
-    inputSystem.update(window, rawInput);
-    metaInput.update(rawInput, metaState, registry, display, entityFactory);
+void GameScene::handleInput() {
+    inputSystem.update(m_context->window, rawInput);
+    metaInput.update(rawInput, metaState, registry, m_context->display, entityFactory);
 }
 
-void GameScene::update(sf::RenderWindow& window, DisplayConfig& display, sf::Time dt) {
+void GameScene::update(sf::Time dt) {
     if (metaState.quit) {
-        window.close();
+        m_context->window.close();
         return;
     }
 
@@ -49,15 +49,15 @@ void GameScene::update(sf::RenderWindow& window, DisplayConfig& display, sf::Tim
 
     if (!metaState.paused) {
         entitySpawnTimer++;
-        movement.update(registry, window, display, dt);
+        movement.update(registry, m_context->window, m_context->display, dt);
     }
 
-    camera.position = { display.logicalSize.x / 2.f, display.logicalSize.y / 2.f };
+    camera.position = { m_context->display.logicalSize.x / 2.f, m_context->display.logicalSize.y / 2.f };
 
-    DisplayUtils::scaleSpritesToResolution(registry, display);
+    DisplayUtils::scaleSpritesToResolution(registry, m_context->display);
 }
 
-void GameScene::render(sf::RenderWindow& window, DisplayConfig& display) {
-    renderer.render(window, registry, display, camera);
-    imgui.render(registry, camera, entityFactory, display);
+void GameScene::render() {
+    renderer.render(m_context->window, registry, m_context->display, camera);
+    imgui.render(registry, camera, entityFactory, m_context->display);
 }

@@ -3,29 +3,29 @@
 #include "../imgui/ImGuiLayer.hpp"
 
 GameEngine::GameEngine()
-    : m_window(sf::VideoMode(m_display.windowSize.x, m_display.windowSize.y), "PixelPong")
 {
-    m_assets.loadFromFile("bin/assets.txt");
-    m_sceneManager.registerScene<GameScene>("game", this, m_display);
+    context.window.create(sf::VideoMode(context.display.windowSize.x, context.display.windowSize.y), "PixelPong");
+    context.assets.loadFromFile("bin/assets.txt");
+    m_sceneManager.registerScene<GameScene>("game", &context);
     m_sceneManager.switchTo("game");
 }
 
 void GameEngine::run() {
-    m_window.setVerticalSyncEnabled(true);
+    context.window.setVerticalSyncEnabled(true);
 
     sf::Clock deltaClock;
-    ImGui::SFML::Init(m_window);
+    ImGui::SFML::Init(context.window);
 
-    while (m_window.isOpen()) {
+    while (context.window.isOpen()) {
         sf::Time dt = deltaClock.restart();
         sf::Event event;
 
-        while (m_window.pollEvent(event)) {
+        while (context.window.pollEvent(event)) {
             ImGui::SFML::ProcessEvent(event); // forward events to ImGui
 
             switch (event.type) {
             case sf::Event::Closed:
-                m_window.close();
+                context.window.close();
                 break;
 
             case sf::Event::KeyPressed:
@@ -44,19 +44,19 @@ void GameEngine::run() {
         }
 
         // --- Update display configuration ---
-        m_display.updateFromWindow(m_window);
+        context.display.updateFromWindow(context.window);
 
         // --- Update ImGui + game scene ---
 
-        ImGui::SFML::Update(m_window, dt);
-        m_sceneManager.handleInput(m_window, m_display);
-        m_sceneManager.update(m_window, m_display, dt);
+        ImGui::SFML::Update(context.window, dt);
+        m_sceneManager.handleInput(&context);
+        m_sceneManager.update(context.window, &context, dt);
 
         // --- Render ---
-        m_window.clear();
-        m_sceneManager.render(m_window, m_display);
-        ImGui::SFML::Render(m_window);
-        m_window.display();
+        context.window.clear();
+        m_sceneManager.render(context.window, &context);
+        ImGui::SFML::Render(context.window);
+        context.window.display();
     }
 
     ImGui::SFML::Shutdown();
@@ -64,32 +64,32 @@ void GameEngine::run() {
 
 const Assets& GameEngine::assets() const
 {
-    return m_assets;
+    return context.assets;
 }
 sf::RenderWindow& GameEngine::window() {
-    return m_window;
+    return context.window;
 }
 
 void GameEngine::handleResize(float width, float height) {
-    m_display.windowSize = { width, height };
-    m_display.updateFromWindow(m_window);
+    context.display.windowSize = { width, height };
+    context.display.updateFromWindow(context.window);
     ImGui::GetIO().DisplaySize = ImVec2(width, height);
 
 }
 
 void GameEngine::toggleFullscreen() {
     ImGui::SFML::Shutdown();
-    m_display.fullscreen = !m_display.fullscreen;
-    m_window.close();
+    context.display.fullscreen = !context.display.fullscreen;
+    context.window.close();
 
-    if (m_display.fullscreen)
-        m_window.create(sf::VideoMode::getDesktopMode(), "PixelPong", sf::Style::Fullscreen);
+    if (context.display.fullscreen)
+        context.window.create(sf::VideoMode::getDesktopMode(), "PixelPong", sf::Style::Fullscreen);
     else
-        m_window.create(sf::VideoMode(m_display.windowSize.x, m_display.windowSize.y), "PixelPong");
+        context.window.create(sf::VideoMode(context.display.windowSize.x, context.display.windowSize.y), "PixelPong");
 
-    ImGui::SFML::Init(m_window);
+    ImGui::SFML::Init(context.window);
 
-    m_display.updateFromWindow(m_window);
+    context.display.updateFromWindow(context.window);
 }
 
 

@@ -1,5 +1,4 @@
 #include "EntityFactory.hpp"
-#include "../game/GameEngine.hpp"
 #include "../components/Components.hpp" // CTransform, CAnimation, Sprite, BoundingBox, Velocity, Player, InputComponent, Enemy, etc.
 #include "../math/GridTransform.hpp"
 #include <SFML/Graphics.hpp>
@@ -7,8 +6,8 @@
 #include <iostream>
 #include "../debug/Debug.hpp" // at top
 
-EntityFactory::EntityFactory(GameEngine* gameEngine)
-    : m_game(gameEngine)
+EntityFactory::EntityFactory(GameContext* context)
+    : m_context(context)
 {
 }
 
@@ -17,7 +16,7 @@ Entity EntityFactory::createBackground(Registry& registry, DisplayConfig& displa
 
     auto& transform = registry.addComponent<CTransform>(background);
 
-    const Animation& roomAnim = m_game->assets().getAnimation("OrangeRoom");
+    const Animation& roomAnim = m_context->assets.getAnimation("OrangeRoom");
     auto& animComp = registry.addComponent<CAnimation>(background, roomAnim, false);
     // Ensure sprite origin is set and bounding box uses the animation sprite
     sf::Sprite& s = animComp.animation.getSprite();
@@ -52,7 +51,7 @@ Entity EntityFactory::createPlayer(Registry& registry, DisplayConfig& display) {
 
     // Animation from Assets (keeps texture ownership in Assets)
 
-    const Animation& standAnim = m_game->assets().getAnimation("Stand");
+    const Animation& standAnim = m_context->assets.getAnimation("Stand");
     auto& animComp = registry.addComponent<CAnimation>(player, standAnim, false);
 
     // Ensure sprite origin is set and bounding box uses the animation sprite
@@ -74,7 +73,7 @@ Entity EntityFactory::createBall(Registry& registry, const Vec2& pos, const Vec2
     registry.addComponent<Velocity>(ball, vel);
     registry.addComponent<CBall>(ball, ballShadow, height);
     // animation
-    const Animation& animBall = m_game->assets().getAnimation("TopspinBall");
+    const Animation& animBall = m_context->assets.getAnimation("TopspinBall");
     auto& animComp = registry.addComponent<CAnimation>(ball, animBall, true);
 
     sf::Sprite& s = animComp.animation.getSprite();
@@ -94,7 +93,7 @@ Entity EntityFactory::createBallShadow(Registry& registry, const Vec2& pos, cons
     registry.addComponent<Velocity>(ballShadow, vel);
 
     // animation
-    const Animation& animShadow = m_game->assets().getAnimation("BallShadow");
+    const Animation& animShadow = m_context->assets.getAnimation("BallShadow");
     auto& animComp = registry.addComponent<CAnimation>(ballShadow, animShadow, true);
 
     sf::Sprite& s = animComp.animation.getSprite();
