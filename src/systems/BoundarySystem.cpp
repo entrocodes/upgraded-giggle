@@ -7,28 +7,17 @@ void BoundarySystem::update(Registry& registry, sf::RenderWindow& window, Displa
         auto* boundingBox = registry.getComponent<BoundingBox>(e);
         auto* velocity = registry.getComponent<Velocity>(e);
         if (registry.getComponent<Player>(e)) {
+            float leftBoundary = 520.0f;
+            float rightBoundary = 844.0f;
             float playerLeftX = transform->position.x - boundingBox->rect.width / 2;
             float playerRightX = transform->position.x + boundingBox->rect.width / 2;
-            //float playerLowerY = transform->position.y + boundingBox->rect.height / 2;
-            //float playerUpperY = transform->position.y - boundingBox->rect.height / 2;
             Vec2 windowSize = Vec2(window.getSize().x, window.getSize().y);
-            if (playerLeftX <= Grid::toWorldX(display, 1.8)) {
-                if (velocity->velocity.x < 0) {
-                    transform->position.x = Grid::toWorldX(display, 1.8) + boundingBox->rect.width / 2;
-                }
-                
+            if (playerLeftX <= leftBoundary && velocity->velocity.x < 0) {
+                transform->position.x = leftBoundary + boundingBox->rect.width / 2;
             }
-            else if (playerRightX >= Grid::toWorldX(display, 8)) {
-                if (velocity->velocity.x > 0) {
-                    transform->position.x = Grid::toWorldX(display, 8) - boundingBox->rect.width / 2;
-                }
+            else if (playerRightX >= rightBoundary && velocity->velocity.x > 0) {
+                transform->position.x = rightBoundary - boundingBox->rect.width / 2;
             }
-            //if (playerUpperY <= 0) {
-            //    transform->position.y = boundingBox->rect.height / 2;
-            //}
-            //else if (playerLowerY >= windowSize.y) {
-            //    transform->position.y = windowSize.y - boundingBox->rect.height / 2;
-            //}
         }
     }
 

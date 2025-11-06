@@ -23,30 +23,50 @@ namespace DisplayUtils {
         window.setView(view);
     }
     inline void scaleSpritesToResolution(Registry& registry, DisplayConfig& display) {
-        // --- Update background transform if display size changed ---
         static Vec2 lastSize = display.logicalSize;
-        if (display.logicalSize.x != lastSize.x || display.logicalSize.y != lastSize.y) {
-            for (auto e : registry.getEntitiesWith<CTransform, CAnimation>()) {
-                auto* animComp = registry.getComponent<CAnimation>(e);
-                auto* transform = registry.getComponent<CTransform>(e);
-                if (!animComp || !transform) continue;
+        if (display.logicalSize.x == lastSize.x && display.logicalSize.y == lastSize.y)
+            return; // no change
 
-                if (animComp->animation.getName() != "OrangeRoom") continue;
+        // Reference size (logical “native” resolution)
+        constexpr float REF_WIDTH = 640.f;
+        constexpr float REF_HEIGHT = 640.f;
 
-                sf::Sprite& s = animComp->animation.getSprite();
-                s.setOrigin(s.getLocalBounds().width / 2.f, s.getLocalBounds().height / 2.f);
-                auto texSize = s.getTexture()->getSize();
+        // Base scale ratio (used for non-background entities)
+        float scaleX = display.logicalSize.x / REF_WIDTH;
+        float scaleY = display.logicalSize.y / REF_HEIGHT;
+        float uniformScale = std::min(scaleX, scaleY);
 
-                // Scale based on logical resolution
-                float scaleX = display.logicalSize.x / static_cast<float>(texSize.x);
-                float scaleY = display.logicalSize.y / static_cast<float>(texSize.y);
-                float uniformScale = std::min(scaleX, scaleY);
+        for (auto e : registry.getEntitiesWith<CTransform, CAnimation>()) {
+            auto* animComp = registry.getComponent<CAnimation>(e);
+            auto* transform = registry.getComponent<CTransform>(e);
+            if (!animComp || !transform) continue;
 
-                transform->scale = { uniformScale, uniformScale };
+            sf::Sprite& sprite = animComp->animation.getSprite();
+            const std::string& name = animComp->animation.getName();
+
+            if (name == "OrangeRoom") {
+                // Fit background to entire window
+                sprite.setOrigin(sprite.getLocalBounds().width / 2.f, sprite.getLocalBounds().height / 2.f);
+                auto texSize = sprite.getTexture()->getSize();
+
+                float scaleToFitX = display.logicalSize.x / static_cast<float>(texSize.x);
+                float scaleToFitY = display.logicalSize.y / static_cast<float>(texSize.y);
+                float fitScale = std::min(scaleToFitX, scaleToFitY);
+
+                transform->scale = { fitScale, fitScale };
                 transform->position = { display.logicalSize.x / 2.f, display.logicalSize.y / 2.f };
             }
+            else {
+                // Apply relative scaling for gameplay sprites
+                transform->scale = transform->scale * uniformScale;
 
-            lastSize = display.logicalSize;
+                // Optionally reposition relative to new center
+                transform->position.x *= scaleX;
+                transform->position.y *= scaleY;
+            }
         }
+
+        lastSize = display.logicalSize;
     }
+
 }

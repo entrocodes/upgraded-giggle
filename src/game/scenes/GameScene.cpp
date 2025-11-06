@@ -26,16 +26,15 @@ GameScene::GameScene(GameContext* context)
     // Correct order: image → world
     camera.homography.calibrate(imagePoints, worldPoints);
 
-    entityFactory.createBackground(registry, m_context->display);
-    entityFactory.createBall(registry, { 4, 4 }, { 0, 40 }, .45, m_context->display);
-    entityFactory.createPlayer(registry, m_context->display);
+    entityFactory.createBackground();
+    entityFactory.createPlayer();
 }
 
 
 
 void GameScene::handleInput() {
-    inputSystem.update(m_context->window, rawInput);
-    metaInput.update(rawInput, metaState, registry, m_context->display, entityFactory);
+    inputSystem.update(m_context->window, m_context->rawInput);
+    metaInput.update(m_context->rawInput, metaState, m_context, entityFactory);
 }
 
 void GameScene::update(sf::Time dt) {
@@ -44,20 +43,20 @@ void GameScene::update(sf::Time dt) {
         return;
     }
 
-    playerInput.update(registry, rawInput);
-    playerAction.update(registry);
+    playerInput.update(m_context->registry, m_context->rawInput);
+    playerAction.update(m_context->registry);
 
     if (!metaState.paused) {
         entitySpawnTimer++;
-        movement.update(registry, m_context->window, m_context->display, dt);
+        movement.update(m_context->registry, m_context->window, m_context->display, dt);
     }
 
     camera.position = { m_context->display.logicalSize.x / 2.f, m_context->display.logicalSize.y / 2.f };
 
-    DisplayUtils::scaleSpritesToResolution(registry, m_context->display);
+    DisplayUtils::scaleSpritesToResolution(m_context->registry, m_context->display);
 }
 
 void GameScene::render() {
-    renderer.render(m_context->window, registry, m_context->display, camera);
-    imgui.render(registry, camera, entityFactory, m_context->display);
+    renderer.render(m_context->window, m_context->registry, m_context->display, camera);
+    imgui.render(m_context->registry, camera, entityFactory, m_context->display);
 }

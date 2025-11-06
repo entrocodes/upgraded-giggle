@@ -24,7 +24,6 @@ public:
 
 private:
     GameContext* m_context = nullptr;
-    Registry registry;
     EntityFactory entityFactory;
     MovementSystem movement;
     RenderSystem renderer;
@@ -32,7 +31,6 @@ private:
     PlayerInputSystem playerInput;
     PlayerActionSystem playerAction;
     MetaInputSystem metaInput;
-    RawInputState rawInput;
     MetaInputState metaState;
     ImGuiLayer imgui;
     Camera camera;

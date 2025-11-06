@@ -4,6 +4,7 @@
 #include "../game/EntityFactory.hpp"
 #include "../ecs/Registry.hpp"
 #include "../display/DisplayConfig.hpp"
+#include "../game/utils/GameContext.hpp"
 struct MetaInputState {
     bool quit = false;
     bool paused = false;
@@ -15,5 +16,5 @@ struct MetaInputState {
 
 class MetaInputSystem {
 public:
-    void update(const RawInputState& rawInput, MetaInputState& state, Registry& registry, DisplayConfig& display, EntityFactory& entityFactory);
+    void update(const RawInputState& rawInput, MetaInputState& state, GameContext* context, EntityFactory& entityFactory);
 };

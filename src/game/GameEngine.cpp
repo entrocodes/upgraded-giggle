@@ -49,12 +49,12 @@ void GameEngine::run() {
         // --- Update ImGui + game scene ---
 
         ImGui::SFML::Update(context.window, dt);
-        m_sceneManager.handleInput(&context);
-        m_sceneManager.update(context.window, &context, dt);
+        m_sceneManager.handleInput();
+        m_sceneManager.update(dt);
 
         // --- Render ---
         context.window.clear();
-        m_sceneManager.render(context.window, &context);
+        m_sceneManager.render();
         ImGui::SFML::Render(context.window);
         context.window.display();
     }
