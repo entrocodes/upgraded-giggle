@@ -2,7 +2,6 @@
 #include "Scene.hpp"
 #include "../ecs/Registry.hpp"
 #include "../game/utils/GameContext.hpp"
-#include "../game/EntityFactory.hpp"
 #include "../systems/MovementSystem.hpp"
 #include "../systems/RenderSystem.hpp"
 #include "../systems/InputSystem.hpp"
@@ -24,7 +23,6 @@ public:
 
 private:
     GameContext* m_context = nullptr;
-    EntityFactory entityFactory;
     MovementSystem movement;
     RenderSystem renderer;
     InputSystem inputSystem;

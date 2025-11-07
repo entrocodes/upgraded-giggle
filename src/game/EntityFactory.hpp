@@ -1,11 +1,15 @@
 #pragma once
 #include "../math/Vec2.hpp"
-#include "../game/utils/GameContext.hpp"
-
+#include "../ecs/Registry.hpp"
+#include "../display/DisplayConfig.hpp"
+#include "../game/utils/Assets.hpp"
 class EntityFactory {
 public:
-    explicit EntityFactory(GameContext* context = nullptr)
-        : m_context(context) {
+    explicit EntityFactory(Registry* registry, DisplayConfig* display, Assets* assets)
+        : m_registry(registry)
+        , m_display(display)
+        , m_assets(assets)
+    {
     }
 
     Entity createBackground();
@@ -18,5 +22,7 @@ public:
     bool clickToSpawn = true;
 
 private:
-    GameContext* m_context;
+    Registry* m_registry;
+    DisplayConfig* m_display;
+    Assets* m_assets;
 };

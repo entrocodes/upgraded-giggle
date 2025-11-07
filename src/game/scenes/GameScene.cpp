@@ -4,8 +4,7 @@
 #include "../components/Components.hpp"
 #include "../display/DisplayUtils.hpp"
 GameScene::GameScene(GameContext* context)
-    : entityFactory(context)
-    , m_context(context)
+    : m_context(context)
 {
     // Pixel coordinates (image space)
     std::array<Vec2, 4> imagePoints = {
@@ -26,15 +25,15 @@ GameScene::GameScene(GameContext* context)
     // Correct order: image → world
     camera.homography.calibrate(imagePoints, worldPoints);
 
-    entityFactory.createBackground();
-    entityFactory.createPlayer();
+    m_context->entityFactory.createBackground();
+    m_context->entityFactory.createPlayer();
 }
 
 
 
 void GameScene::handleInput() {
-    inputSystem.update(m_context->window, m_context->rawInput);
-    metaInput.update(m_context->rawInput, metaState, m_context, entityFactory);
+    inputSystem.update(m_context);
+    metaInput.update(m_context->rawInput, metaState, m_context, m_context->entityFactory);
 }
 
 void GameScene::update(sf::Time dt) {

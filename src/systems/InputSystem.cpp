@@ -1,6 +1,6 @@
 #include "InputSystem.hpp"
 
-void InputSystem::update(sf::RenderWindow& window, RawInputState& rawInput) {
+void InputSystem::update(GameContext* context) {
     // --- Keyboard polling ---
     sf::Keyboard::Key keys[] = {
         sf::Keyboard::W,
@@ -12,7 +12,7 @@ void InputSystem::update(sf::RenderWindow& window, RawInputState& rawInput) {
     };
 
     for (auto key : keys) {
-        rawInput.keyStates[key] = sf::Keyboard::isKeyPressed(key);
+        context->rawInput.keyStates[key] = sf::Keyboard::isKeyPressed(key);
     }
 
     // --- Mouse polling ---
@@ -23,15 +23,15 @@ void InputSystem::update(sf::RenderWindow& window, RawInputState& rawInput) {
     };
 
     for (auto button : buttons) {
-        rawInput.mouseButtonStates[button] = sf::Mouse::isButtonPressed(button);
+        context->rawInput.mouseButtonStates[button] = sf::Mouse::isButtonPressed(button);
     }
 
-    rawInput.mousePosition = Vec2(sf::Mouse::getPosition(window).x, sf::Mouse::getPosition(window).y);
+    context->rawInput.mousePosition = Vec2(sf::Mouse::getPosition(context->window).x, sf::Mouse::getPosition(context->window).y);
 
     // --- Handle window events (close, resize, etc.) ---
     sf::Event event;
-    while (window.pollEvent(event)) {
+    while (context->window.pollEvent(event)) {
         if (event.type == sf::Event::Closed)
-            window.close();
+            context->window.close();
     }
 }
