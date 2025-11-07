@@ -1,7 +1,6 @@
 #pragma once
 
 #include <SFML/Graphics.hpp>
-
 #include "../display/DisplayConfig.hpp"
 #include "Assets.hpp"
 #include "../ecs/Registry.hpp"
