@@ -15,6 +15,6 @@ struct GameContext {
     RawInputState rawInput;
     EntityFactory entityFactory;
     GameContext()
-        : entityFactory(&registry, &display, &assets) {
+        : entityFactory(registry, display, assets) {
     }
 }

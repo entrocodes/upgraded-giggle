@@ -5,7 +5,7 @@
 #include "../game/utils/Assets.hpp"
 class EntityFactory {
 public:
-    explicit EntityFactory(Registry* registry, DisplayConfig* display, Assets* assets)
+    explicit EntityFactory(Registry& registry, DisplayConfig& display, Assets& assets)
         : m_registry(registry)
         , m_display(display)
         , m_assets(assets)
@@ -22,7 +22,7 @@ public:
     bool clickToSpawn = true;
 
 private:
-    Registry* m_registry;
-    DisplayConfig* m_display;
-    Assets* m_assets;
+    Registry& m_registry;
+    DisplayConfig& m_display;
+    Assets& m_assets;
 };
