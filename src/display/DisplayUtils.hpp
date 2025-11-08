@@ -37,8 +37,7 @@ namespace DisplayUtils {
         float uniformScale = std::min(scaleX, scaleY);
 
         for (auto e : registry.getEntitiesWith<CTransform, CAnimation>()) {
-            auto* animComp = registry.getComponent<CAnimation>(e);
-            auto* transform = registry.getComponent<CTransform>(e);
+            auto [animComp, transform] = registry.getComponents<CAnimation, CTransform>(e);
             if (!animComp || !transform) continue;
 
             sf::Sprite& sprite = animComp->animation.getSprite();

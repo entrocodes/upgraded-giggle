@@ -21,6 +21,9 @@ add_executable(PixelPong
     math/TableHomography.cpp
 )
 
+target_compile_features(PixelPong PRIVATE cxx_std_17)
+
+
 target_include_directories(PixelPong PRIVATE src)
 target_link_libraries(PixelPong PRIVATE Eigen3::Eigen)
 

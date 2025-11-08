@@ -13,8 +13,7 @@ void RenderSystem::render(sf::RenderWindow& window, Registry& registry, DisplayC
 
     // --- Render entities ---
     for (auto e : registry.getEntitiesWith<CTransform, CAnimation>()) {
-        auto* transformComp = registry.getComponent<CTransform>(e);
-        auto* animationComp = registry.getComponent<CAnimation>(e);
+        auto [transformComp, animationComp] = registry.getComponents<CTransform, CAnimation>(e);
         if (!transformComp || !animationComp) continue;
 
         auto& animation = animationComp->animation;

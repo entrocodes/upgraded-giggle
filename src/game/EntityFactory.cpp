@@ -38,7 +38,7 @@ Entity EntityFactory::createPlayer() {
 
     // Transform
     auto& transform = m_registry.addComponent<CTransform>(player);
-    transform.position = Grid::toWorld(m_display, 4.5, 5.1);
+    transform.position = Grid::toWorld(m_display, 4.5, .5);
 
     // Gameplay components
     m_registry.addComponent<Velocity>(player);

@@ -1,9 +1,8 @@
 #pragma once
-#include "../ecs/Registry.hpp"
 #include <SFML/System.hpp> // for sf::Time or deltaTime
 #include <SFML/Graphics.hpp>
-
+#include "../game/utils/GameContext.hpp"
 class BallBounceSystem {
 public:
-    void update(Registry& registry);
+    void update(GameContext* context);
 };

@@ -1,7 +1,7 @@
 #pragma once
-#include "../ecs/Registry.hpp"
+#include "../game/utils/GameContext.hpp"
 
 class PlayerActionSystem {
 public:
-    void update(Registry& registry);
+    void update(GameContext* context);
 };

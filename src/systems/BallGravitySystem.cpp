@@ -7,17 +7,16 @@
 #include <algorithm>
 #include <iostream>
 
-void BallGravitySystem::update(Registry& registry, float dt) {
+void BallGravitySystem::update(GameContext* context, float dt) {
     const float pixelsPerMeter = 90; // tune this to match table/asset scale
     const float tableBottom = 504.f;
-    for (auto e : registry.getEntitiesWith<CBall, CTransform>()) {
-        auto* transform = registry.getComponent<CTransform>(e);
-        auto* ballComp = registry.getComponent<CBall>(e);
+    for (auto e : context->registry.getEntitiesWith<CBall, CTransform>()) {
+        auto [transform, ballComp] = context->registry.getComponents<CTransform, CBall>(e);
         if (!transform || !ballComp) continue;
 
         // Access shadow position
         Entity shadowEntity = ballComp->ballShadow;
-        auto* shadowTransform = registry.getComponent<CTransform>(shadowEntity);
+        auto shadowTransform = context->registry.getComponent<CTransform>(shadowEntity);
         if (!shadowTransform) continue;
         Vec2 shadowPos = shadowTransform->position;
 

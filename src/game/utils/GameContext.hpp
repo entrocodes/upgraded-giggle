@@ -5,7 +5,8 @@
 #include "Assets.hpp"
 #include "../ecs/Registry.hpp"
 #include "../input/RawInputState.hpp"
-#include "../game/EntityFactory.hpp"
+#include "../game/EntityFactory.hpp"   // Full include, since we create an instance
+
 struct GameContext {
     sf::RenderWindow window;
     DisplayConfig display;
@@ -13,7 +14,8 @@ struct GameContext {
     Registry registry;
     RawInputState rawInput;
     EntityFactory entityFactory;
+
     GameContext()
         : entityFactory(registry, display, assets) {
     }
-}
+};

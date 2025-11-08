@@ -62,14 +62,6 @@ void GameEngine::run() {
     ImGui::SFML::Shutdown();
 }
 
-const Assets& GameEngine::assets() const
-{
-    return context.assets;
-}
-sf::RenderWindow& GameEngine::window() {
-    return context.window;
-}
-
 void GameEngine::handleResize(float width, float height) {
     context.display.windowSize = { width, height };
     context.display.updateFromWindow(context.window);

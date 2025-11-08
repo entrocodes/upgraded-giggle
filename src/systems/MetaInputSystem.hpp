@@ -16,5 +16,5 @@ struct MetaInputState {
 
 class MetaInputSystem {
 public:
-    void update(const RawInputState& rawInput, MetaInputState& state, GameContext* context, EntityFactory& entityFactory);
+    void update(GameContext* context, MetaInputState& state);
 };

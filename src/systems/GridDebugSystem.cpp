@@ -19,7 +19,7 @@ void GridDebugSystem::debugShowGrid(sf::RenderWindow& window, const DisplayConfi
 
     // --- Draw horizontal grid lines ---
     for (int y = 0; y <= rows; ++y) {
-        float ypos = y * cellSize;
+        float ypos = window.getSize().y - (y * cellSize);
         lines.append(sf::Vertex(sf::Vector2f(0.f, ypos), sf::Color(0, 255, 0, 80)));
         lines.append(sf::Vertex(sf::Vector2f(display.logicalSize.x, ypos), sf::Color(0, 255, 0, 80)));
     }
@@ -28,7 +28,7 @@ void GridDebugSystem::debugShowGrid(sf::RenderWindow& window, const DisplayConfi
 
     // --- Optional coordinate labels ---
     sf::Font font;
-    if (!font.loadFromFile("assets/fonts/ROCK.ttf"))
+    if (!font.loadFromFile("bin/assets/fonts/tech.ttf"))
         return;
 
     for (int y = 0; y < rows; ++y) {
@@ -41,7 +41,7 @@ void GridDebugSystem::debugShowGrid(sf::RenderWindow& window, const DisplayConfi
 
             // Keep text inside logical bounds
             float xpos = x * cellSize + 2.f;
-            float ypos = y * cellSize + 2.f;
+            float ypos = window.getSize().y - (y * cellSize) + 2.f;
             text.setPosition(xpos, ypos);
 
             window.draw(text);

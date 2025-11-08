@@ -2,10 +2,9 @@
 #include "../components/InputComponent.hpp"
 #include "../components/Velocity.hpp"
 
-void PlayerActionSystem::update(Registry& registry) {
-    for (auto e : registry.getEntitiesWith<InputComponent, Velocity>()) {
-        auto* input = registry.getComponent<InputComponent>(e);
-        auto* vel = registry.getComponent<Velocity>(e);
+void PlayerActionSystem::update(GameContext* context) {
+    for (auto e : context->registry.getEntitiesWith<InputComponent, Velocity>()) {
+        auto [input, vel] = context->registry.getComponents<InputComponent, Velocity>(e);
         if (!input || !vel) continue;
 
         vel->velocity = { 0.f, 0.f };

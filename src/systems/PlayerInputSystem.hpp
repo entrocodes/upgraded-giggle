@@ -1,8 +1,6 @@
 #pragma once
-#include "../ecs/Registry.hpp"
-#include "../input/RawInputState.hpp"
-
+#include "../game/utils/GameContext.hpp"
 class PlayerInputSystem {
 public:
-    void update(Registry& registry, const RawInputState& input);
+    void update(GameContext* context);
 };

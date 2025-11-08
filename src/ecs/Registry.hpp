@@ -63,6 +63,10 @@ public:
     size_t getEntityCount() const {
         return m_entities.size();
     }
+    template<typename... Components>
+    auto getComponents(Entity e) {
+        return std::make_tuple(getComponent<Components>(e)...);
+    }
 private:
     Entity m_nextEntity = 0;
     std::vector<Entity> m_entities;

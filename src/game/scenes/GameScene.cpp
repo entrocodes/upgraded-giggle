@@ -33,7 +33,7 @@ GameScene::GameScene(GameContext* context)
 
 void GameScene::handleInput() {
     inputSystem.update(m_context);
-    metaInput.update(m_context->rawInput, metaState, m_context, m_context->entityFactory);
+    metaInput.update(m_context, metaState);
 }
 
 void GameScene::update(sf::Time dt) {
@@ -42,12 +42,12 @@ void GameScene::update(sf::Time dt) {
         return;
     }
 
-    playerInput.update(m_context->registry, m_context->rawInput);
-    playerAction.update(m_context->registry);
+    playerInput.update(m_context);
+    playerAction.update(m_context);
 
     if (!metaState.paused) {
         entitySpawnTimer++;
-        movement.update(m_context->registry, m_context->window, m_context->display, dt);
+        movement.update(m_context, dt);
     }
 
     camera.position = { m_context->display.logicalSize.x / 2.f, m_context->display.logicalSize.y / 2.f };
@@ -57,5 +57,5 @@ void GameScene::update(sf::Time dt) {
 
 void GameScene::render() {
     renderer.render(m_context->window, m_context->registry, m_context->display, camera);
-    imgui.render(m_context->registry, camera, entityFactory, m_context->display);
+    imgui.render(m_context->registry, camera, m_context->entityFactory, m_context->display);
 }
