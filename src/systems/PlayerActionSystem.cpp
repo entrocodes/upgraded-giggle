@@ -3,15 +3,14 @@
 #include "../components/Velocity.hpp"
 
 void PlayerActionSystem::update(GameContext* context) {
-    for (auto e : context->registry.getEntitiesWith<InputComponent, Velocity>()) {
-        auto [input, vel] = context->registry.getComponents<InputComponent, Velocity>(e);
-        if (!input || !vel) continue;
+    Entity* player = context->registry.getEntity("player");
+    auto [input, vel, state] = context->registry.getComponents<InputComponent, Velocity, CState>(player);
+    if (!input || !vel) continue;
 
-        vel->velocity = { 0.f, 0.f };
+    vel->velocity = { 0.f, 0.f };
 
-        //if (input->actions["MoveUp"])    vel->velocity.y -= 200.f;
-        //if (input->actions["MoveDown"])  vel->velocity.y += 200.f;
-        if (input->actions["MoveLeft"])  vel->velocity.x -= 200.f;
-        if (input->actions["MoveRight"]) vel->velocity.x += 200.f;
-    }
+    //if (input->actions["MoveUp"])    vel->velocity.y -= 200.f;
+    if (input->actions["MoveDown"])  state = "running";
+    if (input->actions["MoveLeft"])  vel->velocity.x -= 200.f;
+    if (input->actions["MoveRight"]) vel->velocity.x += 200.f;
 }

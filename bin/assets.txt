@@ -1,9 +1,11 @@
 Texture   TexStand     bin/assets/images/player/playerstand.png
+Texture   TexBackswing bin/assets/images/player/playerbackswing.png
 Texture   TexBallShadow bin/assets/images/ball/ballshadow.png
 Texture   TexTopspinBall bin/assets/images/ball/topspinball.png
 Texture   TexOrangeRoom bin/assets/images/stage/orangeroom.png
 Animation BallShadow   TexBallShadow 1    0
 Animation Stand        TexStand      1    0
+Animation Backswing TexBackswing 1 0
 Animation TopspinBall  TexTopspinBall 9   10
 Animation OrangeRoom   TexOrangeRoom 1    0
 Font      Tech         bin/assets/fonts/tech.ttf

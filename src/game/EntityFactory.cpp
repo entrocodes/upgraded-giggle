@@ -9,7 +9,7 @@
 
 
 Entity EntityFactory::createBackground() {
-    Entity background = m_registry.createEntity();
+    Entity background = m_registry.createEntity("background");
 
     auto& transform = m_registry.addComponent<CTransform>(background);
 
@@ -34,7 +34,7 @@ Entity EntityFactory::createBackground() {
 }
 
 Entity EntityFactory::createPlayer() {
-    Entity player = m_registry.createEntity();
+    Entity player = m_registry.createEntity("player");
 
     // Transform
     auto& transform = m_registry.addComponent<CTransform>(player);
@@ -44,6 +44,7 @@ Entity EntityFactory::createPlayer() {
     m_registry.addComponent<Velocity>(player);
     m_registry.addComponent<Player>(player);
     m_registry.addComponent<InputComponent>(player);
+    m_registry.addComponent<CState>(player, "stand");
 
     // Animation from Assets (keeps texture ownership in Assets)
 
@@ -62,7 +63,7 @@ Entity EntityFactory::createPlayer() {
 Entity EntityFactory::createBall(const Vec2& pos, const Vec2& vel, const float height) {
     Entity ballShadow = EntityFactory::createBallShadow(pos, vel);
 
-    Entity ball = m_registry.createEntity();
+    Entity ball = m_registry.createEntity("ball");
     Vec2 ballPos = Grid::toWorldCentered(m_display, pos.x, pos.y);
     Vec2 ballScale = { 0.12f, 0.12f };
     auto& transform = m_registry.addComponent<CTransform>(ball, ballPos, ballScale, 0.f);
@@ -80,7 +81,7 @@ Entity EntityFactory::createBall(const Vec2& pos, const Vec2& vel, const float h
     return ball;
 }
 Entity EntityFactory::createBallShadow(const Vec2& pos, const Vec2& vel) {
-    Entity ballShadow = m_registry.createEntity();
+    Entity ballShadow = m_registry.createEntity("ballShadow");
 
     // Transform
     auto& transform = m_registry.addComponent<CTransform>(ballShadow, Grid::toWorldCentered(m_display, pos.x, pos.y), Vec2(2.0f,2.0f), 0.f);

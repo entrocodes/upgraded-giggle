@@ -17,6 +17,7 @@ add_executable(PixelPong
     systems/MovementSystem.cpp
     systems/BoundarySystem.cpp
     systems/BallBounceSystem.cpp
+    systems/AnimationSystem.cpp
     imgui/ImGuiLayer.cpp
     math/TableHomography.cpp
 )

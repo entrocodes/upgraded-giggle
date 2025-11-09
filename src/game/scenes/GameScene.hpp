@@ -7,6 +7,7 @@
 #include "../systems/InputSystem.hpp"
 #include "../systems/PlayerInputSystem.hpp"
 #include "../systems/PlayerActionSystem.hpp"
+#include "../systems/AnimationSystem.hpp"
 #include "../systems/MetaInputSystem.hpp"
 #include "../input/RawInputState.hpp"
 #include "../imgui/ImGuiLayer.hpp"
@@ -23,6 +24,7 @@ public:
 
 private:
     GameContext* m_context = nullptr;
+    AnimationSystem animationSystem;
     MovementSystem movement;
     RenderSystem renderer;
     InputSystem inputSystem;

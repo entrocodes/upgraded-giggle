@@ -48,6 +48,7 @@ void GameScene::update(sf::Time dt) {
     if (!metaState.paused) {
         entitySpawnTimer++;
         movement.update(m_context, dt);
+        animationSystem.update(m_context);
     }
 
     camera.position = { m_context->display.logicalSize.x / 2.f, m_context->display.logicalSize.y / 2.f };
