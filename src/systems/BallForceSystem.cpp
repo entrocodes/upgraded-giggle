@@ -4,27 +4,45 @@
 #include "../ecs/Entity.hpp"
 #include "../debug/Debug.hpp"
 #include "../math/GridTransform.hpp"
+#include "BallGravitySystem.hpp"
+#include "../math/physics/forces/CalculateBallGravity.hpp"
+#include "../math/physics/forces/CalculateMagnusForce.hpp"
+#include "../math/physics/forces/CalculateBallDrag.hpp"
 #include <algorithm>
 #include <iostream>
 
-void BallGravitySystem::update(GameContext* context, float dt) {
-    const float pixelsPerMeter = 90; // tune this to match table/asset scale
-    const float tableBottom = 504.f;
+void BallForceSystem::update(GameContext* context, float dt) {
     for (auto e : context->registry.getEntitiesWith<CBall, CTransform>()) {
-        auto [transform, ballComp] = context->registry.getComponents<CTransform, CBall>(e);
+        BallForces bForces;
+
+        auto [transform, ballComp, ballVelVec2] = context->registry.getComponents<CTransform, CBall, Velocity>(e);
         if (!transform || !ballComp) continue;
 
         // Access shadow position
         Entity shadowEntity = ballComp->ballShadow;
-        auto shadowTransform = context->registry.getComponent<CTransform>(shadowEntity);
-        if (!shadowTransform) continue;
+        auto [shadowTransform, shadowVelocity] = context->registry.getComponents<CTransform, Velocity>(shadowEntity);
+        if (!shadowTransform || !shadowVelocity) continue;
+        
         Vec2 shadowPos = shadowTransform->position;
+        Vec3 velocity = { shadowVelocity->velocity.x, ballComp->verticalVel, shadowVelocity->velocity.y };
 
-        // Integrate gravity
-        ballComp->verticalVel -= ballComp->gravity * dt;         // velocity update
-        ballComp->ballHeight += ballComp->verticalVel * dt;      // position update
+        // Calculate Forces
+        bForces.forceGravity = CalculateBallGravity::calculateForceGravity(ballComp->mass);
+        bForces.forceMagnus = CalculateForceMagnus::calculateForceMagnus(Vec3(2.0f, 2.0f, 2.0f) /*test values for spin*/, velocity);
+        bForces.forceDrag = CalculateBallDrag::calculateForceDrag(velocity);
+       
+        bForces.totalForces = bForces.forceMagnus + bForces.forceGravity + bForces.forceMagnus;
 
-        if (shadowPos.y <= tableBottom) {
+
+
+        //TO-DO: apply forces to velocity and verticalVel.
+        bForces.acceleration = bForces.totalForces / ballComp->mass;
+        
+        ballComp->verticalVel = bForces.acceleration.y * dt;
+        shadowVelocity->velocity = { bForces.acceleration.x * dt, bForces.acceleration.z * dt };
+        ballVelVec2->velocity = { bForces.acceleration.x * dt, bForces.acceleration.z * dt }
+        //table bounce
+        if (shadowPos.y <= tableBottom) { 
             // Bounce when hitting table (height <= 0)
             if (ballComp->ballHeight <= 0.0f) {
                 ballComp->ballHeight = 0.0f;
@@ -35,7 +53,8 @@ void BallGravitySystem::update(GameContext* context, float dt) {
                     ballComp->verticalVel = 0.0f;
             }
         }
-        else {
+        //if the ball has gone off the table
+        else { 
             if (ballComp->ballHeight <= -20.0f) {
                 ballComp->ballHeight = -20.0f;
                 ballComp->verticalVel = -ballComp->verticalVel * ballComp->restitution;
@@ -48,7 +67,6 @@ void BallGravitySystem::update(GameContext* context, float dt) {
 
         // Apply vertical offset to sprite (Y goes up as height increases)
         transform->position = shadowPos - Vec2(0.f, ballComp->ballHeight * pixelsPerMeter);
-
         // Shadow scale (shrinks slightly as ball rises)
         float shadowScale = std::max(0.5f, 1.5f - ballComp->ballHeight * 0.2f);
         if (shadowPos.y <= tableBottom) {
