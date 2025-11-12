@@ -3,6 +3,7 @@
 #include "../components/Player.hpp"
 
 void PlayerInputSystem::update(GameContext* context) {
+    if (context->inputBlocked) return;
     for (auto e : context->registry.getEntitiesWith<Player, InputComponent>()) {
         auto comp = context->registry.getComponent<InputComponent>(e);
         if (!comp) continue;

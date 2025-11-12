@@ -6,9 +6,7 @@ add_executable(PixelPong
     game/EntityFactory.cpp
     game/utils/Assets.cpp
     game/utils/Animation.cpp
-    ecs/Registry.cpp
     systems/BallForceSystem.cpp
-    systems/MagnusForceSystem.cpp
     systems/RenderSystem.cpp
     systems/InputSystem.cpp
     systems/PlayerInputSystem.cpp
@@ -17,7 +15,7 @@ add_executable(PixelPong
     systems/GridDebugSystem.cpp
     systems/MovementSystem.cpp
     systems/BoundarySystem.cpp
-    systems/BallBounceSystem.cpp
+    systems/BallRemovalSystem.cpp
     systems/AnimationSystem.cpp
     imgui/ImGuiLayer.cpp
     math/TableHomography.cpp

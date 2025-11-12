@@ -11,8 +11,8 @@
 #include "../systems/MetaInputSystem.hpp"
 #include "../input/RawInputState.hpp"
 #include "../imgui/ImGuiLayer.hpp"
-#include "../game/utils/Camera.hpp"
 #include "../math/Random.hpp"
+#include "../systems/BallRemovalSystem.hpp"
 
 class GameScene : public Scene {
 public:
@@ -30,10 +30,10 @@ private:
     InputSystem inputSystem;
     PlayerInputSystem playerInput;
     PlayerActionSystem playerAction;
+    BallRemovalSystem ballRemoval;
     MetaInputSystem metaInput;
     MetaInputState metaState;
     ImGuiLayer imgui;
-    Camera camera;
     sf::Clock deltaClock;
     int entitySpawnTimer = 0;
 };

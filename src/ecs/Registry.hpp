@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <unordered_map>
 #include <memory>
 #include <typeindex>
@@ -23,15 +23,21 @@ public:
         e.id = ++m_nextEntityId;
         e.name = name;
         m_entities.push_back(e);
-        m_nameLookup[name] = &m_entities.back();
+        m_nameLookup[name] = e;  // store a copy, not a pointer
         return e;
     }
 
-    // --- Entity Lookup ---
     Entity* getEntity(const std::string& name) {
         auto it = m_nameLookup.find(name);
-        return (it != m_nameLookup.end()) ? it->second : nullptr;
+        if (it == m_nameLookup.end()) return nullptr;
+
+        for (auto& ent : m_entities) {
+            if (ent.id == it->second.id)
+                return &ent;
+        }
+        return nullptr;
     }
+
 
     size_t getEntityCount() const {
         return m_entities.size();
@@ -84,11 +90,35 @@ public:
     auto getComponents(const Entity& e) {
         return std::make_tuple(getComponent<Components>(e)...);
     }
+    void deleteEntity(const Entity& e) {
+        // Remove from all component storages
+        for (auto& [type, storagePtr] : m_components) {
+            auto& compMap = *storagePtr;
+            compMap.erase(e);
+        }
 
+        // 2️⃣ Remove from the entity list
+        m_entities.erase(
+            std::remove_if(
+                m_entities.begin(),
+                m_entities.end(),
+                [&](const Entity& ent) { return ent.id == e.id; }),
+            m_entities.end()
+        );
+
+        // 3️ Remove from name lookup if it exists
+        for (auto it = m_nameLookup.begin(); it != m_nameLookup.end(); ) {
+            if (it->second.id == e.id)
+                it = m_nameLookup.erase(it);
+            else
+                ++it;
+        }
+    }
 private:
     std::uint32_t m_nextEntityId = 0;
     std::vector<Entity> m_entities;
-    std::unordered_map<std::string, Entity*> m_nameLookup;
+    std::unordered_map<std::string, Entity> m_nameLookup;
+
 
     std::unordered_map<
         std::type_index,

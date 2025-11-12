@@ -1,16 +1,17 @@
 #pragma once
-#include "../ecs/Registry.hpp"
+
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/System/Clock.hpp>
 #include <imgui.h>
 #include <imgui-SFML.h>
 #include "../game/utils/Camera.hpp"
-#include "../game/EntityFactory.hpp"
-#include "../display/DisplayConfig.hpp"
-
+#include "../game/utils/GameContext.hpp"
 class ImGuiLayer {
 public:
-    void init(sf::RenderWindow& window);
-    void render(Registry& registry, Camera& camera, EntityFactory& entityFactory, const DisplayConfig& display);
+    void init(GameContext* context);
+    void render(GameContext* context);
+    void drawDisplaySection(GameContext* context);
+    void drawBallControls(GameContext* context);
+    void drawPhysicsSection(GameContext* context);
     void shutdown();
 };

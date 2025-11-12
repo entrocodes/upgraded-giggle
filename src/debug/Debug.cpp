@@ -4,6 +4,9 @@
 void Debug::debugPrint(std::string varName, Vec2 varValue) {
 	std::cout << varName << ": (" << varValue.x << ", " << varValue.y << ")." << std::endl;
 }
+void Debug::debugPrint(std::string varName, Vec3 varValue) {
+	std::cout << varName << ": (" << varValue.x << ", " << varValue.y << ", " << varValue.z << ")." << std::endl;
+}
 
 void Debug::debugPrint(std::string varName, int varValue) {
 	std::cout << varName << ": " << varValue << std::endl;

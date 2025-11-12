@@ -10,7 +10,15 @@ void PlayerActionSystem::update(GameContext* context) {
 
     auto [input, vel, state] = context->registry.getComponents<InputComponent, Velocity, CState>(*player);
     if (!input || !vel || !state) {
-        Debug::debugPrint("Missing one or more components.");
+        if (!input) {
+            Debug::debugPrint("Missing input component from player.");
+        }
+        if (!vel) {
+            Debug::debugPrint("Missing velocity component from player.");
+        }
+        if (!state) {
+            Debug::debugPrint("Missing state component from player.");
+        }
         return;
     }
     vel->velocity = { 0.f, 0.f };

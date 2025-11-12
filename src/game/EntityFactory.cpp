@@ -60,34 +60,35 @@ Entity EntityFactory::createPlayer() {
 
     return player;
 }
-Entity EntityFactory::createBall(const Vec2& pos, const Vec2& vel, const float height) {
-    Entity ballShadow = EntityFactory::createBallShadow(pos, vel);
-
+Entity EntityFactory::createBall(const Vec3& pos, const Vec3& vel) {
+    //the ball is being initialized with everything in meters per second
+    Entity ballShadow = EntityFactory::createBallShadow({ pos.x, pos.z });
     Entity ball = m_registry.createEntity("ball");
-    Vec2 ballPos = Grid::toWorldCentered(m_display, pos.x, pos.y);
+
+    Vec2 ballScreenPos = { pos.x, pos.z };
+    Vec2 ballWorldXZPos = m_camera.homography.imageToWorld(ballScreenPos);
     Vec2 ballScale = { 0.12f, 0.12f };
-    auto& transform = m_registry.addComponent<CTransform>(ball, ballPos, ballScale, 0.f);
-    m_registry.addComponent<Velocity>(ball, vel);
-    m_registry.addComponent<CBall>(ball, ballShadow, height);
+    Vec3 pos_m = { ballWorldXZPos.x, pos.y, ballWorldXZPos.y };
+    Vec3 vel_mps = { vel.x, 0.0f, vel.z };
+    auto& transform = m_registry.addComponent<CTransform>(ball, ballScreenPos, ballScale, 0.f);
+
+    m_registry.addComponent<CBall>(ball, ballShadow, pos_m, vel_mps);
+
     // animation
     const Animation& animBall = m_assets.getAnimation("TopspinBall");
     auto& animComp = m_registry.addComponent<CAnimation>(ball, animBall, true);
 
     sf::Sprite& s = animComp.animation.getSprite();
     s.setOrigin(s.getLocalBounds().width / 2.f, s.getLocalBounds().height / 2.f);
-
-
     m_registry.addComponent<BoundingBox>(ball, s.getLocalBounds());
+
     return ball;
 }
-Entity EntityFactory::createBallShadow(const Vec2& pos, const Vec2& vel) {
+Entity EntityFactory::createBallShadow(const Vec2& pos) {
     Entity ballShadow = m_registry.createEntity("ballShadow");
 
     // Transform
-    auto& transform = m_registry.addComponent<CTransform>(ballShadow, Grid::toWorldCentered(m_display, pos.x, pos.y), Vec2(2.0f,2.0f), 0.f);
-
-    // Motion & gameplay
-    m_registry.addComponent<Velocity>(ballShadow, vel);
+    auto& transform = m_registry.addComponent<CTransform>(ballShadow, pos, Vec2(2.0f,2.0f));
 
     // animation
     const Animation& animShadow = m_assets.getAnimation("BallShadow");

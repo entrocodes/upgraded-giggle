@@ -23,7 +23,7 @@ GameScene::GameScene(GameContext* context)
     };
 
     // Correct order: image → world
-    camera.homography.calibrate(imagePoints, worldPoints);
+    m_context->camera.homography.calibrate(imagePoints, worldPoints);
 
     m_context->entityFactory.createBackground();
     m_context->entityFactory.createPlayer();
@@ -48,15 +48,19 @@ void GameScene::update(sf::Time dt) {
     if (!metaState.paused) {
         entitySpawnTimer++;
         movement.update(m_context, dt);
+        ballRemoval.update(m_context);
+        if (m_context->physicsDebug.debugRemoveAllBalls) {
+            ballRemoval.removeAll(m_context);
+        }
         animationSystem.update(m_context);
     }
 
-    camera.position = { m_context->display.logicalSize.x / 2.f, m_context->display.logicalSize.y / 2.f };
+    m_context->camera.position = { m_context->display.logicalSize.x / 2.f, m_context->display.logicalSize.y / 2.f };
 
     DisplayUtils::scaleSpritesToResolution(m_context->registry, m_context->display);
 }
 
 void GameScene::render() {
-    renderer.render(m_context->window, m_context->registry, m_context->display, camera);
-    imgui.render(m_context->registry, camera, m_context->entityFactory, m_context->display);
+    renderer.render(m_context->window, m_context->registry, m_context->display, m_context->camera);
+    imgui.render(m_context);
 }

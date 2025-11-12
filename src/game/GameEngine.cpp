@@ -28,7 +28,6 @@ void GameEngine::run() {
         // --- Event polling ---
         while (context.window.pollEvent(event)) {
             ImGui::SFML::ProcessEvent(event);
-
             switch (event.type) {
             case sf::Event::Closed:
                 context.window.close();

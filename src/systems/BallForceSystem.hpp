@@ -4,16 +4,26 @@
 #include "../game/utils/GameContext.hpp"
 #include "../math/Vec3.hpp"
 #include "../math/Vec2.hpp"
+#include "../math/physics/forces/CalculateBallGravity.hpp"
+#include "../math/physics/forces/CalculateMagnusForce.hpp"
+#include "../math/physics/forces/CalculateBallDrag.hpp"
 struct BallForces {
     Vec3 forceGravity = { 0.0f , 0.0f , 0.0f };
     Vec3 forceMagnus = { 0.0f , 0.0f , 0.0f };
     Vec3 forceDrag = { 0.0f , 0.0f , 0.0f };
-    Vec3 totalForce = { 0.0f , 0.0f , 0.0f };
-    Vec3 acceleration = { 0.0f , 0.0f , 0.0f }
-}
+    Vec3 totalForces = { 0.0f , 0.0f , 0.0f };
+    Vec3 acceleration = { 0.0f , 0.0f , 0.0f };
+};
 class BallForceSystem {
 public:
+    CalculateBallDrag calcBallDrag;
+    CalculateBallGravity calcBallGrav;
+    CalculateMagnusForce calcMagnus;
     const float pixelsPerMeter = 90; // tune this to match table/asset scale
-    const float tableBottom = 504.f;
+    const float tableBottomY = 504.f; // pixels
+    const float tableWidth = 2.74f;     // meters (X)
+    const float tableDepth = 1.525f;    // meters (Z)
+    const float tableY = 0.0f;           // table plane at y=0
+    const float stopBelow = -1.0f;
     void update(GameContext* context, float dt);
 };

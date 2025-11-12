@@ -6,7 +6,7 @@ class CalculateBallGravity {
 public:
     const float kGravity = 9.801f;
     Vec3 calculateForceGravity(float ballMass) {
-        Vec3 forceGravity = { 0.f, 0.f, -ballMass * kGravity };
+        Vec3 forceGravity = { 0.f,  -ballMass * kGravity, 0.f };
         return forceGravity;
     }
 

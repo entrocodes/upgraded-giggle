@@ -1,82 +1,119 @@
-#include "BallGravitySystem.hpp"
+﻿#include "BallForceSystem.hpp"
 #include "../math/Vec2.hpp"
 #include "../components/Components.hpp"
 #include "../ecs/Entity.hpp"
 #include "../debug/Debug.hpp"
 #include "../math/GridTransform.hpp"
-#include "BallGravitySystem.hpp"
-#include "../math/physics/forces/CalculateBallGravity.hpp"
-#include "../math/physics/forces/CalculateMagnusForce.hpp"
-#include "../math/physics/forces/CalculateBallDrag.hpp"
+
 #include <algorithm>
 #include <iostream>
 
 void BallForceSystem::update(GameContext* context, float dt) {
     for (auto e : context->registry.getEntitiesWith<CBall, CTransform>()) {
         BallForces bForces;
-
-        auto [transform, ballComp, ballVelVec2] = context->registry.getComponents<CTransform, CBall, Velocity>(e);
+        auto [transform, ballComp] = context->registry.getComponents<CTransform, CBall>(e);
         if (!transform || !ballComp) continue;
 
-        // Access shadow position
+        // --- SHADOW ENTITY ---
         Entity shadowEntity = ballComp->ballShadow;
-        auto [shadowTransform, shadowVelocity] = context->registry.getComponents<CTransform, Velocity>(shadowEntity);
-        if (!shadowTransform || !shadowVelocity) continue;
-        
-        Vec2 shadowPos = shadowTransform->position;
-        Vec3 velocity = { shadowVelocity->velocity.x, ballComp->verticalVel, shadowVelocity->velocity.y };
+        auto shadowTransform = context->registry.getComponent<CTransform>(shadowEntity);
+        if (!shadowTransform) continue;
+        // --- CHECK IF BALL IS OFF TABLE ---
+        bool offTable = (
+            ballComp->pos_m.x < 0.f || ballComp->pos_m.x > tableWidth ||
+            ballComp->pos_m.z < 0.f || ballComp->pos_m.z > tableDepth
+            );
 
-        // Calculate Forces
-        bForces.forceGravity = CalculateBallGravity::calculateForceGravity(ballComp->mass);
-        bForces.forceMagnus = CalculateForceMagnus::calculateForceMagnus(Vec3(2.0f, 2.0f, 2.0f) /*test values for spin*/, velocity);
-        bForces.forceDrag = CalculateBallDrag::calculateForceDrag(velocity);
-       
-        bForces.totalForces = bForces.forceMagnus + bForces.forceGravity + bForces.forceMagnus;
+        // --- PHYSICS FORCES ---
+        Vec3 spin = context->physicsDebug.debugSpinEnabled
+            ? context->physicsDebug.debugBallSpin
+            : ballComp->spin;
 
+        bForces.forceGravity = calcBallGrav.calculateForceGravity(ballComp->mass);
+        bForces.forceMagnus = calcMagnus.calculateForceMagnus(spin, ballComp->vel_mps, context->physicsDebug.debugKMagnus);
+        bForces.forceDrag = calcBallDrag.calculateForceDrag(ballComp->vel_mps);
 
-
-        //TO-DO: apply forces to velocity and verticalVel.
+        bForces.totalForces = bForces.forceGravity + bForces.forceMagnus + bForces.forceDrag;
         bForces.acceleration = bForces.totalForces / ballComp->mass;
-        
-        ballComp->verticalVel = bForces.acceleration.y * dt;
-        shadowVelocity->velocity = { bForces.acceleration.x * dt, bForces.acceleration.z * dt };
-        ballVelVec2->velocity = { bForces.acceleration.x * dt, bForces.acceleration.z * dt }
-        //table bounce
-        if (shadowPos.y <= tableBottom) { 
-            // Bounce when hitting table (height <= 0)
-            if (ballComp->ballHeight <= 0.0f) {
-                ballComp->ballHeight = 0.0f;
-                ballComp->verticalVel = -ballComp->verticalVel * ballComp->restitution;
 
-                // Stop tiny residual bounces
-                if (std::abs(ballComp->verticalVel) < 0.5f)
-                    ballComp->verticalVel = 0.0f;
+        // --- INTEGRATE POSITION ---
+        ballComp->vel_mps += bForces.acceleration * dt;
+        ballComp->pos_m += ballComp->vel_mps * dt;
+
+        // --- BOUNCE & EDGE HANDLING (only if on-table) ---
+        if (!offTable) {
+            // vertical bounce
+            if (ballComp->pos_m.y <= tableY) {
+                ballComp->pos_m.y = tableY;
+                ballComp->vel_mps.y = -ballComp->vel_mps.y * ballComp->restitution;
+                if (std::abs(ballComp->vel_mps.y) < 0.1f)
+                    ballComp->vel_mps.y = 0.f;
             }
-        }
-        //if the ball has gone off the table
-        else { 
-            if (ballComp->ballHeight <= -20.0f) {
-                ballComp->ballHeight = -20.0f;
-                ballComp->verticalVel = -ballComp->verticalVel * ballComp->restitution;
 
-                // Stop tiny residual bounces
-                if (std::abs(ballComp->verticalVel) < 0.5f)
-                    ballComp->verticalVel = 0.0f;
-            }
-        }
+            //// edge reflection (optional)
+            //if (ballComp->pos_m.x < 0.0f) {
+            //    ballComp->pos_m.x = 0.0f;
+            //    ballComp->vel_mps.x = -ballComp->vel_mps.x * ballComp->restitution;
+            //}
+            //else if (ballComp->pos_m.x > tableWidth) {
+            //    ballComp->pos_m.x = tableWidth;
+            //    ballComp->vel_mps.x = -ballComp->vel_mps.x * ballComp->restitution;
+            //}
 
-        // Apply vertical offset to sprite (Y goes up as height increases)
-        transform->position = shadowPos - Vec2(0.f, ballComp->ballHeight * pixelsPerMeter);
-        // Shadow scale (shrinks slightly as ball rises)
-        float shadowScale = std::max(0.5f, 1.5f - ballComp->ballHeight * 0.2f);
-        if (shadowPos.y <= tableBottom) {
-            shadowTransform->scale = Vec2(shadowScale, shadowScale);
+            //if (ballComp->pos_m.z < 0.0f) {
+            //    ballComp->pos_m.z = 0.0f;
+            //    ballComp->vel_mps.z = -ballComp->vel_mps.z * ballComp->restitution;
+            //}
+            //else if (ballComp->pos_m.z > tableDepth) {
+            //    ballComp->pos_m.z = tableDepth;
+            //    ballComp->vel_mps.z = -ballComp->vel_mps.z * ballComp->restitution;
+            //}
         }
         else {
-            shadowTransform->scale = Vec2(0, 0);
+            // OFF-TABLE BEHAVIOR
+            if (!ballComp->hasFallen) {
+                ballComp->hasFallen = true;
+                // Trigger event here (e.g. scoring or reset)
+            }
+
+            // Gravity-only fall and friction
+            ballComp->vel_mps.x *= 0.99f;
+            ballComp->vel_mps.z *= 0.99f;
+
+            // Stop once below certain depth
+            if (ballComp->pos_m.y <= stopBelow) {
+                ballComp->vel_mps = { 0.f, 0.f, 0.f };
+            }
         }
-        // Optional debugging
-         //Debug::debugPrint("Ball Height", ballComp->ballHeight);
-         //Debug::debugPrint("Vertical Velocity", ballComp->verticalVel);
+
+        // --- PROJECT TO SCREEN USING HOMOGRAPHY ---
+        Vec2 screenBase = context->camera.homography.worldToImage({
+            ballComp->pos_m.x,
+            ballComp->pos_m.z
+            });
+
+
+        shadowTransform->position = screenBase;
+
+        if (!offTable) {
+            float scale = std::max(0.5f, 1.5f - 0.2f * ballComp->pos_m.y);
+            shadowTransform->scale = { scale, scale };
+        }
+        else {
+            float edgeFade = std::clamp(1.0f - (ballComp->pos_m.y / 0.3f), 0.0f, 1.0f);
+            shadowTransform->scale = { edgeFade, edgeFade };
+        }
+
+
+        // --- BALL SPRITE OFFSET (height in meters → pixels) ---
+        transform->position = screenBase - Vec2(0.f, ballComp->pos_m.y * pixelsPerMeter);
+
+        // --- DEBUG OUTPUT ---
+        if (context->physicsDebug.enableConsoleDebugOutput) {
+            Debug::debugPrint("Velocity (m/s)", ballComp->vel_mps);
+            Debug::debugPrint("Pos (m)", ballComp->pos_m);
+            Debug::debugPrint("Ball Screen Pos", transform->position);
+            Debug::debugPrint("Shadow Screen Pos", shadowTransform->position);
+        }
     }
 }
