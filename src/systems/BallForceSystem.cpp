@@ -93,15 +93,26 @@ void BallForceSystem::update(GameContext* context, float dt) {
             });
 
 
-        shadowTransform->position = screenBase;
 
         if (!offTable) {
+            shadowTransform->position = screenBase;
             float scale = std::max(0.5f, 1.5f - 0.2f * ballComp->pos_m.y);
             shadowTransform->scale = { scale, scale };
         }
         else {
-            float edgeFade = std::clamp(1.0f - (ballComp->pos_m.y / 0.3f), 0.0f, 1.0f);
-            shadowTransform->scale = { edgeFade, edgeFade };
+            // move shadow below table visually
+            const float groundOffsetPx = 80.f;  // how far below the table the ground is
+            const float fallFactor = std::clamp(ballComp->pos_m.y * 2.f, 0.f, 1.f);
+
+            // freeze x/z at table edge, drop y
+            Vec2 edgeScreen = screenBase;
+            edgeScreen.y += groundOffsetPx * fallFactor;
+
+            shadowTransform->position = edgeScreen;
+
+            // fade and shrink the shadow
+            float fade = std::max(0.0f, 1.0f - ballComp->pos_m.y * 0.8f);
+            shadowTransform->scale = { fade, fade };
         }
 
 
