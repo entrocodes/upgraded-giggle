@@ -19,6 +19,7 @@ struct PhysicsDebugSettings {
     bool debugSpinArrows = false;
     bool enableConsoleDebugOutput = false;
     bool clickToSpawn = false;
+    bool clickForMousePos = false;
 };
 struct GameContext {
     sf::RenderWindow window;
@@ -30,6 +31,7 @@ struct GameContext {
     PhysicsDebugSettings physicsDebug;
     Camera camera;
     bool inputBlocked = true;
+    
     GameContext()
         : entityFactory(registry, display, assets, camera) {
     }

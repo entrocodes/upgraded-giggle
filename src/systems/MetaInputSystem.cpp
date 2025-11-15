@@ -24,7 +24,10 @@ void MetaInputSystem::update(GameContext* context, MetaInputState& state) {
     if (leftIsDown && !leftWasDown) {
         state.mouseClicked = true;
         state.mouseClickPos = context->rawInput.mousePosition;
-        //Debug::debugPrint("Mouse Position", state.mouseClickPos);
+        if (context->physicsDebug.clickForMousePos) {
+            Debug::debugPrint("Mouse Position", state.mouseClickPos);
+        }
+        
         if (context->physicsDebug.clickToSpawn) {
             context->entityFactory.createBall({ state.mouseClickPos.x, context->physicsDebug.debugBallHeight, state.mouseClickPos.y }, context->physicsDebug.debugBallVelocity);
         }

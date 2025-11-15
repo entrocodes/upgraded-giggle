@@ -47,6 +47,7 @@ void ImGuiLayer::render(GameContext* context) {
         }
         ImGui::Checkbox("Enable Debug Spin", &context->physicsDebug.debugSpinEnabled);
         ImGui::Checkbox("Draw Spin Arrows", &context->physicsDebug.debugSpinArrows);
+        ImGui::Checkbox("Click for Mouse Position", &context->physicsDebug.clickForMousePos);
     }
 
     // === Stats ===

@@ -29,8 +29,42 @@ Entity EntityFactory::createBackground() {
     transform.scale = { uniformScale, uniformScale };
 
     // Center in camera space
-    transform.position = { m_display.logicalSize.x / 2.f, m_display.logicalSize.y / 2.f };
+    transform.position = { m_display.logicalSize.x / 2.f, m_display.logicalSize.y / 2.f }; //center of screen
     return background;
+}
+
+Entity EntityFactory::createTable() {
+    Entity table = m_registry.createEntity("table");
+
+    auto& transform = m_registry.addComponent<CTransform>(table);
+
+    const Animation& tableAnim = m_assets.getAnimation("Table");
+    auto& animComp = m_registry.addComponent<CAnimation>(table, tableAnim, false);
+    // Ensure sprite origin is set and bounding box uses the animation sprite
+    sf::Sprite& s = animComp.animation.getSprite();
+    s.setOrigin(s.getLocalBounds().width / 2.f, s.getLocalBounds().height / 2.f);
+    auto texSize = s.getTexture()->getSize();
+
+    // Center in camera space
+    transform.position = { 532.f + texSize.x / 2, 599.f - texSize.y / 2};
+    return table;
+}
+Entity EntityFactory::createNet() {
+    Entity net = m_registry.createEntity("net");
+
+    auto& transform = m_registry.addComponent<CTransform>(net);
+
+    const Animation& netAnim = m_assets.getAnimation("Net");
+    auto& animComp = m_registry.addComponent<CAnimation>(net, netAnim, false);
+    // Ensure sprite origin is set and bounding box uses the animation sprite
+    sf::Sprite& s = animComp.animation.getSprite();
+    s.setOrigin(s.getLocalBounds().width / 2.f, s.getLocalBounds().height / 2.f);
+    auto texSize = s.getTexture()->getSize();
+
+
+    // Center in camera space
+    transform.position = { 576.f + texSize.x / 2.f, 342.f - texSize.y / 2};
+    return net;
 }
 
 Entity EntityFactory::createPlayer() {

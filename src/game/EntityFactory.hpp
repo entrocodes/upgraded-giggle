@@ -15,6 +15,8 @@ public:
     }
 
     Entity createBackground();
+    Entity createTable();
+    Entity createNet();
     Entity createPlayer();
     Entity createBallShadow(const Vec2& pos);
     Entity createBall(const Vec3& pos, const Vec3& vel);

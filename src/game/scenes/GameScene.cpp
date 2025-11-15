@@ -26,6 +26,8 @@ GameScene::GameScene(GameContext* context)
     m_context->camera.homography.calibrate(imagePoints, worldPoints);
 
     m_context->entityFactory.createBackground();
+    m_context->entityFactory.createTable();
+    m_context->entityFactory.createNet();
     m_context->entityFactory.createPlayer();
 }
 
