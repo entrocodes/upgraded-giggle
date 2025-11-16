@@ -10,8 +10,5 @@ class ImGuiLayer {
 public:
     void init(GameContext* context);
     void render(GameContext* context);
-    void drawDisplaySection(GameContext* context);
-    void drawBallControls(GameContext* context);
-    void drawPhysicsSection(GameContext* context);
     void shutdown();
 };

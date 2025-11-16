@@ -9,6 +9,7 @@
 #include "../game/utils/Camera.hpp"
 #include "../math/Vec3.hpp"
 #include "../math/Vec2.hpp"
+#include "../render/RenderLayer.hpp"
 struct PhysicsDebugSettings {
     Vec3 debugBallSpin = { 0.0f, 0.0f, 0.0f };
     float debugBallHeight = 0.0f;
@@ -21,16 +22,20 @@ struct PhysicsDebugSettings {
     bool clickToSpawn = false;
     bool clickForMousePos = false;
 };
+
+
 struct GameContext {
     sf::RenderWindow window;
     DisplayConfig display;
     Assets assets;
     Registry registry;
+    RenderLayers renderLayers;
     RawInputState rawInput;
     EntityFactory entityFactory;
     PhysicsDebugSettings physicsDebug;
     Camera camera;
     bool inputBlocked = true;
+    bool showLayerEditor = false;
     
     GameContext()
         : entityFactory(registry, display, assets, camera) {

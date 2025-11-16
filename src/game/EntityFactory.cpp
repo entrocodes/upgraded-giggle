@@ -6,7 +6,20 @@
 #include <iostream>
 #include "../debug/Debug.hpp" // at top
 
-
+/* INIT Animation Layers :
+Layer 0:
+Background
+Layer 1:
+Table
+Layer 2:
+Net
+Layer 3:
+Ball Shadow
+Layer 4:
+Ball
+Layer 5:
+Player
+*/
 
 Entity EntityFactory::createBackground() {
     Entity background = m_registry.createEntity("background");
@@ -15,6 +28,7 @@ Entity EntityFactory::createBackground() {
 
     const Animation& roomAnim = m_assets.getAnimation("OrangeRoom");
     auto& animComp = m_registry.addComponent<CAnimation>(background, roomAnim, false);
+    auto& render = m_registry.addComponent<CRenderLayer>(background, LAYER_BACKGROUND);
     // Ensure sprite origin is set and bounding box uses the animation sprite
     sf::Sprite& s = animComp.animation.getSprite();
     s.setOrigin(s.getLocalBounds().width / 2.f, s.getLocalBounds().height / 2.f);
@@ -84,6 +98,7 @@ Entity EntityFactory::createPlayer() {
 
     const Animation& standAnim = m_assets.getAnimation("Stand");
     auto& animComp = m_registry.addComponent<CAnimation>(player, standAnim, false);
+    auto& render = m_registry.addComponent<CRenderLayer>(player, LAYER_PLAYER);
 
     // Ensure sprite origin is set and bounding box uses the animation sprite
     sf::Sprite& s = animComp.animation.getSprite();
@@ -111,6 +126,7 @@ Entity EntityFactory::createBall(const Vec3& pos, const Vec3& vel) {
     // animation
     const Animation& animBall = m_assets.getAnimation("TopspinBall");
     auto& animComp = m_registry.addComponent<CAnimation>(ball, animBall, true);
+    auto& render = m_registry.addComponent<CRenderLayer>(ball, LAYER_BALL);
 
     sf::Sprite& s = animComp.animation.getSprite();
     s.setOrigin(s.getLocalBounds().width / 2.f, s.getLocalBounds().height / 2.f);
@@ -126,7 +142,8 @@ Entity EntityFactory::createBallShadow(const Vec2& pos) {
 
     // animation
     const Animation& animShadow = m_assets.getAnimation("BallShadow");
-    auto& animComp = m_registry.addComponent<CAnimation>(ballShadow, animShadow, true);
+    auto& animComp = m_registry.addComponent<CAnimation>(ballShadow, animShadow, false);
+    auto& render = m_registry.addComponent<CRenderLayer>(ballShadow, LAYER_BALL_SHADOW);
 
     sf::Sprite& s = animComp.animation.getSprite();
     s.setOrigin(s.getLocalBounds().width / 2.f, s.getLocalBounds().height / 2.f);

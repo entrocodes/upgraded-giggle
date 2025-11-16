@@ -10,3 +10,4 @@
 #include "CState.hpp"
 #include "CBallShadow.hpp"
 #include "CBall.hpp"
+#include "CRenderLayer.hpp"

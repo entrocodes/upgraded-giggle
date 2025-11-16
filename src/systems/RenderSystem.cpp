@@ -1,7 +1,8 @@
-#include "RenderSystem.hpp"
+﻿#include "RenderSystem.hpp"
 #include "../systems/GridDebugSystem.hpp"
 #include "../components/Components.hpp"
 #include "../debug/Debug.hpp"
+
 void RenderSystem::render(sf::RenderWindow& window, Registry& registry, DisplayConfig& display, const Camera& camera) {
     Vec2 windowSize{
         static_cast<float>(window.getSize().x),
@@ -11,28 +12,41 @@ void RenderSystem::render(sf::RenderWindow& window, Registry& registry, DisplayC
     // --- Set camera view ---
     window.setView(camera.getView(windowSize));
 
-    // --- Render entities ---
-    for (auto e : registry.getEntitiesWith<CTransform, CAnimation>()) {
-        auto [transformComp, animationComp] = registry.getComponents<CTransform, CAnimation>(e);
-        if (!transformComp || !animationComp) continue;
+    // 📌 1) Gather drawables with transform + sprite + layer
+    struct DrawItem {
+        int layer;
+        CTransform* transform;
+        CAnimation* animation;
+    };
 
-        auto& animation = animationComp->animation;
+    std::vector<DrawItem> drawList;
+    for (auto e : registry.getEntitiesWith<CTransform, CAnimation, CRenderLayer>()) {
+        auto [t, a, rl] = registry.getComponents<CTransform, CAnimation, CRenderLayer>(e);
+        if (!t || !a || !rl) continue;
+
+        drawList.push_back({ rl->layer, t, a });
+    }
+
+    // 📌 2) Sort by layer value
+    std::sort(drawList.begin(), drawList.end(),
+        [](const DrawItem& a, const DrawItem& b) {
+            return a.layer < b.layer;
+        });
+
+    // 📌 3) Draw sorted list
+    for (auto& item : drawList) {
+        auto& animation = item.animation->animation;
         animation.update();
-
         sf::Sprite& sprite = animation.getSprite();
 
-        // --- World coordinates only for now ---
-        sprite.setPosition(transformComp->position.x, transformComp->position.y);
-        sprite.setRotation(transformComp->rotation);
-        sprite.setScale(transformComp->scale.x, transformComp->scale.y);
-
-        // --- Uncomment for homography later ---
-        // Vec2 screenPos = camera.worldToScreen(transformComp->position, windowSize);
-        // sprite.setPosition(screenPos.x, screenPos.y);
-        // sprite.setScale(transformComp->scale.x * camera.zoom, transformComp->scale.y * camera.zoom);
+        sprite.setPosition(item.transform->position.x, item.transform->position.y);
+        sprite.setRotation(item.transform->rotation);
+        sprite.setScale(item.transform->scale.x, item.transform->scale.y);
 
         window.draw(sprite);
     }
+
+    // === Optional Debug Layers ===
     if (gGridDebug.drawGrid) {
         gGridDebug.debugShowGrid(window, display);
     }
@@ -40,8 +54,9 @@ void RenderSystem::render(sf::RenderWindow& window, Registry& registry, DisplayC
         camera.homography.drawDebugGrid(window, 10, 5);
     }
     else {
-        camera.homography.printDebug = true; // this will reenable the debug message to print on the first frame the grid is displayed
+        camera.homography.printDebug = true;
     }
-    // --- Optional: reset view if drawing UI later ---
+
+    // Reset for ImGui overlay
     window.setView(window.getDefaultView());
 }
