@@ -6,6 +6,7 @@
 #include <imgui-SFML.h>
 #include "../game/utils/Camera.hpp"
 #include "../game/utils/GameContext.hpp"
+#include "../components/Components.hpp"
 class ImGuiLayer {
 public:
     void init(GameContext* context);

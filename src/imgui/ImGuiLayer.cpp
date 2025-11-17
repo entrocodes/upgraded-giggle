@@ -2,7 +2,6 @@
 #include <imgui-SFML.h>
 #include "../systems/GridDebugSystem.hpp"
 #include "../systems/BallRemovalSystem.hpp"
-
 void ImGuiLayer::init(GameContext* context) {
     ImGui::SFML::Init(context->window);
 }
@@ -73,32 +72,20 @@ void ImGuiLayer::render(GameContext* context) {
         ImGui::Checkbox("Show Debug Mouse Pos",
             &context->physicsDebug.clickForMousePos);
     }
+    // == Render Layers ==
+    if (ImGui::CollapsingHeader("Render Layers")) {
+        for (auto e : context->registry.getEntitiesWith<CRenderLayer>()) {
 
-    // === Render Layers ===
-    if (ImGui::CollapsingHeader("Render Layers", ImGuiTreeNodeFlags_DefaultOpen)) {
-        auto& layers = context->renderLayers.layers;
-        auto& names = context->renderLayers.layerNames;
+            auto layerComp = context->registry.getComponent<CRenderLayer>(e);
+            if (!layerComp) continue;
 
-        for (int i = 0; i < layers.size(); ++i) {
-            int layerId = layers[i];
-
-            // Name lookup from enum → readable text
-            const std::string& label = names[layerId];
-            ImGui::Selectable(label.c_str());
-
-            if (ImGui::IsItemActive() && !ImGui::IsItemHovered()) {
-                int moveDir = (ImGui::GetMouseDragDelta(0).y < 0) ? -1 : 1;
-                int swapWith = i + moveDir;
-
-                if (swapWith >= 0 && swapWith < layers.size()) {
-                    std::swap(layers[i], layers[swapWith]);
-                    ImGui::ResetMouseDragDelta();
-                }
-            }
+            ImGui::Text("%s: %d",
+                e.name.c_str(),
+                layerComp->layer
+            );
         }
-
-        ImGui::Text("Drag layers to change drawing order");
     }
+
 
     // === Stats ===
     if (ImGui::CollapsingHeader("Stats")) {

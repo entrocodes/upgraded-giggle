@@ -6,20 +6,7 @@
 #include <iostream>
 #include "../debug/Debug.hpp" // at top
 
-/* INIT Animation Layers :
-Layer 0:
-Background
-Layer 1:
-Table
-Layer 2:
-Net
-Layer 3:
-Ball Shadow
-Layer 4:
-Ball
-Layer 5:
-Player
-*/
+
 
 Entity EntityFactory::createBackground() {
     Entity background = m_registry.createEntity("background");
@@ -28,7 +15,7 @@ Entity EntityFactory::createBackground() {
 
     const Animation& roomAnim = m_assets.getAnimation("OrangeRoom");
     auto& animComp = m_registry.addComponent<CAnimation>(background, roomAnim, false);
-    auto& render = m_registry.addComponent<CRenderLayer>(background, LAYER_BACKGROUND);
+    auto& render = m_registry.addComponent<CRenderLayer>(background, 0);
     // Ensure sprite origin is set and bounding box uses the animation sprite
     sf::Sprite& s = animComp.animation.getSprite();
     s.setOrigin(s.getLocalBounds().width / 2.f, s.getLocalBounds().height / 2.f);
@@ -54,6 +41,7 @@ Entity EntityFactory::createTable() {
 
     const Animation& tableAnim = m_assets.getAnimation("Table");
     auto& animComp = m_registry.addComponent<CAnimation>(table, tableAnim, false);
+    auto& render = m_registry.addComponent<CRenderLayer>(table, 3);
     // Ensure sprite origin is set and bounding box uses the animation sprite
     sf::Sprite& s = animComp.animation.getSprite();
     s.setOrigin(s.getLocalBounds().width / 2.f, s.getLocalBounds().height / 2.f);
@@ -70,6 +58,7 @@ Entity EntityFactory::createNet() {
 
     const Animation& netAnim = m_assets.getAnimation("Net");
     auto& animComp = m_registry.addComponent<CAnimation>(net, netAnim, false);
+    auto& render = m_registry.addComponent<CRenderLayer>(net, 6);
     // Ensure sprite origin is set and bounding box uses the animation sprite
     sf::Sprite& s = animComp.animation.getSprite();
     s.setOrigin(s.getLocalBounds().width / 2.f, s.getLocalBounds().height / 2.f);
@@ -93,12 +82,11 @@ Entity EntityFactory::createPlayer() {
     m_registry.addComponent<Player>(player);
     m_registry.addComponent<InputComponent>(player);
     m_registry.addComponent<CState>(player, "stand");
-
+    auto& render = m_registry.addComponent<CRenderLayer>(player, 9);
     // Animation from Assets (keeps texture ownership in Assets)
 
     const Animation& standAnim = m_assets.getAnimation("Stand");
     auto& animComp = m_registry.addComponent<CAnimation>(player, standAnim, false);
-    auto& render = m_registry.addComponent<CRenderLayer>(player, LAYER_PLAYER);
 
     // Ensure sprite origin is set and bounding box uses the animation sprite
     sf::Sprite& s = animComp.animation.getSprite();
@@ -126,7 +114,7 @@ Entity EntityFactory::createBall(const Vec3& pos, const Vec3& vel) {
     // animation
     const Animation& animBall = m_assets.getAnimation("TopspinBall");
     auto& animComp = m_registry.addComponent<CAnimation>(ball, animBall, true);
-    auto& render = m_registry.addComponent<CRenderLayer>(ball, LAYER_BALL);
+    auto& render = m_registry.addComponent<CRenderLayer>(ball, 4);
 
     sf::Sprite& s = animComp.animation.getSprite();
     s.setOrigin(s.getLocalBounds().width / 2.f, s.getLocalBounds().height / 2.f);
@@ -143,7 +131,7 @@ Entity EntityFactory::createBallShadow(const Vec2& pos) {
     // animation
     const Animation& animShadow = m_assets.getAnimation("BallShadow");
     auto& animComp = m_registry.addComponent<CAnimation>(ballShadow, animShadow, false);
-    auto& render = m_registry.addComponent<CRenderLayer>(ballShadow, LAYER_BALL_SHADOW);
+    auto& render = m_registry.addComponent<CRenderLayer>(ballShadow, 3);
 
     sf::Sprite& s = animComp.animation.getSprite();
     s.setOrigin(s.getLocalBounds().width / 2.f, s.getLocalBounds().height / 2.f);

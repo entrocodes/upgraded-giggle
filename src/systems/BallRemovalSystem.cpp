@@ -12,6 +12,7 @@ void BallRemovalSystem::update(GameContext* context) {
 
         if (ballPos.y > context->display.logicalSize.y || ballPos.y < 0 || ballPos.x < 0 || ballPos.x > context->display.logicalSize.x) {
             toRemove.push_back(e);
+            toRemove.push_back(shadowEntity);
         }
     }
     for (auto e : toRemove) {

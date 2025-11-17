@@ -19,11 +19,5 @@ public:
     CalculateBallDrag calcBallDrag;
     CalculateBallGravity calcBallGrav;
     CalculateMagnusForce calcMagnus;
-    const float pixelsPerMeter = 90; // tune this to match table/asset scale
-    const float tableBottomY = 504.f; // pixels
-    const float tableWidth = 2.74f;     // meters (X)
-    const float tableDepth = 1.525f;    // meters (Z)
-    const float tableY = 0.0f;           // table plane at y=0
-    const float stopBelow = -1.0f;
     void update(GameContext* context, float dt);
 };

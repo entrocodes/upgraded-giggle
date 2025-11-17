@@ -9,7 +9,6 @@
 #include "../game/utils/Camera.hpp"
 #include "../math/Vec3.hpp"
 #include "../math/Vec2.hpp"
-#include "../render/RenderLayer.hpp"
 struct PhysicsDebugSettings {
     Vec3 debugBallSpin = { 0.0f, 0.0f, 0.0f };
     float debugBallHeight = 0.0f;
@@ -22,18 +21,26 @@ struct PhysicsDebugSettings {
     bool clickToSpawn = false;
     bool clickForMousePos = false;
 };
-
+struct TableParameters {
+    const float pixelsPerMeter = 90; // tune this to match table/asset scale
+    const float tableBottomY = 504.f; // pixels
+    const float tableLength = 2.74f;     // meters (X)
+    const float netZ = 2.74f / 2;
+    const float tableWidth = 1.525f;    // meters (Z)
+    const float tableY = 0.0f;           // table plane at y=0
+    const float stopBelow = -1.0f;
+};
 
 struct GameContext {
     sf::RenderWindow window;
     DisplayConfig display;
     Assets assets;
     Registry registry;
-    RenderLayers renderLayers;
     RawInputState rawInput;
     EntityFactory entityFactory;
     PhysicsDebugSettings physicsDebug;
     Camera camera;
+    TableParameters tableParameters;
     bool inputBlocked = true;
     bool showLayerEditor = false;
     

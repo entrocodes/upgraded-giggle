@@ -19,6 +19,7 @@ add_executable(PixelPong
     systems/AnimationSystem.cpp
     imgui/ImGuiLayer.cpp
     math/TableHomography.cpp
+    systems/RenderLayerSystem.cpp
 )
 
 target_compile_features(PixelPong PRIVATE cxx_std_17)

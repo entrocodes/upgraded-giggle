@@ -20,8 +20,8 @@ void BallForceSystem::update(GameContext* context, float dt) {
         if (!shadowTransform) continue;
         // --- CHECK IF BALL IS OFF TABLE ---
         bool offTable = (
-            ballComp->pos_m.x < 0.f || ballComp->pos_m.x > tableWidth ||
-            ballComp->pos_m.z < 0.f || ballComp->pos_m.z > tableDepth
+            ballComp->pos_m.x < 0.f || ballComp->pos_m.x > context->tableParameters.tableLength ||
+            ballComp->pos_m.z < 0.f || ballComp->pos_m.z > context->tableParameters.tableWidth
             );
 
         // --- PHYSICS FORCES ---
@@ -43,31 +43,13 @@ void BallForceSystem::update(GameContext* context, float dt) {
         // --- BOUNCE & EDGE HANDLING (only if on-table) ---
         if (!offTable) {
             // vertical bounce
-            if (ballComp->pos_m.y <= tableY) {
-                ballComp->pos_m.y = tableY;
+            if (ballComp->pos_m.y <= context->tableParameters.tableY) {
+                ballComp->pos_m.y = context->tableParameters.tableY;
                 ballComp->vel_mps.y = -ballComp->vel_mps.y * ballComp->restitution;
                 if (std::abs(ballComp->vel_mps.y) < 0.1f)
                     ballComp->vel_mps.y = 0.f;
             }
 
-            //// edge reflection (optional)
-            //if (ballComp->pos_m.x < 0.0f) {
-            //    ballComp->pos_m.x = 0.0f;
-            //    ballComp->vel_mps.x = -ballComp->vel_mps.x * ballComp->restitution;
-            //}
-            //else if (ballComp->pos_m.x > tableWidth) {
-            //    ballComp->pos_m.x = tableWidth;
-            //    ballComp->vel_mps.x = -ballComp->vel_mps.x * ballComp->restitution;
-            //}
-
-            //if (ballComp->pos_m.z < 0.0f) {
-            //    ballComp->pos_m.z = 0.0f;
-            //    ballComp->vel_mps.z = -ballComp->vel_mps.z * ballComp->restitution;
-            //}
-            //else if (ballComp->pos_m.z > tableDepth) {
-            //    ballComp->pos_m.z = tableDepth;
-            //    ballComp->vel_mps.z = -ballComp->vel_mps.z * ballComp->restitution;
-            //}
         }
         else {
             // OFF-TABLE BEHAVIOR
@@ -76,14 +58,14 @@ void BallForceSystem::update(GameContext* context, float dt) {
                 // Trigger event here (e.g. scoring or reset)
             }
 
-            // Gravity-only fall and friction
-            ballComp->vel_mps.x *= 0.99f;
-            ballComp->vel_mps.z *= 0.99f;
+            //// Gravity-only fall and friction
+            //ballComp->vel_mps.x *= 0.99f;
+            //ballComp->vel_mps.z *= 0.99f;
 
-            // Stop once below certain depth
-            if (ballComp->pos_m.y <= stopBelow) {
-                ballComp->vel_mps = { 0.f, 0.f, 0.f };
-            }
+            //// Stop once below certain depth
+            //if (ballComp->pos_m.y <= context->tableParameters.stopBelow) {
+            //    ballComp->vel_mps = { 0.f, 0.f, 0.f };
+            //}
         }
 
         // --- PROJECT TO SCREEN USING HOMOGRAPHY ---
@@ -91,33 +73,35 @@ void BallForceSystem::update(GameContext* context, float dt) {
             ballComp->pos_m.x,
             ballComp->pos_m.z
             });
+        shadowTransform->position = screenBase;
+        float scale = std::max(0.5f, 1.5f - 0.2f * ballComp->pos_m.y);
+        shadowTransform->scale = { scale, scale };
 
 
+        //if (!offTable) {
+        //    shadowTransform->position = screenBase;
+        //    float scale = std::max(0.5f, 1.5f - 0.2f * ballComp->pos_m.y);
+        //    shadowTransform->scale = { scale, scale };
+        //}
+        //else {
+        //    // move shadow below table visually
+        //    const float groundOffsetPx = 80.f;  // how far below the table the ground is
+        //    const float fallFactor = std::clamp(ballComp->pos_m.y * 2.f, 0.f, 1.f);
 
-        if (!offTable) {
-            shadowTransform->position = screenBase;
-            float scale = std::max(0.5f, 1.5f - 0.2f * ballComp->pos_m.y);
-            shadowTransform->scale = { scale, scale };
-        }
-        else {
-            // move shadow below table visually
-            const float groundOffsetPx = 80.f;  // how far below the table the ground is
-            const float fallFactor = std::clamp(ballComp->pos_m.y * 2.f, 0.f, 1.f);
+        //    // freeze x/z at table edge, drop y
+        //    Vec2 edgeScreen = screenBase;
+        //    edgeScreen.y += groundOffsetPx * fallFactor;
 
-            // freeze x/z at table edge, drop y
-            Vec2 edgeScreen = screenBase;
-            edgeScreen.y += groundOffsetPx * fallFactor;
+        //    shadowTransform->position = edgeScreen;
 
-            shadowTransform->position = edgeScreen;
-
-            // fade and shrink the shadow
-            float fade = std::max(0.0f, 1.0f - ballComp->pos_m.y * 0.8f);
-            shadowTransform->scale = { fade, fade };
-        }
+        //    // fade and shrink the shadow
+        //    float fade = std::max(0.0f, 1.0f - ballComp->pos_m.y * 0.8f);
+        //    shadowTransform->scale = { fade, fade };
+        //}
 
 
         // --- BALL SPRITE OFFSET (height in meters → pixels) ---
-        transform->position = screenBase - Vec2(0.f, ballComp->pos_m.y * pixelsPerMeter);
+        transform->position = screenBase - Vec2(0.f, ballComp->pos_m.y * context->tableParameters.pixelsPerMeter);
 
         // --- DEBUG OUTPUT ---
         if (context->physicsDebug.enableConsoleDebugOutput) {

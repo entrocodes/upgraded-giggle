@@ -3,15 +3,15 @@
 #include "../components/Components.hpp"
 #include "../debug/Debug.hpp"
 
-void RenderSystem::render(sf::RenderWindow& window, Registry& registry, DisplayConfig& display, const Camera& camera) {
+void RenderSystem::render(GameContext* context) {
     Vec2 windowSize{
-        static_cast<float>(window.getSize().x),
-        static_cast<float>(window.getSize().y)
+        static_cast<float>(context->window.getSize().x),
+        static_cast<float>(context->window.getSize().y)
     };
 
     // --- Set camera view ---
-    window.setView(camera.getView(windowSize));
-
+    context->window.setView(context->camera.getView(windowSize));
+    renderLayerSystem.update(context);
     // 📌 1) Gather drawables with transform + sprite + layer
     struct DrawItem {
         int layer;
@@ -20,8 +20,8 @@ void RenderSystem::render(sf::RenderWindow& window, Registry& registry, DisplayC
     };
 
     std::vector<DrawItem> drawList;
-    for (auto e : registry.getEntitiesWith<CTransform, CAnimation, CRenderLayer>()) {
-        auto [t, a, rl] = registry.getComponents<CTransform, CAnimation, CRenderLayer>(e);
+    for (auto e : context->registry.getEntitiesWith<CTransform, CAnimation, CRenderLayer>()) {
+        auto [t, a, rl] = context->registry.getComponents<CTransform, CAnimation, CRenderLayer>(e);
         if (!t || !a || !rl) continue;
 
         drawList.push_back({ rl->layer, t, a });
@@ -43,20 +43,20 @@ void RenderSystem::render(sf::RenderWindow& window, Registry& registry, DisplayC
         sprite.setRotation(item.transform->rotation);
         sprite.setScale(item.transform->scale.x, item.transform->scale.y);
 
-        window.draw(sprite);
+        context->window.draw(sprite);
     }
 
     // === Optional Debug Layers ===
     if (gGridDebug.drawGrid) {
-        gGridDebug.debugShowGrid(window, display);
+        gGridDebug.debugShowGrid(context->window, context->display);
     }
-    if (camera.homography.drawGrid) {
-        camera.homography.drawDebugGrid(window, 10, 5);
+    if (context->camera.homography.drawGrid) {
+        context->camera.homography.drawDebugGrid(context->window, 10, 5);
     }
     else {
-        camera.homography.printDebug = true;
+        context->camera.homography.printDebug = true;
     }
 
     // Reset for ImGui overlay
-    window.setView(window.getDefaultView());
+    context->window.setView(context->window.getDefaultView());
 }

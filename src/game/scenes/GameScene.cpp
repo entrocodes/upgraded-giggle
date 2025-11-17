@@ -17,9 +17,9 @@ GameScene::GameScene(GameContext* context)
     // Real-world coordinates (meters)
     std::array<Vec2, 4> worldPoints = {
         Vec2(0.0f, 0.0f),       // Bottom-Left
-        Vec2(0.0f, 1.525f),     // Top-Left
-        Vec2(2.74f, 0.0f),      // Bottom-Right
-        Vec2(2.74f, 1.525f)     // Top-Right
+        Vec2(0.0f, context->tableParameters.tableWidth),     // Top-Left
+        Vec2(context->tableParameters.tableLength, 0.0f),      // Bottom-Right
+        Vec2(context->tableParameters.tableWidth , context->tableParameters.tableWidth)     // Top-Right
     };
 
     // Correct order: image → world
@@ -63,6 +63,6 @@ void GameScene::update(sf::Time dt) {
 }
 
 void GameScene::render() {
-    renderer.render(m_context->window, m_context->registry, m_context->display, m_context->camera);
+    renderer.render(m_context);
     imgui.render(m_context);
 }
