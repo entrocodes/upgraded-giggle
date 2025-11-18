@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "../math/Vec2.hpp"
+#include "../math/Vec3.hpp"
 #include <SFML/Graphics.hpp>
 #include <array>
 #include <Eigen/Dense>
@@ -30,6 +31,7 @@ public:
 
     // Convert points
     Vec2 imageToWorld(const Vec2& p) const;
+    Vec2 worldToImage(const Vec3& p) const;
     Vec2 worldToImage(const Vec2& p) const;
 
     // Debug draw

@@ -12,8 +12,8 @@
 void BallForceSystem::update(GameContext* context, float dt) {
     for (auto ball : context->registry.getEntitiesWith<CBall, CTransform>()) {
         BallForces bForces;
-        auto [transform, ballComp] = context->registry.getComponents<CTransform, CBall>(ball);
-        if (!transform || !ballComp) continue;
+        auto [transform, ballComp, boundingBox3D] = context->registry.getComponents<CTransform, CBall, CBoundingBox3D>(ball);
+        if (!transform || !ballComp || !boundingBox3D) continue;
 
         
         // --- SHADOW ENTITY ---
@@ -62,7 +62,7 @@ void BallForceSystem::update(GameContext* context, float dt) {
             }
         }
         //handle net collision
-        ballComp->ballBounds3D = Bounds3D(ballComp->pos_m - ballComp->ballRadius, ballComp->pos_m + ballComp->ballRadius);
+        boundingBox3D->box = Bounds3D(ballComp->pos_m - ballComp->ballRadius, ballComp->pos_m + ballComp->ballRadius);
         netCollision.resolve(context, ball);
         // --- PROJECT TO SCREEN USING HOMOGRAPHY ---
         Vec2 screenBase = context->camera.homography.worldToImage({

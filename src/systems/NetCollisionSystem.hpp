@@ -5,5 +5,4 @@
 class NetCollisionSystem {
 public:
     void resolve(GameContext* context, Entity ballEntity);
-    Bounds3D netBounds3D;
 };

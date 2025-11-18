@@ -9,14 +9,15 @@
 
 
 void NetCollisionSystem::resolve(GameContext* context, Entity ballEntity) {
-    const Vec3 netPos_m = context->tableParameters.netPos_m;
-    const Vec3 netSize_m = context->tableParameters.netSize_m;
-    netBounds3D.setBounds(netPos_m - (netSize_m / 2), netPos_m + (netSize_m / 2));
-    auto [cBall] = context->registry.getComponents<CBall>(ballEntity);
+    auto [cBall, cBoundingBox3D] = context->registry.getComponents<CBall, CBoundingBox3D>(ballEntity);
     const Vec3 ballPos_m = cBall->pos_m;
-
-    if (BallObjectIntersection::intersects(cBall->ballBounds3D, netBounds3D)) {
-        Debug::debugPrint("Net Collision Occured! Ball Position:", ballPos_m);
+    Entity* net = context->registry.getEntity("net");
+    auto cNetBoundingBox3D = context->registry.getComponent<CBoundingBox3D>(*net);
+    if (BallObjectIntersection::intersects(cBoundingBox3D->box, cNetBoundingBox3D->box)) {
+        Bounds3D intersection = BallObjectIntersection::calculateIntersection(cBoundingBox3D->box, cNetBoundingBox3D->box);
+        Debug::debugPrint("Net Collision Occured!");
+        Debug::debugPrint("Intersection Min:", intersection.min);
+        Debug::debugPrint("Intersection Max:", intersection.max);
 
     }
 }

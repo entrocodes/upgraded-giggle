@@ -12,3 +12,4 @@
 #include "CBallShadow.hpp"
 #include "CBall.hpp"
 #include "CRenderLayer.hpp"
+#include "CTransform3D.hpp"

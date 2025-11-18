@@ -25,8 +25,6 @@ struct TableParameters {
     const float pixelsPerMeter = 90; // tune this to match table/asset scale
     const float tableBottomY = 504.f; // pixels
     const float tableLength = 2.74f;     // meters (Z)
-    const Vec3 netPos_m = { 1.525f / 2, .1525f / 2, 2.74f / 2 };
-    const Vec3 netSize_m = { 1.525f, .1525f, .0001f }; //net should be made to be a little longer than the table later
     const float tableWidth = 1.525f;    // meters (Y)
     const float tableY = 0.0f;           // table plane at y=0
     const float stopBelow = -1.0f;

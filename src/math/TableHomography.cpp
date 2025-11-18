@@ -98,6 +98,11 @@ Vec2 TableHomography::worldToImage(const Vec2& p) const {
     Eigen::Vector3f pi = H_inv_eigen * pw;
     return Vec2(pi(0) / pi(2), pi(1) / pi(2));
 }
+Vec2 TableHomography::worldToImage(const Vec3& p) const {
+    Eigen::Vector3f pw(p.x, p.z, 1.0f);
+    Eigen::Vector3f pi = H_inv_eigen * pw;
+    return Vec2(pi(0) / pi(2), pi(1) / pi(2));
+}
 
 void TableHomography::drawDebugGrid(sf::RenderWindow& window, int divX, int divY) const{
     if (!calibrated) {

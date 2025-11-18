@@ -5,7 +5,7 @@
 #include <memory>
 #include <iostream>
 #include "../debug/Debug.hpp"
-
+#include "../math/Bounds3D.hpp"
 
 
 Entity EntityFactory::createBackground() {
@@ -53,11 +53,15 @@ Entity EntityFactory::createTable() {
 }
 Entity EntityFactory::createNet() {
     Entity net = m_registry.createEntity("net");
+    //these should probably be stored somewhere else
+    const Vec3 netPos_m = { 1.525f / 2, .1525f / 2, 2.74f / 2 };
+    const Vec3 netSize_m = { 1.525f, .1525f, .0001f }; //net should be made to be a little longer than the table later
 
     auto& transform = m_registry.addComponent<CTransform>(net);
-
     const Animation& netAnim = m_assets.getAnimation("Net");
     auto& animComp = m_registry.addComponent<CAnimation>(net, netAnim, false);
+    auto& cTransform3D = m_registry.addComponent<CTransform3D>(net, netPos_m, netSize_m);
+    auto& cBoundingBox3D = m_registry.addComponent<CBoundingBox3D>(net, Bounds3D(netPos_m - netSize_m / 2, netPos_m + netSize_m / 2));
     auto& render = m_registry.addComponent<CRenderLayer>(net, 6);
     // Ensure sprite origin is set and bounding box uses the animation sprite
     sf::Sprite& s = animComp.animation.getSprite();
@@ -66,7 +70,7 @@ Entity EntityFactory::createNet() {
 
 
     // Center in camera space
-    transform.position = { 576.f + texSize.x / 2.f, 342.f - texSize.y / 2};
+    transform.position = m_camera.homography.worldToImage(cTransform3D.renderPos_m);
     return net;
 }
 
@@ -107,10 +111,9 @@ Entity EntityFactory::createBall(const Vec3& pos, const Vec3& vel) {
     Vec2 ballScale = { 0.12f, 0.12f };
     Vec3 pos_m = { ballWorldXZPos.x, pos.y, ballWorldXZPos.y };
     Vec3 vel_mps = { vel.x, 0.0f, vel.z };
-    auto& transform = m_registry.addComponent<CTransform>(ball, ballScreenPos, ballScale, 0.f);
-
-    m_registry.addComponent<CBall>(ball, ballShadow, pos_m, vel_mps);
-
+    auto& transform = m_registry.addComponent<CTransform>(ball, ballScreenPos, ballScale, 0.f);    
+    auto& ballComp = m_registry.addComponent<CBall>(ball, ballShadow, pos_m, vel_mps);
+    auto& boundingBox3D = m_registry.addComponent<CBoundingBox3D>(ball, Bounds3D(pos_m - ballComp.ballRadius, pos_m + ballComp.ballRadius));
     // animation
     const Animation& animBall = m_assets.getAnimation("TopspinBall");
     auto& animComp = m_registry.addComponent<CAnimation>(ball, animBall, true);
