@@ -1,5 +1,6 @@
 ﻿#include "BallForceSystem.hpp"
 #include "../math/Vec2.hpp"
+#include "../math/Bounds3D.hpp"
 #include "../components/Components.hpp"
 #include "../ecs/Entity.hpp"
 #include "../debug/Debug.hpp"
@@ -9,15 +10,17 @@
 #include <iostream>
 
 void BallForceSystem::update(GameContext* context, float dt) {
-    for (auto e : context->registry.getEntitiesWith<CBall, CTransform>()) {
+    for (auto ball : context->registry.getEntitiesWith<CBall, CTransform>()) {
         BallForces bForces;
-        auto [transform, ballComp] = context->registry.getComponents<CTransform, CBall>(e);
+        auto [transform, ballComp] = context->registry.getComponents<CTransform, CBall>(ball);
         if (!transform || !ballComp) continue;
 
+        
         // --- SHADOW ENTITY ---
         Entity shadowEntity = ballComp->ballShadow;
         auto shadowTransform = context->registry.getComponent<CTransform>(shadowEntity);
         if (!shadowTransform) continue;
+        
         // --- CHECK IF BALL IS OFF TABLE ---
         bool offTable = (
             ballComp->pos_m.x < 0.f || ballComp->pos_m.x > context->tableParameters.tableLength ||
@@ -57,17 +60,10 @@ void BallForceSystem::update(GameContext* context, float dt) {
                 ballComp->hasFallen = true;
                 // Trigger event here (e.g. scoring or reset)
             }
-
-            //// Gravity-only fall and friction
-            //ballComp->vel_mps.x *= 0.99f;
-            //ballComp->vel_mps.z *= 0.99f;
-
-            //// Stop once below certain depth
-            //if (ballComp->pos_m.y <= context->tableParameters.stopBelow) {
-            //    ballComp->vel_mps = { 0.f, 0.f, 0.f };
-            //}
         }
-
+        //handle net collision
+        ballComp->ballBounds3D = Bounds3D(ballComp->pos_m - ballComp->ballRadius, ballComp->pos_m + ballComp->ballRadius);
+        netCollision.resolve(context, ball);
         // --- PROJECT TO SCREEN USING HOMOGRAPHY ---
         Vec2 screenBase = context->camera.homography.worldToImage({
             ballComp->pos_m.x,
@@ -76,28 +72,6 @@ void BallForceSystem::update(GameContext* context, float dt) {
         shadowTransform->position = screenBase;
         float scale = std::max(0.5f, 1.5f - 0.2f * ballComp->pos_m.y);
         shadowTransform->scale = { scale, scale };
-
-
-        //if (!offTable) {
-        //    shadowTransform->position = screenBase;
-        //    float scale = std::max(0.5f, 1.5f - 0.2f * ballComp->pos_m.y);
-        //    shadowTransform->scale = { scale, scale };
-        //}
-        //else {
-        //    // move shadow below table visually
-        //    const float groundOffsetPx = 80.f;  // how far below the table the ground is
-        //    const float fallFactor = std::clamp(ballComp->pos_m.y * 2.f, 0.f, 1.f);
-
-        //    // freeze x/z at table edge, drop y
-        //    Vec2 edgeScreen = screenBase;
-        //    edgeScreen.y += groundOffsetPx * fallFactor;
-
-        //    shadowTransform->position = edgeScreen;
-
-        //    // fade and shrink the shadow
-        //    float fade = std::max(0.0f, 1.0f - ballComp->pos_m.y * 0.8f);
-        //    shadowTransform->scale = { fade, fade };
-        //}
 
 
         // --- BALL SPRITE OFFSET (height in meters → pixels) ---

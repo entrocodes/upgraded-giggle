@@ -31,11 +31,11 @@ void AnimationSystem::update(GameContext* context) {
     s.setOrigin(s.getLocalBounds().width / 2.f, s.getLocalBounds().height / 2.f);
 
     // update or add bounding box
-    if (!context->registry.hasComponent<BoundingBox>(*player)) {
-        context->registry.addComponent<BoundingBox>(*player, s.getLocalBounds());
+    if (!context->registry.hasComponent<CBoundingBox>(*player)) {
+        context->registry.addComponent<CBoundingBox>(*player, s.getLocalBounds());
     }
     else {
-        auto* bb = context->registry.getComponent<BoundingBox>(*player);
+        auto* bb = context->registry.getComponent<CBoundingBox>(*player);
         bb->rect = s.getLocalBounds();
     }
 };

@@ -109,8 +109,8 @@ void TableHomography::drawDebugGrid(sf::RenderWindow& window, int divX, int divY
 
     sf::VertexArray grid(sf::Lines);
 
-    float tableXRange = 2.74f;   // Table width (X)
-    float tableZRange = 1.525f;  // Table depth (Y)
+    float tableXRange = 1.525f; // Table width (meters)
+    float tableZRange = 2.74f;  // Table length (meters)
     if (printDebug) {
         Debug::debugPrint("Table size (X,Z)", Vec2(tableXRange, tableZRange));
     }

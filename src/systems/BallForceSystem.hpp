@@ -7,6 +7,7 @@
 #include "../math/physics/forces/CalculateBallGravity.hpp"
 #include "../math/physics/forces/CalculateMagnusForce.hpp"
 #include "../math/physics/forces/CalculateBallDrag.hpp"
+#include "../systems/NetCollisionSystem.hpp"
 struct BallForces {
     Vec3 forceGravity = { 0.0f , 0.0f , 0.0f };
     Vec3 forceMagnus = { 0.0f , 0.0f , 0.0f };
@@ -19,5 +20,6 @@ public:
     CalculateBallDrag calcBallDrag;
     CalculateBallGravity calcBallGrav;
     CalculateMagnusForce calcMagnus;
+    NetCollisionSystem netCollision;
     void update(GameContext* context, float dt);
 };

@@ -1,10 +1,10 @@
 #include "EntityFactory.hpp"
-#include "../components/Components.hpp" // CTransform, CAnimation, Sprite, BoundingBox, Velocity, Player, InputComponent, Enemy, etc.
+#include "../components/Components.hpp"
 #include "../math/GridTransform.hpp"
 #include <SFML/Graphics.hpp>
 #include <memory>
 #include <iostream>
-#include "../debug/Debug.hpp" // at top
+#include "../debug/Debug.hpp"
 
 
 
@@ -92,7 +92,7 @@ Entity EntityFactory::createPlayer() {
     sf::Sprite& s = animComp.animation.getSprite();
     s.setOrigin(s.getLocalBounds().width / 2.f, s.getLocalBounds().height / 2.f);
 
-    m_registry.addComponent<BoundingBox>(player, s.getLocalBounds());
+    m_registry.addComponent<CBoundingBox>(player, s.getLocalBounds());
 
 
     return player;
@@ -118,7 +118,6 @@ Entity EntityFactory::createBall(const Vec3& pos, const Vec3& vel) {
 
     sf::Sprite& s = animComp.animation.getSprite();
     s.setOrigin(s.getLocalBounds().width / 2.f, s.getLocalBounds().height / 2.f);
-    m_registry.addComponent<BoundingBox>(ball, s.getLocalBounds());
 
     return ball;
 }

@@ -1,5 +1,6 @@
 #pragma once
-#include "BoundingBox.hpp"
+#include "CBoundingBox.hpp"
+#include "CBoundingBox3D.hpp"
 #include "InputComponent.hpp"
 #include "Player.hpp"
 #include "Sprite.hpp"

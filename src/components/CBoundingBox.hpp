@@ -1,12 +1,12 @@
 #pragma once
 #include <SFML/Graphics.hpp>
 #include "../ecs/Component.hpp"
-struct BoundingBox : public Component {
+struct CBoundingBox : public Component {
     sf::FloatRect rect;  // could be IntRect if you prefer
 
-    BoundingBox() = default;
+    CBoundingBox() = default;
 
-    BoundingBox(const sf::FloatRect& pRect)
+    CBoundingBox(const sf::FloatRect& pRect)
         : rect(pRect) {
     }
 

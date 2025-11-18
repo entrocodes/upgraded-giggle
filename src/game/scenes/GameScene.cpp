@@ -8,19 +8,22 @@ GameScene::GameScene(GameContext* context)
 {
     // Pixel coordinates (image space)
     std::array<Vec2, 4> imagePoints = {
-        Vec2(531, 506),  // Bottom-Left
-        Vec2(618, 240),  // Top-Left
-        Vec2(844, 504),  // Bottom-Right
-        Vec2(761, 240)   // Top-Right
+        Vec2(531, 497),  // Bottom-Left
+        Vec2(619, 231),  // Top-Left
+        Vec2(842, 497),  // Bottom-Right
+        Vec2(760, 231)   // Top-Right
     };
 
     // Real-world coordinates (meters)
+    // (X = width → left/right, Z = length → near/far)
     std::array<Vec2, 4> worldPoints = {
-        Vec2(0.0f, 0.0f),       // Bottom-Left
-        Vec2(0.0f, context->tableParameters.tableWidth),     // Top-Left
-        Vec2(context->tableParameters.tableLength, 0.0f),      // Bottom-Right
-        Vec2(context->tableParameters.tableWidth , context->tableParameters.tableWidth)     // Top-Right
+        Vec2(0.0f, 0.0f),                                   // Bottom-Left
+        Vec2(0.0f, context->tableParameters.tableLength),   // Top-Left
+        Vec2(context->tableParameters.tableWidth, 0.0f),    // Bottom-Right
+        Vec2(context->tableParameters.tableWidth,
+             context->tableParameters.tableLength)          // Top-Right
     };
+
 
     // Correct order: image → world
     m_context->camera.homography.calibrate(imagePoints, worldPoints);

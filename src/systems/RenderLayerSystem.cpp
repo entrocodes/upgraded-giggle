@@ -2,7 +2,7 @@
 #include "../components/Components.hpp"
 #include "../game/utils/GameContext.hpp"
 void RenderLayerSystem::update(GameContext* context) {
-    float netZ = context->tableParameters.netZ;
+    float netZ = context->tableParameters.netPos_m.z;
     for (auto e : context->registry.getEntitiesWith<CRenderLayer, CBall>()) {
         auto [cLayer, cBall] = context->registry.getComponents<CRenderLayer, CBall>(e);
         auto shadowEntity = cBall->ballShadow;

@@ -1,8 +1,8 @@
 #include "BoundarySystem.hpp"
 #include "../math/GridTransform.hpp"
 void BoundarySystem::update(GameContext* context) {
-    for (auto e : context->registry.getEntitiesWith<CTransform, BoundingBox, Velocity>()) {
-        auto [transform, boundingBox, velocity] = context->registry.getComponents<CTransform, BoundingBox, Velocity>(e);
+    for (auto e : context->registry.getEntitiesWith<CTransform, CBoundingBox, Velocity>()) {
+        auto [transform, boundingBox, velocity] = context->registry.getComponents<CTransform, CBoundingBox, Velocity>(e);
         if (context->registry.getComponent<Player>(e)) {
             float leftBoundary = 520.0f;
             float rightBoundary = 844.0f;

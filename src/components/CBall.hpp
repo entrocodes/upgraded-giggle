@@ -2,10 +2,14 @@
 #include "../ecs/Entity.hpp"
 #include "../ecs/Component.hpp" // make sure Component is included
 #include "../math/Vec3.hpp"
+#include "../math/Bounds3D.hpp"
 class CBall : public Component {
 public:
     // world-space (meters)
     Vec3 pos_m = { 0.f, 0.f, 0.f };   // (x, y, z) in meters
+    float ballRadius = 0.02f; // 40mm diameter / 2
+    Bounds3D ballBounds3D = Bounds3D({ 0.0f, 0.0f, 0.0f }, { 0.0f,0.0f,0.0f });
+    
     Vec3 vel_mps = { 0.f, 0.f, 0.f }; // (vx, vy, vz) m/s
     Vec3 spin = { 0.0f, 0.0f, 0.0f }; 
 

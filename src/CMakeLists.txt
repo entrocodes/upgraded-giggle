@@ -20,6 +20,7 @@ add_executable(PixelPong
     imgui/ImGuiLayer.cpp
     math/TableHomography.cpp
     systems/RenderLayerSystem.cpp
+    systems/NetCollisionSystem.cpp
 )
 
 target_compile_features(PixelPong PRIVATE cxx_std_17)
