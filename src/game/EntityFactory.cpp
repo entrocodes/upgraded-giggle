@@ -88,7 +88,6 @@ Entity EntityFactory::createPlayer() {
     m_registry.addComponent<CState>(player, "stand");
     auto& render = m_registry.addComponent<CRenderLayer>(player, 9);
     // Animation from Assets (keeps texture ownership in Assets)
-
     const Animation& standAnim = m_assets.getAnimation("Stand");
     auto& animComp = m_registry.addComponent<CAnimation>(player, standAnim, false);
 
@@ -112,7 +111,10 @@ Entity EntityFactory::createBall(const Vec3& pos, const Vec3& vel) {
     Vec3 pos_m = { ballWorldXZPos.x, pos.y, ballWorldXZPos.y };
     Vec3 vel_mps = { vel.x, 0.0f, vel.z };
     auto& transform = m_registry.addComponent<CTransform>(ball, ballScreenPos, ballScale, 0.f);    
-    auto& ballComp = m_registry.addComponent<CBall>(ball, ballShadow, pos_m, vel_mps);
+    auto& ballComp = m_registry.addComponent<CBall>(ball, ballShadow);
+    Vec3 size_m = { ballComp.ballRadius * 2,ballComp.ballRadius * 2,ballComp.ballRadius * 2 };
+    auto& cTransform3D = m_registry.addComponent<CTransform3D>(ball, pos_m, size_m);
+    auto& cVelocity3D = m_registry.addComponent<CVelocity3D>(ball, vel_mps);
     auto& boundingBox3D = m_registry.addComponent<CBoundingBox3D>(ball, Bounds3D(pos_m - ballComp.ballRadius, pos_m + ballComp.ballRadius));
     // animation
     const Animation& animBall = m_assets.getAnimation("TopspinBall");
