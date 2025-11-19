@@ -15,9 +15,14 @@ struct Vec3 {
     Vec3 operator/(float s) const { return { x / s, y / s, z / s }; }
     Vec3 operator+(float s) const { return { x + s, y + s, z + s }; }
     Vec3 operator-(float s) const { return { x - s, y - s, z - s }; }
+
     Vec3& operator+=(const Vec3& o) { x += o.x; y += o.y; z += o.z; return *this; }
     Vec3& operator-=(const Vec3& o) { x -= o.x; y -= o.y; z -= o.z; return *this; }
 
     float length() const { return std::sqrt(x * x + y * y + z * z); }
     Vec3 normalized() const { float len = length(); return len ? *this / len : Vec3(); }
+    // Dot product of two vectors
+    float dot(const Vec3& other) const {
+        return x * other.x + y * other.y + z * other.z;
+    }
 };

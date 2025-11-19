@@ -8,18 +8,16 @@
 #include "../math/physics/forces/CalculateMagnusForce.hpp"
 #include "../math/physics/forces/CalculateBallDrag.hpp"
 #include "../systems/NetCollisionSystem.hpp"
-struct BallForces {
-    Vec3 forceGravity = { 0.0f , 0.0f , 0.0f };
-    Vec3 forceMagnus = { 0.0f , 0.0f , 0.0f };
-    Vec3 forceDrag = { 0.0f , 0.0f , 0.0f };
-    Vec3 totalForces = { 0.0f , 0.0f , 0.0f };
-    Vec3 acceleration = { 0.0f , 0.0f , 0.0f };
-};
+#include "../math/physics/forces/ApplyFriction.hpp"
+
 class BallForceSystem {
 public:
     CalculateBallDrag calcBallDrag;
     CalculateBallGravity calcBallGrav;
     CalculateMagnusForce calcMagnus;
+
     NetCollisionSystem netCollision;
+    ApplyFriction applyFriction;
+
     void update(GameContext* context, float dt);
 };

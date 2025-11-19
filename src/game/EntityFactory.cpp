@@ -100,7 +100,7 @@ Entity EntityFactory::createPlayer() {
 
     return player;
 }
-Entity EntityFactory::createBall(const Vec3& pos, const Vec3& vel) {
+Entity EntityFactory::createBall(const Vec3& pos, const Vec3& vel, const Vec3& spin) {
     //the ball is being initialized with everything in meters per second
     Entity ballShadow = EntityFactory::createBallShadow({ pos.x, pos.z });
     Entity ball = m_registry.createEntity("ball");
@@ -110,8 +110,8 @@ Entity EntityFactory::createBall(const Vec3& pos, const Vec3& vel) {
     Vec2 ballScale = { 0.12f, 0.12f };
     Vec3 pos_m = { ballWorldXZPos.x, pos.y, ballWorldXZPos.y };
     Vec3 vel_mps = { vel.x, 0.0f, vel.z };
+    auto& ballComp = m_registry.addComponent<CBall>(ball, ballShadow, spin);
     auto& transform = m_registry.addComponent<CTransform>(ball, ballScreenPos, ballScale, 0.f);    
-    auto& ballComp = m_registry.addComponent<CBall>(ball, ballShadow);
     Vec3 size_m = { ballComp.ballRadius * 2,ballComp.ballRadius * 2,ballComp.ballRadius * 2 };
     auto& cTransform3D = m_registry.addComponent<CTransform3D>(ball, pos_m, size_m);
     auto& cVelocity3D = m_registry.addComponent<CVelocity3D>(ball, vel_mps);

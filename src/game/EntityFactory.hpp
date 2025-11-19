@@ -19,7 +19,7 @@ public:
     Entity createNet();
     Entity createPlayer();
     Entity createBallShadow(const Vec2& pos);
-    Entity createBall(const Vec3& pos, const Vec3& vel);
+    Entity createBall(const Vec3& pos, const Vec3& vel, const Vec3& spin = { 0.0f,0.0f,0.0f });
 
 
 private:

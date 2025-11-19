@@ -28,6 +28,9 @@ struct TableParameters {
     const float tableWidth = 1.525f;    // meters (Y)
     const float tableY = 0.0f;           // table plane at y=0
     const float stopBelow = -1.0f;
+    const float restitution = .8f;
+    float tableSpinDecayRate = .995;
+    float tableFrictionCoefficient = 0.2f;
 };
 
 struct GameContext {

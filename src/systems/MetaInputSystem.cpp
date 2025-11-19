@@ -29,9 +29,13 @@ void MetaInputSystem::update(GameContext* context, MetaInputState& state) {
         }
         
         if (context->physicsDebug.clickToSpawn) {
-            context->entityFactory.createBall({ state.mouseClickPos.x, context->physicsDebug.debugBallHeight, state.mouseClickPos.y }, context->physicsDebug.debugBallVelocity);
+            if (context->physicsDebug.debugSpinEnabled) {
+                context->entityFactory.createBall({ state.mouseClickPos.x, context->physicsDebug.debugBallHeight, state.mouseClickPos.y }, context->physicsDebug.debugBallVelocity, context->physicsDebug.debugBallSpin);
+            }
+            else {
+                context->entityFactory.createBall({ state.mouseClickPos.x, context->physicsDebug.debugBallHeight, state.mouseClickPos.y }, context->physicsDebug.debugBallVelocity);
+            }
         }
-        
     }
     else {
         state.mouseClicked = false;

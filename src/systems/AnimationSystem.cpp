@@ -5,12 +5,15 @@
 #include "../debug/Debug.hpp"
 
 void AnimationSystem::update(GameContext* context) {
+    updatePlayer(context);
+
+};
+void AnimationSystem::updatePlayer(GameContext* context) {
     // get player entity safely
     Entity* player = context->registry.getEntity("player");
     if (!player) {
         Debug::debugPrint("no player entity found!");
     }
-
 
     auto [animComp, stateComp] = context->registry.getComponents<CAnimation, CState>(*player);
     if (!animComp || !stateComp) return;
@@ -37,5 +40,11 @@ void AnimationSystem::update(GameContext* context) {
     else {
         auto* bb = context->registry.getComponent<CBoundingBox>(*player);
         bb->rect = s.getLocalBounds();
+    }
+};
+void updateBall(GameContext* context) {
+    for (auto ball : context->registry.getEntitiesWith<CBall, CAnimation>()) {
+        auto [animComp, ballComp] = context->registry.getComponents<CAnimation, CBall>(ball);
+        if (!animComp || !ballComp) return;
     }
 };

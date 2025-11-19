@@ -60,6 +60,8 @@ void ImGuiLayer::render(GameContext* context) {
 
         ImGui::SliderFloat("Magnus Coeff",
             &context->physicsDebug.debugKMagnus, 0.0f, 0.01f);
+        ImGui::SliderFloat("Table Friction Coefficient",
+            &context->tableParameters.tableFrictionCoefficient, 0.0f, 2.00f);
 
         if (ImGui::Button("Reset Spin")) {
             context->physicsDebug.debugBallSpin = { 0.f, 0.f, 0.f };
@@ -86,11 +88,24 @@ void ImGuiLayer::render(GameContext* context) {
         }
     }
 
-
     // === Stats ===
     if (ImGui::CollapsingHeader("Stats")) {
         ImGui::Text("Entities: %d",
             static_cast<int>(context->registry.getEntityCount()));
+        // == Ball Info ==
+        if (ImGui::CollapsingHeader("Ball Stats")) {
+            for (auto e : context->registry.getEntitiesWith<CBall>()) {
+
+                auto ballComp = context->registry.getComponent<CBall>(e);
+                if (!ballComp) continue;
+
+                ImGui::Text("%s: Spin: (%.5f, %.5f)",
+                    std::to_string(e.id).c_str(),
+                    ballComp->spin.x,
+                    ballComp->spin.y
+                );
+            }
+        }
     }
 
     // --- UI focus status indicator ---

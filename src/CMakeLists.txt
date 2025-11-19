@@ -21,6 +21,7 @@ add_executable(PixelPong
     math/TableHomography.cpp
     systems/RenderLayerSystem.cpp
     systems/NetCollisionSystem.cpp
+    systems/BallMovementSystem.cpp
 )
 
 target_compile_features(PixelPong PRIVATE cxx_std_17)

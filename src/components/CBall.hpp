@@ -3,14 +3,15 @@
 #include "../ecs/Component.hpp" // make sure Component is included
 #include "../math/Vec3.hpp"
 #include "../math/Bounds3D.hpp"
+#include "../math/physics/forces/BallForcesStruct.hpp"
 class CBall : public Component {
 public:
     // world-space (meters)
     float ballRadius = 0.02f; // 40mm diameter / 2
-
+    BallForces bForces;
     Vec3 spin = { 0.0f, 0.0f, 0.0f }; 
 
-    float gravity = 9.8f;      // m/s?(tune for your world scale)
+    bool offTable = false;
     float restitution = 0.8f;
     float mass = .0027f; //kg
     bool hasFallen = false;
@@ -19,7 +20,7 @@ public:
 
     CBall() = default;
 
-    explicit CBall(const Entity& shadow)
-        : ballShadow(shadow) {
+    explicit CBall(const Entity& shadow, Vec3 pSpin)
+        : ballShadow(shadow), spin(pSpin) {
     }
 };
