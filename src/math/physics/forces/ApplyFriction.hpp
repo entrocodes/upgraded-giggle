@@ -4,6 +4,7 @@
 #include "../ecs/Entity.hpp"
 #include "../components/Components.hpp"
 #include "../math/Vec3.hpp"
+#include "../debug/Debug.hpp"
 #include <algorithm>
 class ApplyFriction {
 public:
@@ -12,8 +13,11 @@ public:
         if (!ballComp || !cBallVelocity3D) return;
         const float frictionCoefficient = context->tableParameters.tableFrictionCoefficient;  // Example: coefficient of friction between ball and table
         float normalForce = ballComp->mass * 9.8f; // Gravity force (assuming mass is in kg)
-        ballComp->bForces.friction.x = frictionCoefficient * normalForce * (cBallVelocity3D->vel_mps.x < 0 ? -1 : 1);
-        ballComp->bForces.friction.z = frictionCoefficient * normalForce * (cBallVelocity3D->vel_mps.z < 0 ? -1 : 1);
+        ballComp->bForces.friction.x = frictionCoefficient * normalForce;
+        ballComp->bForces.friction.z = frictionCoefficient * normalForce;
+        if (ballComp->bForces.friction.z < 0 || ballComp->bForces.friction.x < 0) {
+            Debug::debugPrint("Something Wrong Here", ballComp->bForces.friction);
+        }
         if (cBallVelocity3D->vel_mps.x > 0) {
             cBallVelocity3D->vel_mps.x -= ballComp->bForces.friction.x * dt;
         }
