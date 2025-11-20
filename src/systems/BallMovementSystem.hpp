@@ -15,5 +15,5 @@ private:
     BallForceSystem ballForceSystem;
     NetCollisionSystem netCollisionSystem;
     void updateOffTable(GameContext* context);
-    void handleBounce(GameContext* context, Entity& entity, float dt);
+    void handleTableContact(GameContext* context, Entity& entity, float dt);
 };

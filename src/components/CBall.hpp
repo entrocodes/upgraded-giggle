@@ -11,7 +11,7 @@ public:
     float ballRadius = 0.02f; // 40mm diameter / 2
     BallForces bForces;
     Vec3 spin = { 0.0f, 0.0f, 0.0f }; 
-
+    bool onTable = false;
     bool offTable = false;
     float restitution = 0.8f;
     float mass = .0027f; //kg

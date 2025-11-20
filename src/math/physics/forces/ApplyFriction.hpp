@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "../game/utils/GameContext.hpp"
 #include "../ecs/Entity.hpp"
@@ -8,44 +8,30 @@
 #include <algorithm>
 class ApplyFriction {
 public:
-    void applyFriction(GameContext* context, Entity& ball, float dt) {
-        auto [ballComp, cBallVelocity3D] = context->registry.getComponents<CBall, CVelocity3D>(ball);
-        if (!ballComp || !cBallVelocity3D) return;
-        const float frictionCoefficient = context->tableParameters.tableFrictionCoefficient;  // Example: coefficient of friction between ball and table
-        float normalForce = ballComp->mass * 9.8f; // Gravity force (assuming mass is in kg)
-        ballComp->bForces.friction.x = frictionCoefficient * normalForce;
-        ballComp->bForces.friction.z = frictionCoefficient * normalForce;
-        if (ballComp->bForces.friction.z < 0 || ballComp->bForces.friction.x < 0) {
-            Debug::debugPrint("Something Wrong Here", ballComp->bForces.friction);
-        }
-        if (cBallVelocity3D->vel_mps.x > 0) {
-            cBallVelocity3D->vel_mps.x -= ballComp->bForces.friction.x * dt;
-        }
-        else if (cBallVelocity3D.vel_mps.x < 0) {
-            cBallVelocity3D->vel_mps.x += ballComp->bForces.friction.x * dt;
-        }
-        if (cBallVelocity3D->vel_mps.z > 0) {
-            cBallVelocity3D->vel_mps.z -= ballComp->bForces.friction.z * dt;
-        }
-        else if (cBallVelocity3D->vel_mps.z < 0) {
-            cBallVelocity3D->vel_mps.z += ballComp->bForces.friction.z * dt;
-        }
+    void applyFriction(GameContext* context, Entity ball, float dt) {
+        auto [ballComp, vel] =
+            context->registry.getComponents<CBall, CVelocity3D>(ball);
+        if (!ballComp || !vel) return;
 
-        if (ballComp->spin.x < 0) {
-            ballComp->spin.x += ballComp->bForces.friction.x * dt * context->tableParameters.tableSpinDecayRate;
-        }
-        else if (ballComp->spin.x > 0) {
-            ballComp->spin.x -= ballComp->bForces.friction.x * dt * context->tableParameters.tableSpinDecayRate;
-        }
-        if (ballComp->spin.z < 0) {
-            ballComp->spin.z += ballComp->bForces.friction.z * dt * context->tableParameters.tableSpinDecayRate;
-        }
-        else if (ballComp->spin.z > 0) {
-            ballComp->spin.z -= ballComp->bForces.friction.z * dt * context->tableParameters.tableSpinDecayRate;
-        }
+        float mu = context->tableParameters.tableFrictionCoefficient;
+        float Fn = ballComp->mass * 9.8f;        // Normal force
+        float dS = mu * Fn * dt;                 // Max slowdown during dt
 
-        // clamp using sign � allow both positive and negative spin to decay
-        if (std::abs(ballComp->spin.x) < 0.0001f) ballComp->spin.x = 0.0f;
-        if (std::abs(ballComp->spin.z) < 0.0001f) ballComp->spin.z = 0.0f;
+        // 1️ Apply friction opposing X motion
+        if (vel->vel_mps.x > 0) vel->vel_mps.x = std::max(0.f, vel->vel_mps.x - dS);
+        else if (vel->vel_mps.x < 0) vel->vel_mps.x = std::min(0.f, vel->vel_mps.x + dS);
+
+        // 2️ Apply friction opposing Z motion
+        if (vel->vel_mps.z > 0) vel->vel_mps.z = std::max(0.f, vel->vel_mps.z - dS);
+        else if (vel->vel_mps.z < 0) vel->vel_mps.z = std::min(0.f, vel->vel_mps.z + dS);
+        // 3️ Spin decay → oppose current spin rotation
+        float decayAmount = dS * context->tableParameters.tableSpinDecayRate;
+
+        if (ballComp->spin.x > 0) ballComp->spin.x = std::max(0.f, ballComp->spin.x - decayAmount);
+        else if (ballComp->spin.x < 0) ballComp->spin.x = std::min(0.f, ballComp->spin.x + decayAmount);
+
+        if (ballComp->spin.z > 0) ballComp->spin.z = std::max(0.f, ballComp->spin.z - decayAmount);
+        else if (ballComp->spin.z < 0) ballComp->spin.z = std::min(0.f, ballComp->spin.z + decayAmount);
     }
+
 };

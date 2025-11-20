@@ -24,7 +24,14 @@ void BallMovementSystem::update(GameContext* context, float dt) {
         cBallVelocity3D->vel_mps += ballComp->bForces.acceleration * dt;
         cBallTransform3D->pos_m += cBallVelocity3D->vel_mps * dt;
 
-        handleBounce(context, ball, dt);
+        ballComp->onTable = (cBallTransform3D->pos_m.y <= context->tableParameters.tableY);
+        
+        if (onTable) {
+            handleTableContact(context, ball, dt);
+        }
+        
+  
+
         if (!ballComp->hasFallen && ballComp->offTable) {
             ballComp->hasFallen = true;
             // Trigger event here (e.g. scoring or reset)
@@ -69,34 +76,25 @@ void BallMovementSystem::updateOffTable(GameContext* context) {
             cBallTransform3D->pos_m.x < 0.f || cBallTransform3D->pos_m.x > context->tableParameters.tableWidth ||
             cBallTransform3D->pos_m.z < 0.f || cBallTransform3D->pos_m.z > context->tableParameters.tableLength
             );
+        cBall->onTable = (cBallTransform3D->pos_m.y <= context->tableParameters.tableY + 0.001f);
+
     }
 
 }
 
-void BallMovementSystem::handleBounce(GameContext* context, Entity& ball, float dt) {
-    auto [ballComp, cBallTransform3D, cBallVelocity3D] = context->registry.getComponents<CBall, CTransform3D, CVelocity3D>(ball);
-    if (!ballComp || !cBallTransform3D || !cBallVelocity3D) return;
+void BallMovementSystem::handleTableContact(GameContext* context, Entity& ball, float dt) {
+    auto [ballComp, cTransform3D, cVelocity3D] = context->registry.getComponents<CBall, CTransform3D, CVelocity3D>(ball);
+    if (!ballComp || !cTransform3D || !cVelocity3D) return
+    // Snap to surface
+    cTransform3D->pos_m.y = context->tableParameters.tableY;
 
-    // Handle bounce when ball hits the table
-    //this will currently break if a ball rolls under the table.
-    if (cBallTransform3D->pos_m.y <= context->tableParameters.tableY) {
-        // Bounce on Y-axis (vertical)
-        BounceForce bounce(Vec3(0.f, 1.f, 0.f), ballComp->restitution); // Bounce in the positive Y direction (up)
-        cBallVelocity3D->vel_mps = bounce.apply(cBallVelocity3D->vel_mps);
-        cBallTransform3D->pos_m.y = context->tableParameters.tableY;  // Snap to the table surface
-        ballForceSystem.applyFriction.applyFriction(context, ball, dt);
+    // Only reverse direction on **first contact**, not every frame
+    if (cVelocity3D->vel_mps.y < 0.f) {
+        BounceForce bounce({ 0.f, 1.f, 0.f }, ballComp->restitution);
+        cVelocity3D->vel_mps = bounce.apply(cVelocity3D->vel_mps);
     }
 
-    //// Handle bounce for the sides (X and Z axes)
-    //if (cBallTransform3D->pos_m.x < 0.0f || cBallTransform3D->pos_m.x > context->tableParameters.tableWidth) {
-    //    BounceForce bounce(Vec3(1.f, 0.f, 0.f), ballComp->restitution);  // Bounce on X-axis (side walls)
-    //    cBallVelocity3D->vel_mps = bounce.apply(cBallVelocity3D->vel_mps);
-    //    cBallTransform3D->pos_m.x = std::clamp(cBallTransform3D->pos_m.x, 0.f, tableWidth);  // Snap to table boundaries
-    //}
-    //if (cBallTransform3D->pos_m.z < 0.0f || cBallTransform3D->pos_m.z > context->tableParameters.tableLength) {
-    //    BounceForce bounce(Vec3(0.f, 0.f, 1.f), ballComp->restitution);  // Bounce on Z-axis (front/back walls)
-    //    cBallVelocity3D->vel_mps = bounce.apply(cBallVelocity3D->vel_mps);
-    //    cBallTransform3D->pos_m.z = std::clamp(cBallTransform3D->pos_m.z, 0.f, tableLength);  // Snap to table boundaries
-    //}
-}
+    // Friction applied *every frame* while touching surface
+    applyFriction(context, ball, dt);
+
 
