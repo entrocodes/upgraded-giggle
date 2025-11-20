@@ -6,4 +6,5 @@ struct BallForces {
     Vec3 forceDrag = { 0.0f , 0.0f , 0.0f };
     Vec3 totalForces = { 0.0f , 0.0f , 0.0f };
     Vec3 acceleration = { 0.0f , 0.0f , 0.0f };
+    Vec3 friction = { 0.0f , 0.0f , 0.0f };
 };

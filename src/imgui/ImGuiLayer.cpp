@@ -104,6 +104,11 @@ void ImGuiLayer::render(GameContext* context) {
                     ballComp->spin.x,
                     ballComp->spin.y
                 );
+                ImGui::Text("%s: Friction: (%.5f, %.5f)",
+                    std::to_string(e.id).c_str(),
+                    ballComp->bForces.friction.x,
+                    ballComp->bForces.friction.y
+                );
             }
         }
     }

@@ -24,8 +24,7 @@ void BallMovementSystem::update(GameContext* context, float dt) {
         cBallVelocity3D->vel_mps += ballComp->bForces.acceleration * dt;
         cBallTransform3D->pos_m += cBallVelocity3D->vel_mps * dt;
 
-        handleBounce(context, ball);
-        ballForceSystem.applyFriction.applyFriction(context, ball, dt);
+        handleBounce(context, ball, dt);
         if (!ballComp->hasFallen && ballComp->offTable) {
             ballComp->hasFallen = true;
             // Trigger event here (e.g. scoring or reset)
@@ -74,7 +73,7 @@ void BallMovementSystem::updateOffTable(GameContext* context) {
 
 }
 
-void BallMovementSystem::handleBounce(GameContext* context, Entity& ball) {
+void BallMovementSystem::handleBounce(GameContext* context, Entity& ball, float dt) {
     auto [ballComp, cBallTransform3D, cBallVelocity3D] = context->registry.getComponents<CBall, CTransform3D, CVelocity3D>(ball);
     if (!ballComp || !cBallTransform3D || !cBallVelocity3D) return;
 
@@ -85,6 +84,7 @@ void BallMovementSystem::handleBounce(GameContext* context, Entity& ball) {
         BounceForce bounce(Vec3(0.f, 1.f, 0.f), ballComp->restitution); // Bounce in the positive Y direction (up)
         cBallVelocity3D->vel_mps = bounce.apply(cBallVelocity3D->vel_mps);
         cBallTransform3D->pos_m.y = context->tableParameters.tableY;  // Snap to the table surface
+        ballForceSystem.applyFriction.applyFriction(context, ball, dt);
     }
 
     //// Handle bounce for the sides (X and Z axes)

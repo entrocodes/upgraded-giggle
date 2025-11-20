@@ -4,6 +4,7 @@
 #include "../math/Vec3.hpp"
 #include "../math/Bounds3D.hpp"
 #include "../math/physics/forces/BallForcesStruct.hpp"
+
 class CBall : public Component {
 public:
     // world-space (meters)
