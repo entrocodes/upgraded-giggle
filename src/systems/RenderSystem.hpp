@@ -2,7 +2,9 @@
 #include <SFML/Graphics.hpp>
 #include "../game/utils/GameContext.hpp"
 #include "../systems/RenderLayerSystem.hpp"
+#include "../debug/systems/Display3DBoundingBoxes.hpp"
 struct RenderSystem {
     RenderLayerSystem renderLayerSystem;
+    Display3DBoundingBoxes display3DBoundingBoxes;
     void render(GameContext* context);
 };

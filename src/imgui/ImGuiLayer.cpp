@@ -24,8 +24,8 @@ void ImGuiLayer::render(GameContext* context) {
 
         ImGui::Separator();
         ImGui::Checkbox("Show Grid", &gGridDebug.drawGrid);
-        ImGui::Checkbox("Show Homography Grid",
-            &context->camera.homography.drawGrid);
+        ImGui::Checkbox("Show Homography Grid", &context->camera.homography.drawGrid);
+        ImGui::Checkbox("Show Bounding Boxes", &context->renderDebug.draw3DBoundingBoxes);
     }
 
     // === Ball Debug ===
@@ -41,6 +41,13 @@ void ImGuiLayer::render(GameContext* context) {
         ImGui::SliderFloat("Velocity X",
             &context->physicsDebug.debugBallVelocity.x,
             -1.0f, 1.0f);
+        ImGui::SliderFloat("Top/Backspin",
+            &context->physicsDebug.debugBallSpin.x, -0.3f, 0.3f);
+
+        ImGui::SliderFloat("Sidespin",
+            &context->physicsDebug.debugBallSpin.y, -1.0f, 1.0f);
+        ImGui::Checkbox("Enable Debug Spin",
+            &context->physicsDebug.debugSpinEnabled);
 
         ImGui::Checkbox("Click to Spawn",
             &context->physicsDebug.clickToSpawn);
@@ -52,12 +59,8 @@ void ImGuiLayer::render(GameContext* context) {
 
     // === Physics Debug ===
     if (ImGui::CollapsingHeader("Physics Debug")) {
-        ImGui::SliderFloat("Top/Backspin",
-            &context->physicsDebug.debugBallSpin.x, -0.3f, 0.3f);
-
-        ImGui::SliderFloat("Sidespin",
-            &context->physicsDebug.debugBallSpin.y, -1.0f, 1.0f);
-
+        ImGui::SliderFloat("Pixels Per Meter",
+            &context->tableParameters.pixelsPerMeter, 10.0f, 200.00f);
         ImGui::SliderFloat("Magnus Coeff",
             &context->physicsDebug.debugKMagnus, 0.0f, 0.01f);
         ImGui::SliderFloat("Table Friction Coefficient",
@@ -67,8 +70,6 @@ void ImGuiLayer::render(GameContext* context) {
             context->physicsDebug.debugBallSpin = { 0.f, 0.f, 0.f };
         }
 
-        ImGui::Checkbox("Enable Debug Spin",
-            &context->physicsDebug.debugSpinEnabled);
         ImGui::Checkbox("Draw Spin Arrows",
             &context->physicsDebug.debugSpinArrows);
         ImGui::Checkbox("Show Debug Mouse Pos",

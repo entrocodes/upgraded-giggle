@@ -6,11 +6,12 @@
 #include "../game/utils/Camera.hpp"
 class EntityFactory {
 public:
-    explicit EntityFactory(Registry& registry, DisplayConfig& display, Assets& assets, Camera& camera)
+    explicit EntityFactory(Registry& registry, DisplayConfig& display, Assets& assets, Camera& camera, float& pixelsPerMeter)
         : m_registry(registry)
         , m_display(display)
         , m_assets(assets)
         , m_camera(camera)
+        , m_pixelsPerMeter(pixelsPerMeter)
     {
     }
 
@@ -18,7 +19,7 @@ public:
     Entity createTable();
     Entity createNet();
     Entity createPlayer();
-    Entity createBallShadow(const Vec2& pos);
+    Entity createBallShadow(const Vec2& shadowScreenPos);
     Entity createBall(const Vec3& pos, const Vec3& vel, const Vec3& spin = { 0.0f,0.0f,0.0f });
 
 
@@ -27,4 +28,5 @@ private:
     DisplayConfig& m_display;
     Assets& m_assets;
     Camera& m_camera;
+    float& m_pixelsPerMeter;
 };

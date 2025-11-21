@@ -6,7 +6,7 @@
 #include <cmath>
 #include <iostream>
 
-TableHomography::TableHomography() = default;
+
 
 // Compute full perspective homography using Eigen
 static Eigen::Matrix3f computeHomographyEigen(const std::array<Vec2, 4>& src, const std::array<Vec2, 4>& dst) {
@@ -101,7 +101,8 @@ Vec2 TableHomography::worldToImage(const Vec2& p) const {
 Vec2 TableHomography::worldToImage(const Vec3& p) const {
     Eigen::Vector3f pw(p.x, p.z, 1.0f);
     Eigen::Vector3f pi = H_inv_eigen * pw;
-    return Vec2(pi(0) / pi(2), pi(1) / pi(2));
+    float yOffset = p.y * m_pixelsPerMeter;
+    return Vec2(pi(0) / pi(2), pi(1) / pi(2) - yOffset);
 }
 
 void TableHomography::drawDebugGrid(sf::RenderWindow& window, int divX, int divY) const{

@@ -21,8 +21,11 @@ struct PhysicsDebugSettings {
     bool clickToSpawn = false;
     bool clickForMousePos = false;
 };
+struct RenderDebugSettings {
+    bool draw3DBoundingBoxes = false;
+};
 struct TableParameters {
-    const float pixelsPerMeter = 90; // tune this to match table/asset scale
+    float pixelsPerMeter = 90; // tune this to match table/asset scale
     const float tableBottomY = 504.f; // pixels
     const float tableLength = 2.74f;     // meters (Z)
     const float tableWidth = 1.525f;    // meters (Y)
@@ -41,12 +44,13 @@ struct GameContext {
     RawInputState rawInput;
     EntityFactory entityFactory;
     PhysicsDebugSettings physicsDebug;
+    RenderDebugSettings renderDebug;
     Camera camera;
     TableParameters tableParameters;
     bool inputBlocked = true;
     bool showLayerEditor = false;
     
     GameContext()
-        : entityFactory(registry, display, assets, camera) {
+        : camera(tableParameters.pixelsPerMeter), entityFactory(registry, display, assets, camera, tableParameters.pixelsPerMeter) {
     }
 };

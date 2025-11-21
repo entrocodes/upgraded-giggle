@@ -9,7 +9,8 @@ public:
     float zoom = 1.0f;
     TableHomography homography;
 
-    Camera() = default;
+    explicit Camera(float& pixelsPerMeter)
+        : m_pixelsPerMeter(pixelsPerMeter), homography(pixelsPerMeter) { }
 
     // Compute an SFML view from camera (still needed for window)
     sf::View getView(const Vec2& windowSize) const {
@@ -32,4 +33,6 @@ public:
         Vec2 p = (screenPos - windowSize * 0.5f) / zoom + position;
         return homography.imageToWorld(p);
     }
+private:
+    float& m_pixelsPerMeter;
 };

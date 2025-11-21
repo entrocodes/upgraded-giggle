@@ -7,6 +7,10 @@
 
 class TableHomography {
 public:
+    explicit TableHomography(float& pixelsPerMeter)
+        :m_pixelsPerMeter(pixelsPerMeter)
+    {
+    }
     // Each table corner in image pixel space (top-left, top-right, bottom-right, bottom-left)
     std::array<Vec2, 4> srcPoints;
 
@@ -24,7 +28,6 @@ public:
     bool calibrated = false;
     bool drawGrid = false;
     mutable bool printDebug = true;
-    TableHomography();
 
     // Assign corners and compute the homography
     void calibrate(const std::array<Vec2, 4>& src, const std::array<Vec2, 4>& dst);
@@ -36,4 +39,6 @@ public:
 
     // Debug draw
     void drawDebugGrid(sf::RenderWindow& window, int divX = 10, int divY = 10) const ;
+private:
+    float& m_pixelsPerMeter;
 };
