@@ -19,8 +19,8 @@ public:
     Entity createTable();
     Entity createNet();
     Entity createPlayer();
-    Entity createBallShadow(const Vec2& shadowScreenPos);
-    Entity createBall(const Vec3& pos, const Vec3& vel, const Vec3& spin = { 0.0f,0.0f,0.0f });
+    Entity createBallShadow(const Vec3& shadowPos_m);
+    Entity createBall(const Vec3& pos_m, const Vec3& vel_mps, const Vec3& spin = { 0.0f,0.0f,0.0f });
 
 
 private:

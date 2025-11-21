@@ -100,23 +100,18 @@ Entity EntityFactory::createPlayer() {
 
     return player;
 }
-Entity EntityFactory::createBall(const Vec3& pos, const Vec3& vel, const Vec3& spin) {
+Entity EntityFactory::createBall(const Vec3& pos_m, const Vec3& vel_mps, const Vec3& spin) {
     // pos parameter is passed in in pixels, pos.x and pos.z are the (x,y) coordinates to spawn at, y is the height offset 
-    //the ball is being initialized with everything in meters per second
-    Vec2 ballScreenPos = { pos.x, pos.z - pos.y * m_pixelsPerMeter }; // give ball Y offset from pos.y
-    Vec2 shadowScreenPos = { pos.x, pos.z }; // no Y offset for shadow
-    Entity ballShadow = EntityFactory::createBallShadow(shadowScreenPos); //we pass the (x, y) coordinates in pixels
+    Vec3 shadowPos_m = { pos_m.x, 0.0f, pos_m.z }; // no Y offset for shadow
+    Entity ballShadow = EntityFactory::createBallShadow(shadowPos_m); //we pass the (x, y) coordinates in pixels
 
-    Vec2 ballWorldXZPos = m_camera.homography.imageToWorld(ballScreenPos); //we convert the (x, y) coordinates to meters, (x, y) becomes (x, z)
-    Vec3 pos_m = { ballWorldXZPos.x, pos.y, ballWorldXZPos.y }; //we set the pos_m (position in meters) to the position on screen, taking in the passed in y and converting it to meters
-    Vec3 vel_mps = { vel.x, 0.0f, vel.z }; //we initialize velocity with the passed parameters (in mps)
-
+    Vec2 ballScreenPos = m_camera.homography.worldToImage(pos_m); 
 
 
     Entity ball = m_registry.createEntity("ball");
     Vec2 ballScale = { 0.12f, 0.12f };
     auto& ballComp = m_registry.addComponent<CBall>(ball, ballShadow, spin);
-    auto& transform = m_registry.addComponent<CTransform>(ball, ballScreenPos, ballScale, 0.f); //CTransform currently represents the spot where the shadow is, not the spot where the ball is 
+    auto& transform = m_registry.addComponent<CTransform>(ball, ballScreenPos, ballScale, 0.f);
     Vec3 size_m = { ballComp.ballRadius * 2,ballComp.ballRadius * 2,ballComp.ballRadius * 2 }; //set ball size to a cube (even though its a circle)
     auto& cTransform3D = m_registry.addComponent<CTransform3D>(ball, pos_m); //cTransform3D is initialized with the actual position of the ball in meters.
     auto& cVelocity3D = m_registry.addComponent<CVelocity3D>(ball, vel_mps);
@@ -133,11 +128,9 @@ Entity EntityFactory::createBall(const Vec3& pos, const Vec3& vel, const Vec3& s
 
     return ball;
 }
-Entity EntityFactory::createBallShadow(const Vec2& shadowScreenPos) {
+Entity EntityFactory::createBallShadow(const Vec3& shadowPos_m) {
     Entity ballShadow = m_registry.createEntity("ballShadow");
-
-    Vec2 shadowWorldXZ_pos = m_camera.homography.imageToWorld(shadowScreenPos); //only x and z are part of shadowScreenPos, but that is fine, because shadow Y is 0
-    Vec3 pos_m = { shadowWorldXZ_pos.x, 0.0f, shadowWorldXZ_pos.y };
+    Vec2 shadowScreenPos = m_camera.homography.worldToImage(shadowPos_m);
     // Transform
     auto& transform = m_registry.addComponent<CTransform>(ballShadow, shadowScreenPos, Vec2(2.0f,2.0f)); //this is setting the ballShadow to the same screen coordinates as the ball.
 
@@ -145,7 +138,7 @@ Entity EntityFactory::createBallShadow(const Vec2& shadowScreenPos) {
     const Animation& animShadow = m_assets.getAnimation("BallShadow");
     auto& animComp = m_registry.addComponent<CAnimation>(ballShadow, animShadow, false);
     auto& render = m_registry.addComponent<CRenderLayer>(ballShadow, 3);
-    auto& cTransform3D = m_registry.addComponent<CTransform3D>(ballShadow, pos_m);
+    auto& cTransform3D = m_registry.addComponent<CTransform3D>(ballShadow, shadowPos_m);
     sf::Sprite& s = animComp.animation.getSprite();
     s.setOrigin(s.getLocalBounds().width / 2.f, s.getLocalBounds().height / 2.f);
 

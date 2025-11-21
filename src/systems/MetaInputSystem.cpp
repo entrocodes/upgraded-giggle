@@ -1,6 +1,8 @@
 #include "MetaInputSystem.hpp"
 #include "../debug/Debug.hpp"
 #include "../math/GridTransform.hpp"
+#include "../math/Vec3.hpp"
+#include "../math/Vec2.hpp"
 void MetaInputSystem::update(GameContext* context, MetaInputState& state) {
     if (context->inputBlocked) return;
     // Quit on Escape
@@ -29,11 +31,13 @@ void MetaInputSystem::update(GameContext* context, MetaInputState& state) {
         }
         
         if (context->physicsDebug.clickToSpawn) {
+            Vec2 posXY_m = context->camera.homography.imageToWorld(state.mouseClickPos);
+            Vec3 pos_m = Vec3(posXY_m.x, context->physicsDebug.debugBallHeight, posXY_m.y);
             if (context->physicsDebug.debugSpinEnabled) {
-                context->entityFactory.createBall({ state.mouseClickPos.x, context->physicsDebug.debugBallHeight, state.mouseClickPos.y }, context->physicsDebug.debugBallVelocity, context->physicsDebug.debugBallSpin);
+                context->entityFactory.createBall(pos_m, context->physicsDebug.debugBallVelocity, context->physicsDebug.debugBallSpin);
             }
             else {
-                context->entityFactory.createBall({ state.mouseClickPos.x, context->physicsDebug.debugBallHeight, state.mouseClickPos.y }, context->physicsDebug.debugBallVelocity);
+                context->entityFactory.createBall(pos_m, context->physicsDebug.debugBallVelocity);
             }
         }
     }
