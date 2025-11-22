@@ -2,16 +2,10 @@
 #include "../systems/GridDebugSystem.hpp"
 #include "../components/Components.hpp"
 #include "../debug/Debug.hpp"
-
 void RenderSystem::render(GameContext* context) {
-    Vec2 windowSize{
-        static_cast<float>(context->window.getSize().x),
-        static_cast<float>(context->window.getSize().y)
-    };
-
-    // --- Set camera view ---
-    context->window.setView(context->camera.getView(windowSize));
-    renderLayerSystem.update(context);
+    
+    
+    
     // 📌 1) Gather drawables with transform + sprite + layer
     struct DrawItem {
         int layer;
@@ -59,7 +53,4 @@ void RenderSystem::render(GameContext* context) {
     else {
         context->camera.homography.printDebug = true;
     }
-
-    // Reset for ImGui overlay
-    context->window.setView(context->window.getDefaultView());
 }

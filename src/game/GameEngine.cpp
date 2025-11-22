@@ -15,7 +15,6 @@ GameEngine::GameEngine() {
 
 void GameEngine::run() {
     context.window.setVerticalSyncEnabled(true);
-
     sf::Clock deltaClock;
     ImGui::SFML::Init(context.window);
 
@@ -36,7 +35,7 @@ void GameEngine::run() {
             case sf::Event::KeyPressed:
                 context.rawInput.keyStates[event.key.code] = true;
                 if (event.key.code == sf::Keyboard::F11 || event.key.code == sf::Keyboard::F)
-                    toggleFullscreen();
+                    context.display.fullscreen = !context.display.fullscreen;
                 break;
 
             case sf::Event::KeyReleased:
@@ -66,18 +65,21 @@ void GameEngine::run() {
                 break;
             }
         }
-        //check to see if resolution needs updated
-        if (context.renderSettings.updateResolution) {
+
+        if (context.renderSettings.updateResolution || context.display.fullscreen) {
             updateResolution();
         }
-
         // --- Update display configuration ---
         context.display.updateFromWindow(context.window);
+
+        // Apply logical scaling / letterboxing
+        DisplayUtils::applyLetterboxedView(&context);
 
         // --- Update game + ImGui ---
         ImGui::SFML::Update(context.window, dt);
         m_sceneManager.handleInput();
         m_sceneManager.update(dt);
+
 
         // --- Render ---
         context.window.clear();
@@ -95,21 +97,6 @@ void GameEngine::handleResize(float width, float height) {
     ImGui::GetIO().DisplaySize = ImVec2(width, height);
 }
 
-void GameEngine::toggleFullscreen() {
-    ImGui::SFML::Shutdown();
-    context.display.fullscreen = !context.display.fullscreen;
-    context.window.close();
-
-    if (context.display.fullscreen)
-        context.window.create(sf::VideoMode::getDesktopMode(), "PixelPong", sf::Style::Fullscreen);
-    else
-        context.window.create(sf::VideoMode(context.display.windowSize.x, context.display.windowSize.y), "PixelPong");
-
-    ImGui::SFML::Init(context.window);
-    context.display.updateFromWindow(context.window);
-
-    DisplayUtils::applyLetterboxedView(context.window, context.display);
-}
 void GameEngine::updateResolution() {
     auto& rs = context.renderSettings;
     auto& display = context.display;
@@ -128,7 +115,7 @@ void GameEngine::updateResolution() {
     display.updateFromWindow(context.window);
 
     // Apply logical scaling / letterboxing
-    DisplayUtils::applyLetterboxedView(context.window, display);
+    DisplayUtils::applyLetterboxedView(&context);
 
     // Fix ImGui interaction scaling
     ImGui::GetIO().DisplaySize = ImVec2(display.windowSize.x, display.windowSize.y);

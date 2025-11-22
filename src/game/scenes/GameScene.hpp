@@ -13,6 +13,7 @@
 #include "../imgui/ImGuiLayer.hpp"
 #include "../math/Random.hpp"
 #include "../systems/BallRemovalSystem.hpp"
+#include "../systems/RenderLayerSystem.hpp"
 
 class GameScene : public Scene {
 public:
@@ -34,6 +35,7 @@ private:
     MetaInputSystem metaInput;
     MetaInputState metaState;
     ImGuiLayer imgui;
+    RenderLayerSystem renderLayerSystem;
     sf::Clock deltaClock;
     int entitySpawnTimer = 0;
 };

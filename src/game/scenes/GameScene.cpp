@@ -60,8 +60,7 @@ void GameScene::update(sf::Time dt) {
         animationSystem.update(m_context);
     }
 
-    m_context->camera.position = { m_context->display.logicalSize.x / 2.f, m_context->display.logicalSize.y / 2.f };
-
+    renderLayerSystem.update(m_context);
 }
 
 void GameScene::render() {

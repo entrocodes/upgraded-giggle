@@ -11,6 +11,5 @@ public:
     void handleResize(float width, float height);
 private:
     SceneManager m_sceneManager;
-    void toggleFullscreen();
     void updateResolution();
 };
