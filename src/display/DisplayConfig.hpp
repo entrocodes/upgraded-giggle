@@ -11,8 +11,6 @@ struct DisplayConfig {
     void DisplayConfig::updateFromWindow(const sf::RenderWindow& window) {
         auto size = window.getSize();
         windowSize = { static_cast<float>(size.x), static_cast<float>(size.y) };
-
-        logicalSize = windowSize;
     }
 
     Vec2 getScale() const {

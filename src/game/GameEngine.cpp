@@ -35,7 +35,7 @@ void GameEngine::run() {
 
             case sf::Event::KeyPressed:
                 context.rawInput.keyStates[event.key.code] = true;
-                if (event.key.code == sf::Keyboard::F11)
+                if (event.key.code == sf::Keyboard::F11 || event.key.code == sf::Keyboard::F)
                     toggleFullscreen();
                 break;
 

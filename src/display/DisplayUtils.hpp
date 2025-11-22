@@ -28,8 +28,8 @@ namespace DisplayUtils {
             return; // no change
 
         // Reference size (logical “native” resolution)
-        constexpr float REF_WIDTH = 640.f;
-        constexpr float REF_HEIGHT = 640.f;
+        constexpr float REF_WIDTH = 1280.f;
+        constexpr float REF_HEIGHT = 720.f;
 
         // Base scale ratio (used for non-background entities)
         float scaleX = display.logicalSize.x / REF_WIDTH;
