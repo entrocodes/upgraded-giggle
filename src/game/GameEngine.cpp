@@ -1,7 +1,7 @@
 ﻿#include "GameEngine.hpp"
 #include "scenes/GameScene.hpp"
 #include "../imgui/ImGuiLayer.hpp"
-
+#include "../display/DisplayUtils.hpp"
 GameEngine::GameEngine() {
     context.window.create(
         sf::VideoMode(context.display.windowSize.x, context.display.windowSize.y),
@@ -66,6 +66,10 @@ void GameEngine::run() {
                 break;
             }
         }
+        //check to see if resolution needs updated
+        if (context.renderSettings.updateResolution) {
+            updateResolution();
+        }
 
         // --- Update display configuration ---
         context.display.updateFromWindow(context.window);
@@ -103,4 +107,29 @@ void GameEngine::toggleFullscreen() {
 
     ImGui::SFML::Init(context.window);
     context.display.updateFromWindow(context.window);
+
+    DisplayUtils::applyLetterboxedView(context.window, context.display);
+}
+void GameEngine::updateResolution() {
+    auto& rs = context.renderSettings;
+    auto& display = context.display;
+
+    auto newRes = rs.resolutions[rs.currentResolutionIndex].second;
+
+    rs.updateResolution = false;
+
+    context.window.create(
+        sf::VideoMode((unsigned)newRes.x, (unsigned)newRes.y),
+        "PixelPong",
+        display.fullscreen ? sf::Style::Fullscreen : sf::Style::Default
+    );
+
+    // Update display info from new window
+    display.updateFromWindow(context.window);
+
+    // Apply logical scaling / letterboxing
+    DisplayUtils::applyLetterboxedView(context.window, display);
+
+    // Fix ImGui interaction scaling
+    ImGui::GetIO().DisplaySize = ImVec2(display.windowSize.x, display.windowSize.y);
 }

@@ -53,7 +53,7 @@ void RenderSystem::render(GameContext* context) {
     if (context->camera.homography.drawGrid) {
         context->camera.homography.drawDebugGrid(context->window, 10, 5);
     }
-    if (context->renderDebug.draw3DBoundingBoxes) {
+    if (context->renderSettings.draw3DBoundingBoxes) {
         display3DBoundingBoxes.render(context);
     }
     else {

@@ -8,8 +8,9 @@ public:
     GameEngine();
     GameContext context;
     void run();
-    void toggleFullscreen();
     void handleResize(float width, float height);
 private:
     SceneManager m_sceneManager;
+    void toggleFullscreen();
+    void updateResolution();
 };

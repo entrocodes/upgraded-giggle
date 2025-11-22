@@ -62,7 +62,6 @@ void GameScene::update(sf::Time dt) {
 
     m_context->camera.position = { m_context->display.logicalSize.x / 2.f, m_context->display.logicalSize.y / 2.f };
 
-    DisplayUtils::scaleSpritesToResolution(m_context->registry, m_context->display);
 }
 
 void GameScene::render() {

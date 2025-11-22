@@ -2,12 +2,17 @@
 #include <imgui-SFML.h>
 #include "../systems/GridDebugSystem.hpp"
 #include "../systems/BallRemovalSystem.hpp"
+#include <vector>
+#include <map>
+#include <string>
+#include <iterator>   // for std::next
 void ImGuiLayer::init(GameContext* context) {
     ImGui::SFML::Init(context->window);
 }
 
 void ImGuiLayer::render(GameContext* context) {
     ImGuiIO& io = ImGui::GetIO();
+    io.DisplaySize = ImVec2(context->display.windowSize.x, context->display.windowSize.y);
     context->inputBlocked = io.WantCaptureMouse || io.WantCaptureKeyboard;
 
     BallRemovalSystem ballRemoval;
@@ -21,11 +26,38 @@ void ImGuiLayer::render(GameContext* context) {
             context->display.windowSize.x, context->display.windowSize.y);
         ImGui::Text("Logical: %.0fx%.0f",
             context->display.logicalSize.x, context->display.logicalSize.y);
+        
+        
+
+        // === Resolutions Combo ===
+        auto& resList = context->renderSettings.resolutions;
+        int& idx = context->renderSettings.currentResolutionIndex;
+
+        const char* preview = resList[idx].first.c_str();
+
+        if (ImGui::BeginCombo("Resolution", preview))
+        {
+            for (int i = 0; i < resList.size(); i++)
+            {
+                bool selected = (i == idx);
+
+                if (ImGui::Selectable(resList[i].first.c_str(), selected))
+                {
+                    idx = i;
+                    context->renderSettings.updateResolution = true;
+                }
+
+                if (selected)
+                    ImGui::SetItemDefaultFocus();
+            }
+            ImGui::EndCombo();
+        }
+
 
         ImGui::Separator();
         ImGui::Checkbox("Show Grid", &gGridDebug.drawGrid);
         ImGui::Checkbox("Show Homography Grid", &context->camera.homography.drawGrid);
-        ImGui::Checkbox("Show Bounding Boxes", &context->renderDebug.draw3DBoundingBoxes);
+        ImGui::Checkbox("Show Bounding Boxes", &context->renderSettings.draw3DBoundingBoxes);
     }
 
     // === Ball Debug ===
