@@ -16,6 +16,8 @@ void BallMovementSystem::update(GameContext* context, float dt) {
         auto [transform, ballComp, boundingBox3D, cBallTransform3D, cBallVelocity3D] = context->registry.getComponents<CTransform, CBall, CBoundingBox3D, CTransform3D, CVelocity3D>(ball);
         if (!transform || !ballComp || !boundingBox3D || !cBallTransform3D || !cBallVelocity3D) continue;
 
+
+
         cBallTransform3D->lastPos_m = cBallTransform3D->pos_m;
 
 
@@ -24,9 +26,9 @@ void BallMovementSystem::update(GameContext* context, float dt) {
         cBallVelocity3D->vel_mps += ballComp->bForces.acceleration * dt;
         cBallTransform3D->pos_m += cBallVelocity3D->vel_mps * dt;
         Vec3 p = cBallTransform3D->pos_m;
-        ballComp->onTable = (p.y <= context->tableParameters.tableY);
+        ballComp->contactingTable = (p.y <= context->tableParameters.tableY);
         ballComp->onFloor = (p.y <= context->tableParameters.floorY);
-        if (ballComp->onTable && !ballComp->offTable) {
+        if (ballComp->contactingTable && !ballComp->offTable && !ballComp->hasFallen) {
             handleTableContact(context, ball, dt);
         }
         else if (ballComp->onFloor && ballComp->offTable) {
@@ -35,7 +37,7 @@ void BallMovementSystem::update(GameContext* context, float dt) {
         
   
 
-        if (!ballComp->hasFallen && ballComp->offTable) {
+        if (!ballComp->hasFallen && ballComp->offTable && cBallTransform3D->pos_m.y < 0) {
             ballComp->hasFallen = true;
             // Trigger event here (e.g. scoring or reset)
         }
@@ -85,7 +87,7 @@ void BallMovementSystem::updateOffTable(GameContext* context) {
             cBallTransform3D->pos_m.x < 0.f || cBallTransform3D->pos_m.x > context->tableParameters.tableWidth ||
             cBallTransform3D->pos_m.z < 0.f || cBallTransform3D->pos_m.z > context->tableParameters.tableLength
             );
-        cBall->onTable = (cBallTransform3D->pos_m.y <= context->tableParameters.tableY + 0.001f);
+        cBall->contactingTable = (cBallTransform3D->pos_m.y <= context->tableParameters.tableY + 0.001f);
 
     }
 

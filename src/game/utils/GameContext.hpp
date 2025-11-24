@@ -15,7 +15,7 @@ struct PhysicsDebugSettings {
     Vec3 debugBallSpin = { 0.0f, 0.0f, 0.0f };
     float debugBallHeight = 0.0f;
     Vec3 debugBallVelocity = { 0.0f,0.0f,0.0f };
-    float debugKMagnus = 0.005f;
+    float debugKMagnus = 0.00035f;
     bool debugRemoveAllBalls = false;
     bool debugSpinEnabled = true;
     bool debugSpinArrows = false;

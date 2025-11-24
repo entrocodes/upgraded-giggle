@@ -11,11 +11,11 @@
 
 void BallForceSystem::update(GameContext* context, float dt) {
     for (auto ball : context->registry.getEntitiesWith<CBall, CTransform>()) {
-        auto [ballComp, cBallVelocity3D] = context->registry.getComponents<CBall, CVelocity3D>(ball);
-        if (!ballComp || !cBallVelocity3D) continue;
+        auto [ballComp, cBallVelocity3D, cBallTransform3D] = context->registry.getComponents<CBall, CVelocity3D, CTransform3D>(ball);
+        if (!ballComp || !cBallVelocity3D || !cBallTransform3D) continue;
 
         ballComp->bForces.forceGravity = calcBallGrav.calculateForceGravity(ballComp->mass);
-        ballComp->bForces.forceMagnus = calcMagnus.calculateForceMagnus(ballComp->spin, cBallVelocity3D->vel_mps, context->physicsDebug.debugKMagnus);
+        ballComp->bForces.forceMagnus = calcMagnus.calculateForceMagnus(context, ballComp->spin, cBallVelocity3D->vel_mps, cBallTransform3D->pos_m, context->physicsDebug.debugKMagnus);
         ballComp->bForces.forceDrag = calcBallDrag.calculateForceDrag(cBallVelocity3D->vel_mps);
 
         ballComp->bForces.totalForces = ballComp->bForces.forceGravity + ballComp->bForces.forceMagnus + ballComp->bForces.forceDrag;

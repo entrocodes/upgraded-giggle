@@ -74,14 +74,16 @@ void ImGuiLayer::render(GameContext* context) {
             &context->physicsDebug.debugBallVelocity.x,
             -1.0f, 1.0f);
         ImGui::SliderFloat("Top/Backspin",
-            &context->physicsDebug.debugBallSpin.x, -1.0f, 1.0f);
-
+            &context->physicsDebug.debugBallSpin.x, -2.0f, 2.0f);
         ImGui::SliderFloat("Sidespin",
-            &context->physicsDebug.debugBallSpin.y, -1.0f, 1.0f);
+            &context->physicsDebug.debugBallSpin.y, -2.0f, 2.0f);
+        ImGui::Checkbox("Debug Spin Arrows",
+            &context->physicsDebug.debugSpinArrows);
         ImGui::Checkbox("Enable Debug Spin",
             &context->physicsDebug.debugSpinEnabled);
-        if (ImGui::Button("Reset Spin")) {
+        if (ImGui::Button("Reset Spin and Velocity")) {
             context->physicsDebug.debugBallSpin.set(0.f);
+            context->physicsDebug.debugBallVelocity.set(0.f);
         }
         ImGui::Checkbox("Click to Spawn",
             &context->physicsDebug.clickToSpawn);
@@ -96,7 +98,7 @@ void ImGuiLayer::render(GameContext* context) {
         ImGui::SliderFloat("Pixels Per Meter",
             &context->tableParameters.pixelsPerMeter, 10.0f, 200.00f);
         ImGui::SliderFloat("Magnus Coeff",
-            &context->physicsDebug.debugKMagnus, 0.0f, 0.01f);
+            &context->physicsDebug.debugKMagnus, 0.0f, 0.005f);
         ImGui::SliderFloat("Table Friction Coefficient",
             &context->tableParameters.tableFrictionCoefficient, 0.0f, 2.00f);
 
@@ -105,7 +107,7 @@ void ImGuiLayer::render(GameContext* context) {
             &context->physicsDebug.clickForMousePos);
     }
     // === Logo Spin Debug ===
-    if (ImGui::CollapsingHeader("Logo Spin Debug", ImGuiTreeNodeFlags_DefaultOpen)) {
+    if (ImGui::CollapsingHeader("Logo Spin Debug")) {
         // --- Logo Distortion ---
         ImGui::Text("Distortion Scale");
         ImGui::SliderFloat("Shear", &context->logoDebug.shearScale, .1f, 2.0f);
@@ -160,12 +162,7 @@ void ImGuiLayer::render(GameContext* context) {
                 ImGui::Text("%s: Spin: (%.5f, %.5f)",
                     std::to_string(e.id).c_str(),
                     ballComp->spin.x,
-                    ballComp->spin.z
-                );
-                ImGui::Text("%s: Friction: (%.5f, %.5f)",
-                    std::to_string(e.id).c_str(),
-                    ballComp->bForces.friction.x,
-                    ballComp->bForces.friction.y
+                    ballComp->spin.y
                 );
             }
         }

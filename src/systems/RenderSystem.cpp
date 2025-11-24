@@ -2,6 +2,7 @@
 #include "../systems/GridDebugSystem.hpp"
 #include "../components/Components.hpp"
 #include "../debug/Debug.hpp"
+#include "../math/MathHelpers.hpp"
 #include <cmath>
 void RenderSystem::render(GameContext* context) {
 
@@ -51,6 +52,9 @@ void RenderSystem::render(GameContext* context) {
     }
     else {
         context->camera.homography.printDebug = true;
+    }
+    if (context->physicsDebug.debugSpinArrows) {
+        drawSpinArrows(context);
     }
 }
 void RenderSystem::renderLogo(GameContext* context)
@@ -223,5 +227,25 @@ void RenderSystem::renderLogo(GameContext* context)
                 context->window.draw(quad, states);
             }
         }
+    }
+}
+void RenderSystem::drawSpinArrows(GameContext* context) {
+    for (auto e : context->registry.getEntitiesWith<CBall, CTransform3D>()) {
+        auto [cBall, t3D, v3D] =
+            context->registry.getComponents<CBall, CTransform3D, CVelocity3D>(e);
+        if (!cBall || !t3D || !v3D) continue;
+
+        Vec3 pos = t3D->pos_m;
+        Vec3 vel = v3D->vel_mps;
+        Vec3 spin = cBall->spin;
+
+        // Recompute spinAxis just like Magnus code
+        Vec3 forward = MathHelpers::normalize(vel);
+        Vec3 up = { 0.f,1.f,0.f };
+        Vec3 right = MathHelpers::normalize(MathHelpers::cross(up, forward));
+        Vec3 realUp = MathHelpers::cross(forward, right);
+        Vec3 spinAxis = realUp * spin.x + right * spin.y + forward * spin.z;
+
+        Debug::drawArrow3D(context->window, pos, pos + spinAxis * 0.3f, sf::Color::Red);
     }
 }
