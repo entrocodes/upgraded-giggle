@@ -42,9 +42,3 @@ void AnimationSystem::updatePlayer(GameContext* context) {
         bb->rect = s.getLocalBounds();
     }
 };
-void updateBall(GameContext* context) {
-    for (auto ball : context->registry.getEntitiesWith<CBall, CAnimation>()) {
-        auto [animComp, ballComp] = context->registry.getComponents<CAnimation, CBall>(ball);
-        if (!animComp || !ballComp) return;
-    }
-};

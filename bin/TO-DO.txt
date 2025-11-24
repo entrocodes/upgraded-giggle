@@ -1,7 +1,6 @@
 TO-DO:
 Fullscreen Mode
 Different resolutions
-Animation speed
 enhance net collision
 ball-floor physics
 create opponent sprite

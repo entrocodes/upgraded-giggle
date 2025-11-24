@@ -8,12 +8,12 @@
 #include <algorithm>
 class ApplyFriction {
 public:
-    void applyFriction(GameContext* context, Entity ball, float dt) {
+    void applyFriction(GameContext* context, Entity ball, float dt, float surfaceFrictionCoefficient = .2f) {
         auto [ballComp, vel] =
             context->registry.getComponents<CBall, CVelocity3D>(ball);
         if (!ballComp || !vel) return;
 
-        float mu = context->tableParameters.tableFrictionCoefficient;
+        float mu = surfaceFrictionCoefficient;
         float Fn = ballComp->mass * 9.8f;        // Normal force
         float dS = mu * Fn * dt;                 // Max slowdown during dt
 

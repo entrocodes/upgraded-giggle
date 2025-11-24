@@ -22,6 +22,7 @@ add_executable(PixelPong
     systems/RenderLayerSystem.cpp
     systems/NetCollisionSystem.cpp
     systems/BallMovementSystem.cpp
+    systems/LogoRotationSystem.cpp
 )
 
 target_compile_features(PixelPong PRIVATE cxx_std_17)

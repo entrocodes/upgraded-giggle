@@ -25,4 +25,9 @@ struct Vec3 {
     float dot(const Vec3& other) const {
         return x * other.x + y * other.y + z * other.z;
     }
+    void set(const float f) {
+        x = f;
+        y = f;
+        z = f;
+    }
 };

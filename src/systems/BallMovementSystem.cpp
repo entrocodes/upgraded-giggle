@@ -23,11 +23,14 @@ void BallMovementSystem::update(GameContext* context, float dt) {
         // --- INTEGRATE POSITION ---
         cBallVelocity3D->vel_mps += ballComp->bForces.acceleration * dt;
         cBallTransform3D->pos_m += cBallVelocity3D->vel_mps * dt;
-
-        ballComp->onTable = (cBallTransform3D->pos_m.y <= context->tableParameters.tableY);
-        
-        if (ballComp->onTable) {
+        Vec3 p = cBallTransform3D->pos_m;
+        ballComp->onTable = (p.y <= context->tableParameters.tableY);
+        ballComp->onFloor = (p.y <= context->tableParameters.floorY);
+        if (ballComp->onTable && !ballComp->offTable) {
             handleTableContact(context, ball, dt);
+        }
+        else if (ballComp->onFloor && ballComp->offTable) {
+            handleFloorContact(context, ball, dt);
         }
         
   
@@ -37,19 +40,30 @@ void BallMovementSystem::update(GameContext* context, float dt) {
             // Trigger event here (e.g. scoring or reset)
         }
         //handle net collision
-        boundingBox3D->box = Bounds3D(cBallTransform3D->pos_m - ballComp->ballRadius, cBallTransform3D->pos_m + ballComp->ballRadius);
+        boundingBox3D->box = Bounds3D(p - ballComp->ballRadius, p + ballComp->ballRadius);
         ballForceSystem.netCollision.resolve(context, ball);
-        
+
+        transform->position = context->camera.homography.worldToImage(p);
+
         // --- SHADOW ENTITY ---
         Entity shadowEntity = ballComp->ballShadow;
         auto [shadowTransform, shadowTransform3D] = context->registry.getComponents<CTransform, CTransform3D>(shadowEntity);
         if (!shadowTransform || !shadowTransform3D) continue;
-        shadowTransform3D->pos_m = Vec3(cBallTransform3D->pos_m.x, 0.0f, cBallTransform3D->pos_m.z);
-        // --- PROJECT TO SCREEN USING HOMOGRAPHY ---
         
-        transform->position = context->camera.homography.worldToImage(cBallTransform3D->pos_m);
+        
+        // --- PROJECT TO SCREEN USING HOMOGRAPHY ---
+        float scale = 1.0f;
+        
+        if (!ballComp->offTable) {
+            shadowTransform3D->pos_m = Vec3(p.x, context->tableParameters.tableY, p.z);
+            scale = std::max(0.5f, 1.5f - 0.2f * p.y);
+
+        }
+        else {
+            shadowTransform3D->pos_m = Vec3(p.x, context->tableParameters.floorY, p.z);
+            scale = std::max(0.5f, 1.5f - 0.2f * (p.y - context->tableParameters.floorY));
+        }
         shadowTransform->position = context->camera.homography.worldToImage(shadowTransform3D->pos_m);
-        float scale = std::max(0.5f, 1.5f - 0.2f * cBallTransform3D->pos_m.y);
         shadowTransform->scale = { scale, scale };
 
         // --- DEBUG OUTPUT ---
@@ -83,14 +97,29 @@ void BallMovementSystem::handleTableContact(GameContext* context, Entity& ball, 
         // Snap to surface
         cTransform3D->pos_m.y = context->tableParameters.tableY;
 
-    // Only reverse direction on **first contact**, not every frame
+    // Only reverse direction on first contact, not every frame
     if (cVelocity3D->vel_mps.y < 0.f) {
-        BounceForce bounce({ 0.f, 1.f, 0.f }, ballComp->restitution);
+        BounceForce bounce({ 0.f, 1.f, 0.f }, ballComp->restitution * context->tableParameters.floorRestitution);
         cVelocity3D->vel_mps = bounce.apply(cVelocity3D->vel_mps);
     }
         
     // Friction applied *every frame* while touching surface
-    ballForceSystem.applyFriction.applyFriction(context, ball, dt);
+    ballForceSystem.applyFriction.applyFriction(context, ball, dt, context->tableParameters.tableFrictionCoefficient);
 }
 
+void BallMovementSystem::handleFloorContact(GameContext* context, Entity& ball, float dt) {
+    auto [ballComp, cTransform3D, cVelocity3D] = context->registry.getComponents<CBall, CTransform3D, CVelocity3D>(ball);
+    if (!ballComp || !cTransform3D || !cVelocity3D) exit;
+    // Snap to surface
+    cTransform3D->pos_m.y = context->tableParameters.floorY;
+
+    // Only reverse direction on first contact, not every frame
+    if (cVelocity3D->vel_mps.y < 0.f) {
+        BounceForce bounce({ 0.f, 1.f, 0.f }, ballComp->restitution * context->tableParameters.floorRestitution);
+        cVelocity3D->vel_mps = bounce.apply(cVelocity3D->vel_mps);
+    }
+
+    // Friction applied *every frame* while touching surface
+    ballForceSystem.applyFriction.applyFriction(context, ball, dt);
+}
 

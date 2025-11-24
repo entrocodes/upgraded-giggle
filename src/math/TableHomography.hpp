@@ -27,7 +27,7 @@ public:
 
     bool calibrated = false;
     bool drawGrid = false;
-    mutable bool printDebug = true;
+    mutable bool printDebug = false;
 
     // Assign corners and compute the homography
     void calibrate(const std::array<Vec2, 4>& src, const std::array<Vec2, 4>& dst);

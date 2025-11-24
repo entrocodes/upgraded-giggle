@@ -4,9 +4,11 @@ class CAnimation : public Component
 {
 public:
 	Animation animation;
+	Animation animation2;
 	bool repeat = false;
 	CAnimation() {}
 	CAnimation(const Animation& animation, bool r)
 		: animation(animation), repeat(r) {
 	}
+
 };

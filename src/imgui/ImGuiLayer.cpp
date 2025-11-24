@@ -74,13 +74,15 @@ void ImGuiLayer::render(GameContext* context) {
             &context->physicsDebug.debugBallVelocity.x,
             -1.0f, 1.0f);
         ImGui::SliderFloat("Top/Backspin",
-            &context->physicsDebug.debugBallSpin.x, -0.3f, 0.3f);
+            &context->physicsDebug.debugBallSpin.x, -1.0f, 1.0f);
 
         ImGui::SliderFloat("Sidespin",
             &context->physicsDebug.debugBallSpin.y, -1.0f, 1.0f);
         ImGui::Checkbox("Enable Debug Spin",
             &context->physicsDebug.debugSpinEnabled);
-
+        if (ImGui::Button("Reset Spin")) {
+            context->physicsDebug.debugBallSpin.set(0.f);
+        }
         ImGui::Checkbox("Click to Spawn",
             &context->physicsDebug.clickToSpawn);
 
@@ -98,15 +100,38 @@ void ImGuiLayer::render(GameContext* context) {
         ImGui::SliderFloat("Table Friction Coefficient",
             &context->tableParameters.tableFrictionCoefficient, 0.0f, 2.00f);
 
-        if (ImGui::Button("Reset Spin")) {
-            context->physicsDebug.debugBallSpin = { 0.f, 0.f, 0.f };
-        }
 
-        ImGui::Checkbox("Draw Spin Arrows",
-            &context->physicsDebug.debugSpinArrows);
         ImGui::Checkbox("Show Debug Mouse Pos",
             &context->physicsDebug.clickForMousePos);
     }
+    // === Logo Spin Debug ===
+    if (ImGui::CollapsingHeader("Logo Spin Debug", ImGuiTreeNodeFlags_DefaultOpen)) {
+        // --- Logo Distortion ---
+        ImGui::Text("Distortion Scale");
+        ImGui::SliderFloat("Shear", &context->logoDebug.shearScale, .1f, 2.0f);
+        ImGui::SliderFloat("Squash", &context->logoDebug.squashScale, .1f, 2.0f);
+        ImGui::SliderFloat("Minimum Squash", &context->logoDebug.minSquash, .1f, 1.5f);
+        ImGui::SliderFloat("Logo Radius Factor", &context->logoDebug.radiusFactor, .1f, 1.5f);
+        for (auto e : context->registry.getEntitiesWith<CBall>()) {
+
+            auto* cBall = context->registry.getComponent<CBall>(e);
+
+
+            // --- Logo Angles ---
+            ImGui::Text("Logo Angles");
+            ImGui::Text("Horiz (yaw): %f", &cBall->logo.angleHoriz);
+            ImGui::Text("Vert (pitch): %f", &cBall->logo.angleVert);
+            ImGui::Text("Opacity: %f", &cBall->logo.opacity);
+            if (cBall->logo.visible) {
+                ImGui::Text("Visible");
+            }
+            else {
+                ImGui::Text("Not visible");
+            }
+            
+        }
+    }
+
     // == Render Layers ==
     if (ImGui::CollapsingHeader("Render Layers")) {
         for (auto e : context->registry.getEntitiesWith<CRenderLayer>()) {
@@ -135,7 +160,7 @@ void ImGuiLayer::render(GameContext* context) {
                 ImGui::Text("%s: Spin: (%.5f, %.5f)",
                     std::to_string(e.id).c_str(),
                     ballComp->spin.x,
-                    ballComp->spin.y
+                    ballComp->spin.z
                 );
                 ImGui::Text("%s: Friction: (%.5f, %.5f)",
                     std::to_string(e.id).c_str(),

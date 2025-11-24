@@ -35,7 +35,7 @@ void GameEngine::run() {
             case sf::Event::KeyPressed:
                 context.rawInput.keyStates[event.key.code] = true;
                 if (event.key.code == sf::Keyboard::F11 || event.key.code == sf::Keyboard::F)
-                    context.display.fullscreen = !context.display.fullscreen;
+                    context.display.toggleFullscreen = true;
                 break;
 
             case sf::Event::KeyReleased:
@@ -66,8 +66,10 @@ void GameEngine::run() {
             }
         }
 
-        if (context.renderSettings.updateResolution || context.display.fullscreen) {
+        if (context.renderSettings.updateResolution || context.display.toggleFullscreen) {
+            context.display.isFullscreen = !context.display.isFullscreen;
             updateResolution();
+            context.display.toggleFullscreen = false;
         }
         // --- Update display configuration ---
         context.display.updateFromWindow(context.window);
@@ -108,7 +110,7 @@ void GameEngine::updateResolution() {
     context.window.create(
         sf::VideoMode((unsigned)newRes.x, (unsigned)newRes.y),
         "PixelPong",
-        display.fullscreen ? sf::Style::Fullscreen : sf::Style::Default
+        display.isFullscreen ? sf::Style::Fullscreen : sf::Style::Default
     );
 
     // Update display info from new window

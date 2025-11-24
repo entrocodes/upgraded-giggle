@@ -14,6 +14,7 @@
 #include "../math/Random.hpp"
 #include "../systems/BallRemovalSystem.hpp"
 #include "../systems/RenderLayerSystem.hpp"
+#include "../systems/LogoRotationSystem.hpp"
 
 class GameScene : public Scene {
 public:
@@ -26,6 +27,7 @@ public:
 private:
     GameContext* m_context = nullptr;
     AnimationSystem animationSystem;
+    LogoRotationSystem logoRotationSystem;
     MovementSystem movement;
     RenderSystem renderer;
     InputSystem inputSystem;

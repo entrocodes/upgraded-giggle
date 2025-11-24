@@ -16,4 +16,5 @@ private:
     NetCollisionSystem netCollisionSystem;
     void updateOffTable(GameContext* context);
     void handleTableContact(GameContext* context, Entity& entity, float dt);
+    void handleFloorContact(GameContext* context, Entity& entity, float dt);
 };

@@ -110,6 +110,7 @@ Entity EntityFactory::createBall(const Vec3& pos_m, const Vec3& vel_mps, const V
 
     Entity ball = m_registry.createEntity("ball");
     Vec2 ballScale = { 0.12f, 0.12f };
+    //Vec2 ballScale = { 3.00f, 3.00f };
     auto& ballComp = m_registry.addComponent<CBall>(ball, ballShadow, spin);
     auto& transform = m_registry.addComponent<CTransform>(ball, ballScreenPos, ballScale, 0.f);
     Vec3 size_m = { ballComp.ballRadius * 2,ballComp.ballRadius * 2,ballComp.ballRadius * 2 }; //set ball size to a cube (even though its a circle)
@@ -120,7 +121,7 @@ Entity EntityFactory::createBall(const Vec3& pos_m, const Vec3& vel_mps, const V
     
     
     // animation
-    const Animation& animBall = m_assets.getAnimation("TopspinBall");
+    const Animation& animBall = m_assets.getAnimation("Ball");
     auto& animComp = m_registry.addComponent<CAnimation>(ball, animBall, true);
     auto& render = m_registry.addComponent<CRenderLayer>(ball, 4);
     sf::Sprite& s = animComp.animation.getSprite();

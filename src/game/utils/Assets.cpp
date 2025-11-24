@@ -50,11 +50,18 @@ void Assets::addFont(const std::string& name, const std::string& path) {
 //
 //	m_music[name] = music;  // Store shared_ptr in the map
 //}
-
-const sf::Texture& Assets::getTexture(const std::string& name) const {
-	std::cout << "Getting Texture: " << name << std::endl;
-	return m_textures.at(name);
+sf::Texture& Assets::getTexture(const std::string& name)
+{
+    auto it = m_textures.find(name);
+    if (it == m_textures.end()) {
+        std::cerr << "ERROR: Texture not found: " << name << "\n";
+        static sf::Texture fallback;
+        fallback.create(10,10); // white debug texture
+        return fallback;
+    }
+    return it->second;
 }
+
 //const sf::Sound& Assets::getSound(const std::string& name) const {
 //	std::cout << "Getting Sound: " << name << std::endl;
 //	return m_sounds.at(name);

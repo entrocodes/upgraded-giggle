@@ -58,6 +58,7 @@ void GameScene::update(sf::Time dt) {
             ballRemoval.removeAll(m_context);
         }
         animationSystem.update(m_context);
+        logoRotationSystem.update(m_context, dt.asSeconds());
     }
 
     renderLayerSystem.update(m_context);
