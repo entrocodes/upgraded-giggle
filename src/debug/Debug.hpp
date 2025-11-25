@@ -4,7 +4,7 @@
 #include <SFML/Graphics.hpp>
 #include <vector>
 #include <string>
-
+#include "../game/utils/GameContext.hpp"
 struct ArrowCommand {
     Vec3 from;
     Vec3 to;
