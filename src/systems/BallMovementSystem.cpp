@@ -67,6 +67,11 @@ void BallMovementSystem::update(GameContext* context, float dt) {
         }
         shadowTransform->position = context->camera.homography.worldToImage(shadowTransform3D->pos_m);
         shadowTransform->scale = { scale, scale };
+        if (context->physicsDebug.debugSpinArrows) {
+            Debug::queueArrow3D(p, p + cBallVelocity3D->vel_mps.normalized() * 0.15f, sf::Color::Blue);
+            Debug::queueArrow3D(p, p + ballComp->spin.normalized() * 0.10f, sf::Color::Yellow);
+            Debug::queueArrow3D(p, p + ballComp->bForces.forceMagnus.normalized() * 20.0f, sf::Color::Red);
+        }
 
         // --- DEBUG OUTPUT ---
         if (context->physicsDebug.enableConsoleDebugOutput) {
@@ -94,34 +99,79 @@ void BallMovementSystem::updateOffTable(GameContext* context) {
 }
 
 void BallMovementSystem::handleTableContact(GameContext* context, Entity& ball, float dt) {
-    auto [ballComp, cTransform3D, cVelocity3D] = context->registry.getComponents<CBall, CTransform3D, CVelocity3D>(ball);
-    if (!ballComp || !cTransform3D || !cVelocity3D) exit;
-        // Snap to surface
-        cTransform3D->pos_m.y = context->tableParameters.tableY;
+    auto [ballComp, cTransform3D, cVelocity3D] =
+        context->registry.getComponents<CBall, CTransform3D, CVelocity3D>(ball);
 
-    // Only reverse direction on first contact, not every frame
-    if (cVelocity3D->vel_mps.y < 0.f) {
-        BounceForce bounce({ 0.f, 1.f, 0.f }, ballComp->restitution * context->tableParameters.floorRestitution);
-        cVelocity3D->vel_mps = bounce.apply(cVelocity3D->vel_mps);
+    if (!ballComp || !cTransform3D || !cVelocity3D) return;
+
+    // Snap to table surface
+    cTransform3D->pos_m.y = context->tableParameters.tableY;
+
+    Vec3& v = cVelocity3D->vel_mps;
+    Vec3& s = ballComp->spin;
+
+    // Bounce happens when falling onto table
+    if (v.y < 0.f)
+    {
+        v.y = -v.y * ballComp->restitution * context->tableParameters.tableRestitution;
+
+        // top/backspin: spin.x affects forward/back speed
+        // sidespin: spin.y affects left/right speed
+        float spinKickFactor = context->tableParameters.tableSpinToVelocityFactor;
+
+        v.x += -s.y * spinKickFactor; // sidespin → lateral kick
+        v.z += s.x * spinKickFactor; // topspin/backspin → forward/back kick
+
+        float spinLoss = context->tableParameters.tableSpinLossOnBounce;
+        s = s * (1.0f - spinLoss);
     }
-        
-    // Friction applied *every frame* while touching surface
-    ballForceSystem.applyFriction.applyFriction(context, ball, dt, context->tableParameters.tableFrictionCoefficient);
+
+    // 4️⃣ Sliding friction while touching surface (only x,z drag)
+    float mu = context->tableParameters.tableFrictionCoefficient;
+    float Fn = ballComp->mass * 9.8f;
+    float frictionAccel = mu * Fn * dt;
+
+    if (v.x > 0) v.x = std::max(0.f, v.x - frictionAccel);
+    if (v.x < 0) v.x = std::min(0.f, v.x + frictionAccel);
+    if (v.z > 0) v.z = std::max(0.f, v.z - frictionAccel);
+    if (v.z < 0) v.z = std::min(0.f, v.z + frictionAccel);
 }
 
-void BallMovementSystem::handleFloorContact(GameContext* context, Entity& ball, float dt) {
-    auto [ballComp, cTransform3D, cVelocity3D] = context->registry.getComponents<CBall, CTransform3D, CVelocity3D>(ball);
-    if (!ballComp || !cTransform3D || !cVelocity3D) exit;
-    // Snap to surface
+
+void BallMovementSystem::handleFloorContact(GameContext* context, Entity& ball, float dt)
+{
+    auto [ballComp, cTransform3D, cVelocity3D] =
+        context->registry.getComponents<CBall, CTransform3D, CVelocity3D>(ball);
+
+    if (!ballComp || !cTransform3D || !cVelocity3D)
+        return;
+
+    Vec3& v = cVelocity3D->vel_mps;
+    Vec3& s = ballComp->spin;
+
+    // Snap to the floor plane
     cTransform3D->pos_m.y = context->tableParameters.floorY;
 
-    // Only reverse direction on first contact, not every frame
-    if (cVelocity3D->vel_mps.y < 0.f) {
-        BounceForce bounce({ 0.f, 1.f, 0.f }, ballComp->restitution * context->tableParameters.floorRestitution);
-        cVelocity3D->vel_mps = bounce.apply(cVelocity3D->vel_mps);
+    // Bounce (vertical only)
+    if (v.y < 0.f)
+    {
+        v.y = -v.y * ballComp->restitution * context->tableParameters.floorRestitution;
+
+        // Spin loss due to floor grip (heavier than on table)
+        float spinLoss = context->tableParameters.floorSpinLossOnBounce;
+        s *= (1.0f - spinLoss);
     }
 
-    // Friction applied *every frame* while touching surface
-    ballForceSystem.applyFriction.applyFriction(context, ball, dt);
+    // Strong friction on floor → quickly stop X/Z sliding
+    float mu = context->tableParameters.floorFrictionCoefficient;
+    float Fn = ballComp->mass * 9.8f;
+    float frictionAccel = mu * Fn * dt;
+
+    if (v.x > 0) v.x = std::max(0.f, v.x - frictionAccel);
+    if (v.x < 0) v.x = std::min(0.f, v.x + frictionAccel);
+    if (v.z > 0) v.z = std::max(0.f, v.z - frictionAccel);
+    if (v.z < 0) v.z = std::min(0.f, v.z + frictionAccel);
+
+    // Additional flight drag already handled elsewhere (good)
 }
 

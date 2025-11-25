@@ -8,7 +8,6 @@
 #include "../math/physics/forces/CalculateMagnusForce.hpp"
 #include "../math/physics/forces/CalculateBallDrag.hpp"
 #include "../systems/NetCollisionSystem.hpp"
-#include "../math/physics/forces/ApplyFriction.hpp"
 
 class BallForceSystem {
 public:
@@ -17,7 +16,6 @@ public:
     CalculateMagnusForce calcMagnus;
 
     NetCollisionSystem netCollision;
-    ApplyFriction applyFriction;
 
     void update(GameContext* context, float dt);
 };

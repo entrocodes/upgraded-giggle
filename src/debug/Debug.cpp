@@ -1,62 +1,90 @@
-#include "Debug.hpp"
-#include "../math/Vec2.hpp"
-#include "../math/Vec3.hpp"
+﻿#include "Debug.hpp"
+#include "../game/utils/GameContext.hpp"
 #include <iostream>
 
-void Debug::debugPrint(std::string varName, Vec2 varValue) {
-	std::cout << varName << ": (" << varValue.x << ", " << varValue.y << ")." << std::endl;
-}
-void Debug::debugPrint(std::string varName, Vec3 varValue) {
-	std::cout << varName << ": (" << varValue.x << ", " << varValue.y << ", " << varValue.z << ")." << std::endl;
-}
+namespace Debug {
 
-void Debug::debugPrint(std::string varName, int varValue) {
-	std::cout << varName << ": " << varValue << std::endl;
-}
+    std::vector<ArrowCommand> queuedArrows;
 
-void Debug::debugPrint(std::string varName, std::string varValue) {
-	std::cout << varName << ": " << varValue << std::endl;
-}
+    // ===== ARROW QUEUEING =====
 
-void Debug::debugPrint(std::string str) {
-	std::cout << str << std::endl;
-}
+    void queueArrow3D(const Vec3& from, const Vec3& to, const sf::Color& color) {
+        queuedArrows.push_back({ from, to, color });
+    }
 
-void Debug::debugPrint(std::string varName, const sf::Transform& transform) {
-	const float* m = transform.getMatrix();
-	std::cout << varName << ":\n";
-	std::cout << "  [" << m[0] << ", " << m[4] << ", " << m[12] << "]\n";
-	std::cout << "  [" << m[1] << ", " << m[5] << ", " << m[13] << "]\n";
-	std::cout << "  [" << m[3] << ", " << m[7] << ", " << m[15] << "]\n";
-}
-void Debug::drawArrow3D(sf::RenderWindow& window, const Vec3& from,const Vec3& to,const sf::Color& color)
-{
-    sf::Vertex line[] = {
-        sf::Vertex(sf::Vector2f(from.x, from.z), color),
-        sf::Vertex(sf::Vector2f(to.x,   to.z),   color)
-    };
+    void renderQueuedArrows(GameContext* context) {
+        for (auto& cmd : queuedArrows) {
+            drawArrow3D(context, cmd.from, cmd.to, cmd.color);
+        }
+        clearArrows();
+    }
 
-    window.draw(line, 2, sf::Lines);
+    void clearArrows() {
+        queuedArrows.clear();
+    }
 
-    // Arrow head
-    Vec3 dir = to - from;
-    float len = sqrt(dir.x * dir.x + dir.z * dir.z);
 
-    if (len > 0.001f) {
-        Vec3 ndir = dir * (1.f / len);
-        Vec3 left = { -ndir.z, 0.f, ndir.x }; // rotate 90� in XZ plane
+    // ===== DRAWING =====
 
-        float headSize = 10.f;
-        Vec3 p1 = to - ndir * headSize + left * headSize * 0.5f;
-        Vec3 p2 = to - ndir * headSize - left * headSize * 0.5f;
+    void drawArrow3D(GameContext* context, const Vec3& from, const Vec3& to, const sf::Color& color)
+    {
+        // Convert world → screen
+        Vec2 fromScreen = context->camera.homography.worldToImage(from);
+        Vec2 toScreen = context->camera.homography.worldToImage(to);
+
+        // Main line
+        sf::Vertex line[] = {
+            sf::Vertex(sf::Vector2f(fromScreen.x, fromScreen.y), color),
+            sf::Vertex(sf::Vector2f(toScreen.x,   toScreen.y),   color)
+        };
+        context->window.draw(line, 2, sf::Lines);
+
+        // Arrow head
+        Vec2 dir = toScreen - fromScreen;
+        float len = std::sqrt(dir.x * dir.x + dir.y * dir.y);
+        if (len < 0.001f) return;
+
+        Vec2 ndir = dir / len;
+        Vec2 perp = { -ndir.y, ndir.x }; // perpendicular
+
+        float headSize = 12.f;
+        Vec2 tip = toScreen;
+        Vec2 p1 = tip - ndir * headSize + perp * (headSize * 0.5f);
+        Vec2 p2 = tip - ndir * headSize - perp * (headSize * 0.5f);
 
         sf::Vertex head[] = {
-            sf::Vertex(sf::Vector2f(to.x, to.z), color),
-            sf::Vertex(sf::Vector2f(p1.x, p1.z), color),
-            sf::Vertex(sf::Vector2f(to.x, to.z), color),
-            sf::Vertex(sf::Vector2f(p2.x, p2.z), color)
+            sf::Vertex(sf::Vector2f(tip.x, tip.y), color),
+            sf::Vertex(sf::Vector2f(p1.x,  p1.y),  color),
+            sf::Vertex(sf::Vector2f(tip.x, tip.y), color),
+            sf::Vertex(sf::Vector2f(p2.x,  p2.y),  color),
         };
-
-        window.draw(head, 4, sf::Lines);
+        context->window.draw(head, 4, sf::Lines);
     }
-}
+
+
+    // ===== PRINT HELPERS =====
+
+    void debugPrint(std::string varName, Vec2 varValue) {
+        std::cout << varName << ": (" << varValue.x << ", " << varValue.y << ")\n";
+    }
+    void debugPrint(std::string varName, Vec3 varValue) {
+        std::cout << varName << ": (" << varValue.x << ", " << varValue.y << ", " << varValue.z << ")\n";
+    }
+    void debugPrint(std::string varName, int varValue) {
+        std::cout << varName << ": " << varValue << "\n";
+    }
+    void debugPrint(std::string varName, std::string varValue) {
+        std::cout << varName << ": " << varValue << "\n";
+    }
+    void debugPrint(std::string str) {
+        std::cout << str << "\n";
+    }
+    void debugPrint(std::string varName, const sf::Transform& transform) {
+        const float* m = transform.getMatrix();
+        std::cout << varName << ":\n";
+        std::cout << "  [" << m[0] << ", " << m[4] << ", " << m[12] << "]\n";
+        std::cout << "  [" << m[1] << ", " << m[5] << ", " << m[13] << "]\n";
+        std::cout << "  [" << m[3] << ", " << m[7] << ", " << m[15] << "]\n";
+    }
+
+} // namespace Debug

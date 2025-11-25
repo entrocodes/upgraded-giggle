@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <SFML/Graphics.hpp>
 #include "../display/DisplayConfig.hpp"
@@ -53,12 +53,22 @@ struct TableParameters {
     const float tableY = 0.0f;           // table plane at y=0
     const float floorY = -0.76f;  //floor plane at y=-0.76
     const float stopBelow = -1.0f;
-    float tableRestitution = .80f;
-    float floorRestitution = .90f;
+    float tableRestitution = .92f;
+
+    // Floor vs. table physics tuning values
+    float floorRestitution = 0.60f;  // Less bounce than table
+    float floorFrictionCoefficient = 0.40f; // Strong slowdown
+    float floorSpinLossOnBounce = 0.60f;    // Much stronger spin loss than table
 
     float floorFrictionCoefficent = 0.5f;
     float tableSpinDecayRate = .995;
-    float tableFrictionCoefficient = 0.2f;
+
+    // Physical tuning
+    float tableFrictionCoefficient = 0.12f;
+
+    // Spin-related table interaction
+    float tableSpinToVelocityFactor = 0.015f; // spin → kick
+    float tableSpinLossOnBounce = 0.20f;      // 20% spin lost on bounce
 };
 
 struct GameContext {
