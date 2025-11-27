@@ -6,5 +6,5 @@ struct RenderSystem {
 
     Display3DBoundingBoxes display3DBoundingBoxes;
     void render(GameContext* context);
-    void renderLogo(GameContext* context);
+    void drawBallLogo(GameContext* context, CBall* ballComp, CTransform* transform);
 };

@@ -53,7 +53,15 @@ struct TableParameters {
     const float tableY = 0.0f;           // table plane at y=0
     const float floorY = -0.76f;  //floor plane at y=-0.76
     const float stopBelow = -1.0f;
+    float netDamping = .45f;
+    float netSpinKick = .04f;
+    float netSpinLoss = .35f;
+    float netRandomChaos = .01f;
     float tableRestitution = .92f;
+    float spinToLinearFactor = 0.0020f;
+    float tableSpinDecayRate = 0.20f;  // per impact frame during sliding
+    float floorSpinDecayRate = 0.35f;
+    float rollSpinDecayRate = 0.002f; // very slow decay when rolling
 
     // Floor vs. table physics tuning values
     float floorRestitution = 0.60f;  // Less bounce than table
@@ -61,7 +69,6 @@ struct TableParameters {
     float floorSpinLossOnBounce = 0.60f;    // Much stronger spin loss than table
 
     float floorFrictionCoefficent = 0.5f;
-    float tableSpinDecayRate = .995;
 
     // Physical tuning
     float tableFrictionCoefficient = 0.12f;
@@ -69,6 +76,12 @@ struct TableParameters {
     // Spin-related table interaction
     float tableSpinToVelocityFactor = 0.015f; // spin → kick
     float tableSpinLossOnBounce = 0.20f;      // 20% spin lost on bounce
+};
+
+struct FrameStats {
+    float fps = 0.f;
+    float accumulator = 0.f;
+    int frames = 0;
 };
 
 struct GameContext {
@@ -83,6 +96,7 @@ struct GameContext {
     Camera camera;
     TableParameters tableParameters;
     LogoDebug logoDebug;
+    FrameStats frameStats;
     bool inputBlocked = true;
     bool showLayerEditor = false;
     GameContext()

@@ -35,7 +35,7 @@ public:
         float spinCork = spinLogical.z; // around F (mostly no Magnus)
 
         Vec3 worldSpin =
-            R * spinTopBack +
+            R * -spinTopBack +
             U * spinSide +
             F * spinCork; // corkscrew: little Magnus component
 

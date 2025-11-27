@@ -61,6 +61,15 @@ void GameScene::update(sf::Time dt) {
         logoRotationSystem.update(m_context, dt.asSeconds());
     }
 
+    m_context->frameStats.accumulator += dt.asSeconds();
+    m_context->frameStats.frames++;
+
+    if (m_context->frameStats.accumulator >= 1.0f) {
+        m_context->frameStats.fps = m_context->frameStats.frames / m_context->frameStats.accumulator;
+        m_context->frameStats.frames = 0;
+        m_context->frameStats.accumulator = 0.f;
+    }
+
     renderLayerSystem.update(m_context);
 }
 

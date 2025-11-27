@@ -101,77 +101,87 @@ void BallMovementSystem::updateOffTable(GameContext* context) {
 void BallMovementSystem::handleTableContact(GameContext* context, Entity& ball, float dt) {
     auto [ballComp, cTransform3D, cVelocity3D] =
         context->registry.getComponents<CBall, CTransform3D, CVelocity3D>(ball);
-
     if (!ballComp || !cTransform3D || !cVelocity3D) return;
 
-    // Snap to table surface
-    cTransform3D->pos_m.y = context->tableParameters.tableY;
+    Vec3& vel = cVelocity3D->vel_mps;
+    Vec3& spin = ballComp->spin;
+    auto& table = context->tableParameters;
 
-    Vec3& v = cVelocity3D->vel_mps;
-    Vec3& s = ballComp->spin;
+    const float R = ballComp->ballRadius;
+    const float Fn = ballComp->mass * 9.8f;
 
-    // Bounce happens when falling onto table
-    if (v.y < 0.f)
-    {
-        v.y = -v.y * ballComp->restitution * context->tableParameters.tableRestitution;
+    // Snap to table
+    cTransform3D->pos_m.y = table.tableY;
 
-        // top/backspin: spin.x affects forward/back speed
-        // sidespin: spin.y affects left/right speed
-        float spinKickFactor = context->tableParameters.tableSpinToVelocityFactor;
+    // Bounce (vertical)
+    if (vel.y < 0.f)
+        vel.y = -vel.y * ballComp->restitution * table.tableRestitution;
 
-        v.x += -s.y * spinKickFactor; // sidespin → lateral kick
-        v.z += s.x * spinKickFactor; // topspin/backspin → forward/back kick
+    // Compute forward-ground speed and roll speed from spin
+    float forwardSpeed = std::sqrt(vel.x * vel.x + vel.z * vel.z);
+    float spinRollingSpeed = std::fabs(spin.x * R);
 
-        float spinLoss = context->tableParameters.tableSpinLossOnBounce;
-        s = s * (1.0f - spinLoss);
-    }
+    // Blend sliding <-> rolling regime (not binary)
+    float mismatch = std::fabs(forwardSpeed - spinRollingSpeed);
+    float t = std::clamp(mismatch / 0.5f, 0.f, 1.f); // sliding weight
 
-    // 4️⃣ Sliding friction while touching surface (only x,z drag)
-    float mu = context->tableParameters.tableFrictionCoefficient;
-    float Fn = ballComp->mass * 9.8f;
-    float frictionAccel = mu * Fn * dt;
+    // Linear velocity shift from spin when sliding
+    vel.z += (-spin.x * table.spinToLinearFactor) * t;
+    vel.x += (spin.z * table.spinToLinearFactor) * t;
 
-    if (v.x > 0) v.x = std::max(0.f, v.x - frictionAccel);
-    if (v.x < 0) v.x = std::min(0.f, v.x + frictionAccel);
-    if (v.z > 0) v.z = std::max(0.f, v.z - frictionAccel);
-    if (v.z < 0) v.z = std::min(0.f, v.z + frictionAccel);
+    // Spin decay blended
+    float decay = table.rollSpinDecayRate * (1.f - t) +
+        table.tableSpinDecayRate * t;
+
+    spin.x *= (1.f - decay);
+    spin.z *= (1.f - decay);
+
+    // Ground friction
+    float frictionAccel = table.tableFrictionCoefficient * Fn * dt;
+    if (vel.x > 0) vel.x = std::max(0.f, vel.x - frictionAccel);
+    if (vel.x < 0) vel.x = std::min(0.f, vel.x + frictionAccel);
+    if (vel.z > 0) vel.z = std::max(0.f, vel.z - frictionAccel);
+    if (vel.z < 0) vel.z = std::min(0.f, vel.z + frictionAccel);
 }
-
-
-void BallMovementSystem::handleFloorContact(GameContext* context, Entity& ball, float dt)
-{
+void BallMovementSystem::handleFloorContact(GameContext* context, Entity& ball, float dt) {
     auto [ballComp, cTransform3D, cVelocity3D] =
         context->registry.getComponents<CBall, CTransform3D, CVelocity3D>(ball);
+    if (!ballComp || !cTransform3D || !cVelocity3D) return;
 
-    if (!ballComp || !cTransform3D || !cVelocity3D)
-        return;
+    Vec3& vel = cVelocity3D->vel_mps;
+    Vec3& spin = ballComp->spin;
+    auto& table = context->tableParameters;
 
-    Vec3& v = cVelocity3D->vel_mps;
-    Vec3& s = ballComp->spin;
+    const float R = ballComp->ballRadius;
+    const float Fn = ballComp->mass * 9.8f;
 
-    // Snap to the floor plane
-    cTransform3D->pos_m.y = context->tableParameters.floorY;
+    // Snap to floor
+    cTransform3D->pos_m.y = table.floorY;
 
-    // Bounce (vertical only)
-    if (v.y < 0.f)
-    {
-        v.y = -v.y * ballComp->restitution * context->tableParameters.floorRestitution;
+    // Bounce
+    if (vel.y < 0.f)
+        vel.y = -vel.y * ballComp->restitution * table.floorRestitution;
 
-        // Spin loss due to floor grip (heavier than on table)
-        float spinLoss = context->tableParameters.floorSpinLossOnBounce;
-        s *= (1.0f - spinLoss);
-    }
+    float forwardSpeed = std::sqrt(vel.x * vel.x + vel.z * vel.z);
+    float spinRollingSpeed = std::fabs(spin.x * R);
 
-    // Strong friction on floor → quickly stop X/Z sliding
-    float mu = context->tableParameters.floorFrictionCoefficient;
-    float Fn = ballComp->mass * 9.8f;
-    float frictionAccel = mu * Fn * dt;
+    float mismatch = std::fabs(forwardSpeed - spinRollingSpeed);
+    float t = std::clamp(mismatch / 0.5f, 0.f, 1.f);
 
-    if (v.x > 0) v.x = std::max(0.f, v.x - frictionAccel);
-    if (v.x < 0) v.x = std::min(0.f, v.x + frictionAccel);
-    if (v.z > 0) v.z = std::max(0.f, v.z - frictionAccel);
-    if (v.z < 0) v.z = std::min(0.f, v.z + frictionAccel);
+    // Spin-driven sliding
+    vel.z += (-spin.x * table.spinToLinearFactor) * t;
+    vel.x += (spin.z * table.spinToLinearFactor) * t;
 
-    // Additional flight drag already handled elsewhere (good)
+    float decay = table.rollSpinDecayRate * (1.f - t) +
+        table.floorSpinDecayRate * t;
+
+    spin.x *= (1.f - decay);
+    spin.z *= (1.f - decay);
+
+    // Strong sliding friction on floor
+    float frictionAccel = table.floorFrictionCoefficient * Fn * dt;
+    if (vel.x > 0) vel.x = std::max(0.f, vel.x - frictionAccel);
+    if (vel.x < 0) vel.x = std::min(0.f, vel.x + frictionAccel);
+    if (vel.z > 0) vel.z = std::max(0.f, vel.z - frictionAccel);
+    if (vel.z < 0) vel.z = std::min(0.f, vel.z + frictionAccel);
 }
-

@@ -97,12 +97,20 @@ void ImGuiLayer::render(GameContext* context) {
     if (ImGui::CollapsingHeader("Physics Debug")) {
         ImGui::SliderFloat("Pixels Per Meter",
             &context->tableParameters.pixelsPerMeter, 10.0f, 200.00f);
-        ImGui::SliderFloat("Magnus Coeff",
+        ImGui::SliderFloat("Magnus",
             &context->physicsDebug.debugKMagnus, 0.0f, 0.005f);
-        ImGui::SliderFloat("Table Friction Coefficient",
+        ImGui::SliderFloat("Table Friction",
             &context->tableParameters.tableFrictionCoefficient, 0.0f, 2.00f);
-
-
+        if (ImGui::CollapsingHeader("Net Debug")) {
+            ImGui::SliderFloat("Damping",
+                &context->tableParameters.netDamping, 0.0f, 2.00f);
+            ImGui::SliderFloat("Spin Kick",
+                &context->tableParameters.netSpinKick, 0.0f, .4f);
+            ImGui::SliderFloat("Spin Loss",
+                &context->tableParameters.netSpinLoss, 0.0f, 1.0f);
+            ImGui::SliderFloat("Random Chaos",
+                &context->tableParameters.netRandomChaos, 0.0f, .25f);
+        }
         ImGui::Checkbox("Show Debug Mouse Pos",
             &context->physicsDebug.clickForMousePos);
     }
@@ -166,6 +174,7 @@ void ImGuiLayer::render(GameContext* context) {
                 );
             }
         }
+    ImGui::Text("FPS: %f", context->frameStats.fps);
     }
 
     // --- UI focus status indicator ---

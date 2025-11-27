@@ -22,4 +22,5 @@ void BallForceSystem::update(GameContext* context, float dt) {
         ballComp->bForces.acceleration = ballComp->bForces.totalForces / ballComp->mass;
 
     }
+
 }
