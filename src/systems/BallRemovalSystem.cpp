@@ -8,7 +8,7 @@ void BallRemovalSystem::update(GameContext* context) {
     for (auto e : context->registry.getEntitiesWith<CBall>()) {
         auto [transformComp, ballComp] = context->registry.getComponents<CTransform, CBall>(e);
         Entity shadowEntity = ballComp->ballShadow;
-        Vec2& ballPos = transformComp->position;
+        Vec2& ballPos = transformComp->pos;
 
         if (ballPos.y > context->display.logicalSize.y || ballPos.y < 0 || ballPos.x < 0 || ballPos.x > context->display.logicalSize.x) {
             toRemove.push_back(e);
@@ -25,7 +25,7 @@ void BallRemovalSystem::removeAll(GameContext* context) {
     for (auto e : context->registry.getEntitiesWith<CBall>()) {
         auto [transformComp, ballComp] = context->registry.getComponents<CTransform, CBall>(e);
         Entity shadowEntity = ballComp->ballShadow;
-        Vec2& ballPos = transformComp->position;
+        Vec2& ballPos = transformComp->pos;
         toRemove.push_back(e);
         toRemove.push_back(shadowEntity);
 

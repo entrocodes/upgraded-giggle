@@ -37,7 +37,7 @@ namespace Grid
         return { worldX, worldY };
     }
 
-    // Convert world position → grid coordinates
+    // Convert world pos → grid coordinates
     inline Vec2 fromWorld(const DisplayConfig& display, const Vec2& worldPos)
     {
         float c = cellSize(display);

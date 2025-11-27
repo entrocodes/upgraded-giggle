@@ -5,7 +5,7 @@
 #include "Player.hpp"
 #include "Sprite.hpp"
 #include "CTransform.hpp"
-#include "Velocity.hpp"
+#include "CVelocity.hpp"
 #include "CAnimation.hpp"
 #include "CEnemy.hpp"
 #include "CState.hpp"

@@ -29,4 +29,7 @@ private:
     Assets& m_assets;
     Camera& m_camera;
     float& m_pixelsPerMeter;
+    //REMINDER: THESE WILL NOT CHANGE WITH TABLE PARAMETERS
+    float tableHeight = .76f;
+    float playerHeight = 1.76f;
 };

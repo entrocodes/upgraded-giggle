@@ -5,7 +5,7 @@
 #include <SFML/Graphics.hpp>
 class Camera {
 public:
-    Vec2 position = Vec2(640.f, 360.f);  // center of 1280x720 by default
+    Vec2 pos = Vec2(640.f, 360.f);  // center of 1280x720 by default
     float zoom = 1.0f;
     TableHomography homography;
 
@@ -18,7 +18,7 @@ public:
     sf::View makeView(const DisplayConfig& display) const {
         sf::View view;
         view.setSize(display.logicalSize.x, display.logicalSize.y);
-        view.setCenter(position.x, position.y);
+        view.setCenter(pos.x, pos.y);
         view.zoom(1.0f / zoom); // zoom > 1 = zoom in
         return view;
     }
@@ -26,12 +26,12 @@ public:
     // These can stay if you use them elsewhere:
     Vec2 worldToScreen(const Vec2& worldPos, const Vec2& windowSize) const {
         Vec2 p = homography.worldToImage(worldPos);
-        p = (p - position) * zoom + windowSize * 0.5f;
+        p = (p - pos) * zoom + windowSize * 0.5f;
         return p;
     }
 
     Vec2 screenToWorld(const Vec2& screenPos, const Vec2& windowSize) const {
-        Vec2 p = (screenPos - windowSize * 0.5f) / zoom + position;
+        Vec2 p = (screenPos - windowSize * 0.5f) / zoom + pos;
         return homography.imageToWorld(p);
     }
 

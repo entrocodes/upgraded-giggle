@@ -45,7 +45,7 @@ void BallMovementSystem::update(GameContext* context, float dt) {
         boundingBox3D->box = Bounds3D(p - ballComp->ballRadius, p + ballComp->ballRadius);
         ballForceSystem.netCollision.resolve(context, ball);
 
-        transform->position = context->camera.homography.worldToImage(p);
+        transform->pos = context->camera.homography.worldToImage(p);
 
         // --- SHADOW ENTITY ---
         Entity shadowEntity = ballComp->ballShadow;
@@ -65,7 +65,7 @@ void BallMovementSystem::update(GameContext* context, float dt) {
             shadowTransform3D->pos_m = Vec3(p.x, context->tableParameters.floorY, p.z);
             scale = std::max(0.5f, 1.5f - 0.2f * (p.y - context->tableParameters.floorY));
         }
-        shadowTransform->position = context->camera.homography.worldToImage(shadowTransform3D->pos_m);
+        shadowTransform->pos = context->camera.homography.worldToImage(shadowTransform3D->pos_m);
         shadowTransform->scale = { scale, scale };
         if (context->physicsDebug.debugSpinArrows) {
             Debug::queueArrow3D(p, p + cBallVelocity3D->vel_mps.normalized() * 0.15f, sf::Color::Blue);
@@ -77,8 +77,8 @@ void BallMovementSystem::update(GameContext* context, float dt) {
         if (context->physicsDebug.enableConsoleDebugOutput) {
             Debug::debugPrint("Velocity (m/s)", cBallVelocity3D->vel_mps);
             Debug::debugPrint("Pos (m)", cBallTransform3D->pos_m);
-            Debug::debugPrint("Ball Screen Pos", transform->position);
-            Debug::debugPrint("Shadow Screen Pos", shadowTransform->position);
+            Debug::debugPrint("Ball Screen Pos", transform->pos);
+            Debug::debugPrint("Shadow Screen Pos", shadowTransform->pos);
         }
     }
 }

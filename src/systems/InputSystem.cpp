@@ -28,10 +28,4 @@ void InputSystem::update(GameContext* context) {
 
     context->rawInput.mousePosition = Vec2(sf::Mouse::getPosition(context->window).x, sf::Mouse::getPosition(context->window).y);
 
-    // --- Handle window events (close, resize, etc.) ---
-    sf::Event event;
-    while (context->window.pollEvent(event)) {
-        if (event.type == sf::Event::Closed)
-            context->window.close();
-    }
 }

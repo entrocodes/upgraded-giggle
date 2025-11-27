@@ -30,7 +30,7 @@ Entity EntityFactory::createBackground() {
     transform.scale = { uniformScale, uniformScale };
 
     // Center in camera space
-    transform.position = { m_display.logicalSize.x / 2.f, m_display.logicalSize.y / 2.f }; //center of screen
+    transform.pos = { m_display.logicalSize.x / 2.f, m_display.logicalSize.y / 2.f }; //center of screen
     return background;
 }
 
@@ -48,14 +48,14 @@ Entity EntityFactory::createTable() {
     auto texSize = s.getTexture()->getSize();
 
     // Center in camera space
-    transform.position = { 532.f + texSize.x / 2, 599.f - texSize.y / 2};
+    transform.pos = { 532.f + texSize.x / 2, 599.f - texSize.y / 2};
     return table;
 }
 Entity EntityFactory::createNet() {
     Entity net = m_registry.createEntity("net");
     //these should probably be stored somewhere else
-    const Vec3 netPos_m = { 1.525f / 2, .1525f / 2, 2.74f / 2 };
-    const Vec3 netSize_m = { 1.525f, .1525f, .0001f }; //net should be made to be a little longer than the table later
+    const Vec3 netPos_m = { (1.525 +.15) / 2, .1525f / 2, 2.74f / 2 };
+    const Vec3 netSize_m = { (1.525 + .15), .1525f, .0001f }; //net should be made to be a little longer than the table later
 
     auto& transform = m_registry.addComponent<CTransform>(net);
     const Animation& netAnim = m_assets.getAnimation("Net");
@@ -70,33 +70,37 @@ Entity EntityFactory::createNet() {
 
 
     // Center in camera space
-    transform.position = m_camera.homography.worldToImage(cTransform3D.pos_m);
+    transform.pos = m_camera.homography.worldToImage(cTransform3D.pos_m);
     return net;
 }
 
 Entity EntityFactory::createPlayer() {
     Entity player = m_registry.createEntity("player");
 
-    // Transform
-    auto& transform = m_registry.addComponent<CTransform>(player);
-    transform.position = Grid::toWorld(m_display, 4.5, .5);
-
-    // Gameplay components
-    m_registry.addComponent<Velocity>(player);
     m_registry.addComponent<Player>(player);
     m_registry.addComponent<InputComponent>(player);
     m_registry.addComponent<CState>(player, "stand");
+
+    // Transform
+    auto& transform3D = m_registry.addComponent<CTransform3D>(player);
+    m_registry.addComponent<CVelocity>(player);
+    m_registry.addComponent<CVelocity3D>(player);
+    m_registry.addComponent<CTransform>(player);
+    // render
     auto& render = m_registry.addComponent<CRenderLayer>(player, 9);
-    // Animation from Assets (keeps texture ownership in Assets)
+
+    // Animation
     const Animation& standAnim = m_assets.getAnimation("Stand");
     auto& animComp = m_registry.addComponent<CAnimation>(player, standAnim, false);
 
     // Ensure sprite origin is set and bounding box uses the animation sprite
     sf::Sprite& s = animComp.animation.getSprite();
-    s.setOrigin(s.getLocalBounds().width / 2.f, s.getLocalBounds().height / 2.f);
+    Vec2 spriteBounds = { s.getLocalBounds().width, s.getLocalBounds().height };
+    s.setOrigin(spriteBounds.x / 2.f, spriteBounds.y / 2.f);
 
     m_registry.addComponent<CBoundingBox>(player, s.getLocalBounds());
 
+    transform3D.pos_m = { 0.0f, -tableHeight + playerHeight * .5f, -.3f }; 
 
     return player;
 }

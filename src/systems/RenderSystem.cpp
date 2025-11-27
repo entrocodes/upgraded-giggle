@@ -36,7 +36,15 @@ void RenderSystem::render(GameContext* context) {
             anim.update();
             sf::Sprite& sprite = anim.getSprite();
 
-            sprite.setPosition(item.transform->position.x, item.transform->position.y);
+            // === Interpolated position ===
+            float alpha = context->frameAlpha;
+            item.transform->renderPos =
+                item.transform->lastPos * (1.f - alpha) +
+                item.transform->pos * alpha;
+
+            // Use renderPos instead of pos
+            const auto& renderPos = item.transform->renderPos;
+            sprite.setPosition(renderPos.x, renderPos.y);
             sprite.setRotation(item.transform->rotation);
             sprite.setScale(item.transform->scale.x, item.transform->scale.y);
 
@@ -46,6 +54,7 @@ void RenderSystem::render(GameContext* context) {
             drawBallLogo(context, item.ball, item.transform);
         }
     }
+
     // === Optional Debug Layers ===
     if (gGridDebug.drawGrid) {
         gGridDebug.debugShowGrid(context->window, context->display);
@@ -79,8 +88,14 @@ void RenderSystem::drawBallLogo(GameContext* context, CBall* ballComp, CTransfor
         static_cast<float>(tex.getSize().y)
     );
 
-    // 2) Ball screen center & radius (in pixels)
-    sf::Vector2f ballCenter(transform->position.x, transform->position.y);
+    float alpha = context->frameAlpha;
+    Vec2 renderPos =
+        transform->lastPos * (1.f - alpha) +
+        transform->pos * alpha;
+
+    transform->renderPos = renderPos;
+
+    sf::Vector2f ballCenter(renderPos.x, renderPos.y);
 
     // If you have a known pixel radius, use that instead:
     float ballRadiusPx = context->tableParameters.pixelsPerMeter * ballComp->ballRadius + 3.5;

@@ -51,6 +51,7 @@ struct TableParameters {
     const float tableLength = 2.74f;     // meters (Z)
     const float tableWidth = 1.525f;    // meters (Y)
     const float tableY = 0.0f;           // table plane at y=0
+    const float tableHeight = 0.76f;
     const float floorY = -0.76f;  //floor plane at y=-0.76
     const float stopBelow = -1.0f;
     float netDamping = .45f;
@@ -76,15 +77,19 @@ struct TableParameters {
     // Spin-related table interaction
     float tableSpinToVelocityFactor = 0.015f; // spin → kick
     float tableSpinLossOnBounce = 0.20f;      // 20% spin lost on bounce
+
+    float playerHeight = 1.76f;
 };
 
 struct FrameStats {
     float fps = 0.f;
     float accumulator = 0.f;
     int frames = 0;
+
 };
 
 struct GameContext {
+    float frameAlpha = 0;
     sf::RenderWindow window;
     DisplayConfig display;
     Assets assets;
