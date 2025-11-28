@@ -15,7 +15,7 @@
 #include "../systems/BallRemovalSystem.hpp"
 #include "../systems/RenderLayerSystem.hpp"
 #include "../systems/LogoRotationSystem.hpp"
-
+#include "../systems/RacketHandleSystem.hpp"
 class GameScene : public Scene {
 public:
     explicit GameScene(GameContext* context);
@@ -38,6 +38,7 @@ private:
     MetaInputState metaState;
     ImGuiLayer imgui;
     RenderLayerSystem renderLayerSystem;
+    RacketHandleSystem racketHandleSystem;
     sf::Clock deltaClock;
     int entitySpawnTimer = 0;
 };

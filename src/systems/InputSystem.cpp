@@ -1,6 +1,20 @@
 #include "InputSystem.hpp"
 
 void InputSystem::update(GameContext* context) {
+    sf::Joystick::update();
+
+    if (sf::Joystick::isConnected(0)) {
+
+        // Right Stick
+        context->rawInput.moveX = sf::Joystick::getAxisPosition(0, sf::Joystick::U) / 100.f;
+        context->rawInput.moveY = sf::Joystick::getAxisPosition(0, sf::Joystick::V) / 100.f;
+
+        // Left Stick 
+        context->rawInput.aimX = sf::Joystick::getAxisPosition(0, sf::Joystick::X) / 100.f;
+        context->rawInput.aimY = sf::Joystick::getAxisPosition(0, sf::Joystick::Y) / 100.f;
+    }
+
+
     // --- Keyboard polling ---
     sf::Keyboard::Key keys[] = {
         sf::Keyboard::W,

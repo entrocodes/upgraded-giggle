@@ -29,6 +29,7 @@ public:
     BallLogo logo;
     // world-space (meters)
     float ballRadius = 0.02f; // 40mm diameter / 2
+    float radius_m = .02f;
     BallForces bForces;
     Vec3 spin = { 0.0f, 0.0f, 0.0f }; 
     bool contactingTable = false;

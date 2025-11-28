@@ -5,7 +5,7 @@
 
 struct CBoundingBox3D : public Component {
     Bounds3D box;
-
+    sf::Color color = sf::Color::Green;
     CBoundingBox3D() = default;
 
     CBoundingBox3D(Bounds3D pBox)

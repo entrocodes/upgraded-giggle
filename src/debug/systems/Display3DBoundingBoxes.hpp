@@ -22,7 +22,7 @@ public:
 
             Vec2 screenMax = context->camera.homography.worldToImage(box3D->box.max);
 
-            Rectangle debugRect(screenMin, screenMax, sf::Color::Green);
+            Rectangle debugRect(screenMin, screenMax, box3D->color);
             context->window.draw(debugRect.shape());
         }
     }

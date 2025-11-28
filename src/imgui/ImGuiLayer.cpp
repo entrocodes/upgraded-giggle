@@ -187,6 +187,88 @@ void ImGuiLayer::render(GameContext* context) {
     );
 
     ImGui::End();
+    ImGui::Begin("Racket Debug", nullptr,
+        ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse);
+
+    if (ImGui::CollapsingHeader("Racket Physics Lab", ImGuiTreeNodeFlags_DefaultOpen)) {
+
+        Entity* player = context->registry.getEntity("player");
+        if (!player) {
+            ImGui::Text("No player entity!");
+        }
+        else {
+            auto* handle = context->registry.getComponent<CRacketHandle>(*player);
+            if (!handle) {
+                ImGui::Text("No racket handle!");
+            }
+            else {
+                Entity racket = handle->racketEntity;
+
+                auto* phys = context->registry.getComponent<CRacketPhysical>(racket);
+                auto* cPos = context->registry.getComponent<CTransform3D>(racket);
+                auto* cVel = context->registry.getComponent<CVelocity3D>(racket);
+
+                if (!phys || !cPos) {
+                    ImGui::Text("Racket components missing!");
+                }
+                else {
+                    // ==== Position ====
+                    Vec3 pos = cPos->pos_m;
+                    if (ImGui::DragFloat3("Position (m)", &pos.x, 0.01f)) {
+                        cPos->pos_m = pos;
+                    }
+
+                    // ==== Normal Vector ====
+                    Vec3 normal = phys->normal;
+                    if (ImGui::DragFloat3("Normal", &normal.x, 0.01f)) {
+                        phys->normal = normal.normalized();
+                    }
+
+                    // ==== Velocity (read-only) ====
+                    if (cVel) {
+                        ImGui::Text("Velocity (m/s): %.3f, %.3f, %.3f",
+                            cVel->vel_mps.x, cVel->vel_mps.y, cVel->vel_mps.z);
+                    }
+                    else {
+                        ImGui::Text("No CVelocity3D component");
+                    }
+                    if (ImGui::Button("Spawn Ball at Racket")) {
+                        const float spawnDistance = 0.02f; // 2 cm
+                        Vec3 spawnPos = cPos->pos_m + phys->normal * spawnDistance;
+
+                        context->entityFactory.createBall(spawnPos, Vec3(0, 0, -2.0f));
+                        // velocity toward racket (Z- direction for +Z normal)
+                    }
+                    ImGui::SliderFloat("Friction", &phys->friction, 0.0f, 1.2f);
+                    ImGui::SliderFloat("Restitution", &phys->restitution, 0.6f, 1.1f);
+                }
+            }
+        }
+
+    }
+
+    ImGui::End();
+    ImGui::Begin("Controller Debug", nullptr,
+        ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse);
+
+    bool connected = sf::Joystick::isConnected(0);
+    ImGui::Text("Controller Connected: %s", connected ? "Yes" : "No");
+
+    if (connected) {
+        ImGui::Separator();
+        ImGui::Text("Left Stick:");
+        ImGui::SliderFloat("MoveX", &context->rawInput.moveX, -1.0f, 1.0f);
+        ImGui::SliderFloat("MoveY", &context->rawInput.moveY, -1.0f, 1.0f);
+
+        ImGui::Text("Right Stick:");
+        ImGui::SliderFloat("AimX", &context->rawInput.aimX, -1.0f, 1.0f);
+        ImGui::SliderFloat("AimY", &context->rawInput.aimY, -1.0f, 1.0f);
+
+        ImGui::SliderFloat("Restitution", &context->controllerParameters.sensitivity, 0.1f, 1.5f);
+    }
+
+    ImGui::End();
+
 }
 
 void ImGuiLayer::shutdown() {

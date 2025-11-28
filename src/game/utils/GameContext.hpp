@@ -11,6 +11,7 @@
 #include "../math/Vec2.hpp"
 #include <vector>
 #include <string>
+#include "TableParameters.hpp"
 struct PhysicsDebugSettings {
     Vec3 debugBallSpin = { 0.0f, 0.0f, 0.0f };
     float debugBallHeight = 0.0f;
@@ -45,41 +46,7 @@ struct RenderSettings {
     
 
 };
-struct TableParameters {
-    float pixelsPerMeter = 90; // tune this to match table/asset scale
-    const float tableBottomY = 504.f; // pixels
-    const float tableLength = 2.74f;     // meters (Z)
-    const float tableWidth = 1.525f;    // meters (Y)
-    const float tableY = 0.0f;           // table plane at y=0
-    const float tableHeight = 0.76f;
-    const float floorY = -0.76f;  //floor plane at y=-0.76
-    const float stopBelow = -1.0f;
-    float netDamping = .45f;
-    float netSpinKick = .04f;
-    float netSpinLoss = .35f;
-    float netRandomChaos = .01f;
-    float tableRestitution = .92f;
-    float spinToLinearFactor = 0.0020f;
-    float tableSpinDecayRate = 0.20f;  // per impact frame during sliding
-    float floorSpinDecayRate = 0.35f;
-    float rollSpinDecayRate = 0.002f; // very slow decay when rolling
 
-    // Floor vs. table physics tuning values
-    float floorRestitution = 0.60f;  // Less bounce than table
-    float floorFrictionCoefficient = 0.40f; // Strong slowdown
-    float floorSpinLossOnBounce = 0.60f;    // Much stronger spin loss than table
-
-    float floorFrictionCoefficent = 0.5f;
-
-    // Physical tuning
-    float tableFrictionCoefficient = 0.12f;
-
-    // Spin-related table interaction
-    float tableSpinToVelocityFactor = 0.015f; // spin → kick
-    float tableSpinLossOnBounce = 0.20f;      // 20% spin lost on bounce
-
-    float playerHeight = 1.76f;
-};
 
 struct FrameStats {
     float fps = 0.f;
@@ -87,7 +54,11 @@ struct FrameStats {
     int frames = 0;
 
 };
-
+struct ControllerParameters {
+    float joyUVDeadZone = .15;
+    float joyXYDeadZone = .15;
+    float sensitivity = 1;
+};
 struct GameContext {
     float frameAlpha = 0;
     sf::RenderWindow window;
@@ -100,11 +71,12 @@ struct GameContext {
     RenderSettings renderSettings;
     Camera camera;
     TableParameters tableParameters;
+    ControllerParameters controllerParameters;
     LogoDebug logoDebug;
     FrameStats frameStats;
     bool inputBlocked = true;
     bool showLayerEditor = false;
     GameContext()
-        : camera(tableParameters.pixelsPerMeter), entityFactory(registry, display, assets, camera, tableParameters.pixelsPerMeter) {
+        : camera(tableParameters.pixelsPerMeter), entityFactory(registry, display, assets, camera, tableParameters) {
     }
 };

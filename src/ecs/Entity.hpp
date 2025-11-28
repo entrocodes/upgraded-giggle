@@ -5,7 +5,6 @@
 struct Entity {
     std::uint32_t id = 0;
     std::string name;
-
     bool operator==(const Entity& other) const noexcept {
         return id == other.id;
     }

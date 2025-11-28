@@ -12,6 +12,7 @@
 void BallMovementSystem::update(GameContext* context, float dt) {
     ballForceSystem.update(context, dt); //updates bForces
     updateOffTable(context);
+    
     for (auto ball : context->registry.getEntitiesWith<CBall, CTransform>()) {
         auto [transform, ballComp, boundingBox3D, cBallTransform3D, cBallVelocity3D] = context->registry.getComponents<CTransform, CBall, CBoundingBox3D, CTransform3D, CVelocity3D>(ball);
         if (!transform || !ballComp || !boundingBox3D || !cBallTransform3D || !cBallVelocity3D) continue;
@@ -47,6 +48,7 @@ void BallMovementSystem::update(GameContext* context, float dt) {
 
         transform->pos = context->camera.homography.worldToImage(p);
 
+
         // --- SHADOW ENTITY ---
         Entity shadowEntity = ballComp->ballShadow;
         auto [shadowTransform, shadowTransform3D] = context->registry.getComponents<CTransform, CTransform3D>(shadowEntity);
@@ -81,6 +83,8 @@ void BallMovementSystem::update(GameContext* context, float dt) {
             Debug::debugPrint("Shadow Screen Pos", shadowTransform->pos);
         }
     }
+    ////handle racket collision
+    racketCollisionSystem.update(context, dt);
 }
 
 

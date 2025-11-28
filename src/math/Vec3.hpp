@@ -24,11 +24,21 @@ struct Vec3 {
     Vec3& operator+=(const float s) { x += s; y += s; z += s; return *this; }
     Vec3& operator-=(const float s) { x -= s; y -= s; z -= s; return *this; }
 
+    Vec3 operator-() const {
+        return Vec3(-x, -y, -z);
+    }
     float length() const { return std::sqrt(x * x + y * y + z * z); }
     Vec3 normalized() const { float len = length(); return len ? *this / len : Vec3(); }
     // Dot product of two vectors
     float dot(const Vec3& other) const {
         return x * other.x + y * other.y + z * other.z;
+    }
+    Vec3 cross(const Vec3& other) {
+        return {
+            y * other.z - z * other.y,
+            z * other.x - x * other.z,
+            x * other.y - y * other.x
+        };
     }
     void set(const float f) {
         x = f;

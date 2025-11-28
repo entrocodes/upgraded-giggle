@@ -5,6 +5,7 @@
 #include "../math/Vec3.hpp"
 #include "../math/Vec2.hpp"
 #include "../systems/NetCollisionSystem.hpp"
+#include "../systems/RacketCollisionSystem.hpp"
 #include "../systems/BallForceSystem.hpp"
 #include "../ecs/Entity.hpp"
 class BallMovementSystem {
@@ -13,6 +14,7 @@ public:
 private:
     BallForceSystem ballForceSystem;
     NetCollisionSystem netCollisionSystem;
+    RacketCollisionSystem racketCollisionSystem;
     void updateOffTable(GameContext* context);
     void handleTableContact(GameContext* context, Entity& entity, float dt);
     void handleFloorContact(GameContext* context, Entity& entity, float dt);

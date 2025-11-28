@@ -1,4 +1,4 @@
-#include "EntityFactory.hpp"
+﻿#include "EntityFactory.hpp"
 #include "../components/Components.hpp"
 #include "../math/GridTransform.hpp"
 #include <SFML/Graphics.hpp>
@@ -6,7 +6,7 @@
 #include <iostream>
 #include "../debug/Debug.hpp"
 #include "../math/Bounds3D.hpp"
-
+#include "../game/utils/TableParameters.hpp"
 
 Entity EntityFactory::createBackground() {
     Entity background = m_registry.createEntity("background");
@@ -54,7 +54,7 @@ Entity EntityFactory::createTable() {
 Entity EntityFactory::createNet() {
     Entity net = m_registry.createEntity("net");
     //these should probably be stored somewhere else
-    const Vec3 netPos_m = { (1.525 +.15) / 2, .1525f / 2, 2.74f / 2 };
+    const Vec3 netPos_m = { 1.525 / 2, .1525f / 2, 2.74f / 2 };
     const Vec3 netSize_m = { (1.525 + .15), .1525f, .0001f }; //net should be made to be a little longer than the table later
 
     auto& transform = m_registry.addComponent<CTransform>(net);
@@ -100,10 +100,42 @@ Entity EntityFactory::createPlayer() {
 
     m_registry.addComponent<CBoundingBox>(player, s.getLocalBounds());
 
-    transform3D.pos_m = { 0.0f, -tableHeight + playerHeight * .5f, -.3f }; 
+    transform3D.pos_m = { 0.0f, -m_tableParameters.tableHeight + m_tableParameters.playerHeight * .5f, -.3f }; 
 
     return player;
 }
+Entity EntityFactory::createPlayerRacket() {
+    Entity racket = m_registry.createEntity("playerRacket");
+
+    auto& cRacketPhys = m_registry.addComponent<CRacketPhysical>(racket);
+    cRacketPhys.restitution = 0.85f;
+    cRacketPhys.friction = 0.50f;
+    //cRacketPhys.normal = Vec3(0, 0, 1);
+
+    //TEMP
+    cRacketPhys.normal = Vec3(0.08f, -0.15f, 0.98f).normalized();
+
+    // Attach to player
+    Entity* player = m_registry.getEntity("player");
+    auto& handle = m_registry.addComponent<CRacketHandle>(*player);
+
+    handle.racketEntity = racket;
+
+    // TEMP: transform set to player; will update next frame
+    auto* cPlayerPos = m_registry.getComponent<CTransform3D>(*player);
+    Vec3 startPos = cPlayerPos ? cPlayerPos->pos_m : Vec3();
+
+    auto& cTransform3D = m_registry.addComponent<CTransform3D>(racket, startPos);
+    auto& cVelocity3D = m_registry.addComponent<CVelocity3D>(racket, Vec3());
+
+    // Bounding volume from center
+    const Vec3 halfSize = { 0.076f, 0.095f, 0.005f };
+    Bounds3D bounds(startPos - halfSize, startPos + halfSize);
+    auto& cBounds = m_registry.addComponent<CBoundingBox3D>(racket, bounds);
+
+    return racket;
+}
+
 Entity EntityFactory::createBall(const Vec3& pos_m, const Vec3& vel_mps, const Vec3& spin) {
     // pos parameter is passed in in pixels, pos.x and pos.z are the (x,y) coordinates to spawn at, y is the height offset 
     Vec3 shadowPos_m = { pos_m.x, 0.0f, pos_m.z }; // no Y offset for shadow

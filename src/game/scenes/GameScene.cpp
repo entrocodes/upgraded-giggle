@@ -32,6 +32,8 @@ GameScene::GameScene(GameContext* context)
     m_context->entityFactory.createTable();
     m_context->entityFactory.createNet();
     m_context->entityFactory.createPlayer();
+    m_context->entityFactory.createPlayerRacket();
+
 }
 
 
@@ -50,6 +52,7 @@ void GameScene::update(sf::Time dt) {
     playerInput.update(m_context);
     playerAction.update(m_context);
 
+    racketHandleSystem.update(m_context, dt.asSeconds());
     if (!metaState.paused) {
         entitySpawnTimer++;
         movement.update(m_context, dt);

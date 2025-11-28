@@ -14,6 +14,11 @@ struct RawInputState {
 
     Vec2 mousePosition;
 
+    float moveX = 0.f;  // Left stick horizontal
+    float moveY = 0.f;  // Left stick vertical
+    float aimX = 0.f;   // Right stick horizontal
+    float aimY = 0.f;   // Right stick vertical
+
     // --- Keyboard ---
     bool isKeyDown(sf::Keyboard::Key key) const {
         auto it = keyStates.find(key);
