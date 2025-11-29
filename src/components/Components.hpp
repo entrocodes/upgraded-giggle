@@ -16,3 +16,4 @@
 #include "CVelocity3D.hpp"
 #include "CRacketPhysical.hpp"
 #include "CRacketHandle.hpp"
+#include "CRacketSwing.hpp"

@@ -11,7 +11,10 @@ void RacketCollisionSystem::update(GameContext* context, float dt)
             CRacketPhysical, CTransform3D, CBoundingBox3D, CVelocity3D>(racket);
 
         if (!cRacketPhys || !cRacketPos3D || !cRacketBounds || !cRacketVel) return;
-        cRacketBounds->color = sf::Color::Green;
+        cRacketBounds->iter_color++;
+        if (cRacketBounds->iter_color >= 50) {
+            cRacketBounds->color = sf::Color::Green;
+        }
         // Sweep for balls
         for (auto ball : context->registry.getEntitiesWith<CBall, CTransform3D, CBoundingBox3D, CVelocity3D>()) {
 
@@ -52,6 +55,7 @@ void RacketCollisionSystem::update(GameContext* context, float dt)
             float pushOutDist = cBall->radius_m;
             cBallPos->pos_m += cRacketPhys->normal * pushOutDist;
             cRacketBounds->color = sf::Color::Red;
+            cRacketBounds->iter_color = 0;
             Debug::debugPrint("Racket Hit", "vN: " + std::to_string(vN));
 
             // Optional debug draws

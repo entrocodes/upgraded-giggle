@@ -6,6 +6,7 @@
 struct CBoundingBox3D : public Component {
     Bounds3D box;
     sf::Color color = sf::Color::Green;
+    float iter_color = 50;
     CBoundingBox3D() = default;
 
     CBoundingBox3D(Bounds3D pBox)
