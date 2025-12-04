@@ -1,3 +1,5 @@
+#include "InputSystem.hpp"
+#include "../math/Vec2.hpp"
 void InputSystem::update(GameContext* context) {
     RawInputState& raw = context->rawInput;
 

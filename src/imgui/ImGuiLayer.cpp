@@ -113,6 +113,12 @@ void ImGuiLayer::render(GameContext* context) {
         }
         ImGui::Checkbox("Show Debug Mouse Pos",
             &context->physicsDebug.clickForMousePos);
+        
+        ImGui::Separator();
+        ImGui::Text("Ball Auto-Spawn Test");
+
+        ImGui::Checkbox("Auto Spawn Balls", &context->physicsDebug.autoSpawnBalls);
+        ImGui::SliderFloat("Spawn Interval (s)", &context->physicsDebug.autoSpawnInterval, 0.05f, 2.0f);
     }
     // === Logo Spin Debug ===
     if (ImGui::CollapsingHeader("Logo Spin Debug")) {
@@ -239,6 +245,7 @@ void ImGuiLayer::render(GameContext* context) {
                         context->entityFactory.createBall(spawnPos, Vec3(0, 0, -2.0f));
                         // velocity toward racket (Z- direction for +Z normal)
                     }
+                    ImGui::Checkbox("Racket Attach Arrow", &context->physicsDebug.debugRacketAttach);
                     ImGui::SliderFloat("Friction", &phys->friction, 0.0f, 1.2f);
                     ImGui::SliderFloat("Restitution", &phys->restitution, 0.6f, 1.1f);
                 }
@@ -254,18 +261,18 @@ void ImGuiLayer::render(GameContext* context) {
     bool connected = sf::Joystick::isConnected(0);
     ImGui::Text("Controller Connected: %s", connected ? "Yes" : "No");
 
-    if (connected) {
-        ImGui::Separator();
-        ImGui::Text("Left Stick:");
-        ImGui::SliderFloat("MoveX", &context->rawInput.moveX, -1.0f, 1.0f);
-        ImGui::SliderFloat("MoveY", &context->rawInput.moveY, -1.0f, 1.0f);
+    //if (connected) {
+    //    ImGui::Separator();
+    //    ImGui::Text("Left Stick:");
+    //    ImGui::SliderFloat("MoveX", &context->rawInput.moveX, -1.0f, 1.0f);
+    //    ImGui::SliderFloat("MoveY", &context->rawInput.moveY, -1.0f, 1.0f);
 
-        ImGui::Text("Right Stick:");
-        ImGui::SliderFloat("AimX", &context->rawInput.aimX, -1.0f, 1.0f);
-        ImGui::SliderFloat("AimY", &context->rawInput.aimY, -1.0f, 1.0f);
+    //    ImGui::Text("Right Stick:");
+    //    ImGui::SliderFloat("AimX", &context->rawInput.aimX, -1.0f, 1.0f);
+    //    ImGui::SliderFloat("AimY", &context->rawInput.aimY, -1.0f, 1.0f);
 
-        ImGui::SliderFloat("Restitution", &context->controllerParameters.sensitivity, 0.1f, 1.5f);
-    }
+    //    ImGui::SliderFloat("Restitution", &context->controllerParameters.sensitivity, 0.1f, 1.5f);
+    //}
 
     ImGui::End();
 

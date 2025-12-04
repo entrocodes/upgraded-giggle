@@ -23,6 +23,11 @@ struct PhysicsDebugSettings {
     bool enableConsoleDebugOutput = false;
     bool clickToSpawn = true;
     bool clickForMousePos = false;
+    bool debugRacketAttach = true;
+
+    bool autoSpawnBalls = false;
+    float autoSpawnInterval = 0.25f;   // seconds between spawns
+    float autoSpawnTimer = 0.f;
 };
 struct LogoDebug {
     float squashScale = 1.0f;

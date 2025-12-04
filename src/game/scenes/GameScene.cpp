@@ -50,7 +50,7 @@ void GameScene::update(sf::Time dt) {
     }
 
     playerInput.update(m_context);
-    racketSwingSystem.update(m_update, dt.asSeconds());
+    racketSwingSystem.update(m_context, dt.asSeconds());
     playerAction.update(m_context);
 
     racketHandleSystem.update(m_context, dt.asSeconds());

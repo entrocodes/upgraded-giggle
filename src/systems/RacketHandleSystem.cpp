@@ -1,14 +1,21 @@
 #include "RacketHandleSystem.hpp"
+#include "../ecs/Component.hpp"
+#include "../components/Components.hpp"
 #include "../debug/Debug.hpp"
 #include <cmath>
 
 void RacketHandleSystem::update(GameContext* context, float dt) {
+    if (dt <= 0.f) return;
+
     auto* player = context->registry.getEntity("player");
     if (!player) return;
 
     auto [playerPos, handle, input, swing] =
         context->registry.getComponents<
-        CTransform3D, CRacketHandle, InputComponent, CRacketSwing
+        CTransform3D,
+        CRacketHandle,
+        InputComponent,
+        CRacketSwing
         >(*player);
 
     if (!playerPos || !handle || !input || !swing) return;
@@ -16,32 +23,46 @@ void RacketHandleSystem::update(GameContext* context, float dt) {
     Entity racket = handle->racketEntity;
     auto [cPos, cVel, cBox3D, cPhys] =
         context->registry.getComponents<
-        CTransform3D, CVelocity3D, CBoundingBox3D, CRacketPhysical
+        CTransform3D,
+        CVelocity3D,
+        CBoundingBox3D,
+        CRacketPhysical
         >(racket);
 
     if (!cPos || !cVel || !cBox3D || !cPhys) return;
 
     Vec3 lastPos = cPos->pos_m;
 
-    // Follow player at base offset
-    cPos->pos_m = playerPos->pos_m + handle->localOffset_m;
+    // Base position = player position + local mount offset
+    Vec3 basePos = playerPos->pos_m + handle->localOffset_m;
 
-    // Backswing movement (racket moves backward)
-    if (swing->isCharging) {
-        cPos->pos_m.z -= swing->backswingDistance * dt;
-    }
+    // Apply swing offset (backswing, etc.)
+    Vec3 targetPos = basePos + handle->swingOffset_m;
 
-    // Forward swing impulse (only once)
+    // Option C: combine offset + one-frame forward burst when swing fires
     if (swing->swingTriggered) {
-        cVel->vel_mps.z += swing->swingSpeed;
-        swing->swingTriggered = false;
+        // forward burst along +Z in racket local / world frame
+        targetPos.z += swing->swingSpeed * dt;
+        swing->swingTriggered = false; // consumed this frame
     }
 
-    // Recompute racket velocity after any movement
-    cVel->vel_mps = (cPos->pos_m - lastPos) / dt;
+    // Compute velocity from position delta
+    cVel->vel_mps = (targetPos - lastPos) / dt;
 
-    // Update bounding box
+    // Commit final world position
+    cPos->pos_m = targetPos;
+
+    // Update bounding box around racket center
     Vec3 halfSize = (cBox3D->box.max - cBox3D->box.min) * 0.5f;
     cBox3D->box.min = cPos->pos_m - halfSize;
     cBox3D->box.max = cPos->pos_m + halfSize;
+
+    // Optional debug: visualize attachment vs player
+    if (context->physicsDebug.debugRacketAttach) {
+        Debug::queueArrow3D(
+            playerPos->pos_m,
+            cPos->pos_m,
+            sf::Color::Cyan
+        );
+    }
 }

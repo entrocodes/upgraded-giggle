@@ -99,7 +99,7 @@ Entity EntityFactory::createPlayer() {
     s.setOrigin(spriteBounds.x / 2.f, spriteBounds.y / 2.f);
 
     m_registry.addComponent<CBoundingBox>(player, s.getLocalBounds());
-
+    m_registry.addComponent<CRacketSwing>(player);
     transform3D.pos_m = { 0.0f, -m_tableParameters.tableHeight + m_tableParameters.playerHeight * .5f, -.3f }; 
 
     return player;

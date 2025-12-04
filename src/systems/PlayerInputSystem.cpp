@@ -21,8 +21,8 @@ void PlayerInputSystem::update(GameContext* context) {
         comp->axes.clear();
 
         // 🔹 Attack buttons (backhand hold/release)
-        comp->actions["PressAttack"] =
-            context->rawInput.isKeyPressed(sf::Keyboard::L) ||
+        comp->actions["AttackDown"] =
+            context->rawInput.isKeyDown(sf::Keyboard::L) ||
             (gamepadConnected && context->rawInput.isGamepadPressed("LB"));
 
         comp->actions["ReleaseAttack"] =
