@@ -14,7 +14,7 @@ void RacketHandleSystem::update(GameContext* context, float dt) {
         context->registry.getComponents<
         CTransform3D,
         CRacketHandle,
-        InputComponent,
+        CInput,
         CRacketSwing
         >(*player);
 

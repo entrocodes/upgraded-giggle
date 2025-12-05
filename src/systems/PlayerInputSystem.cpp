@@ -1,7 +1,6 @@
 ﻿#include "PlayerInputSystem.hpp"
-#include "../components/InputComponent.hpp"
+#include "../components/components.hpp"
 #include "../game/utils/GameContext.hpp"
-#include "../components/Player.hpp"
 #include <cmath>
 
 static float applyDeadzone(float v, float dz = 0.15f) {
@@ -13,21 +12,25 @@ void PlayerInputSystem::update(GameContext* context) {
 
     bool gamepadConnected = sf::Joystick::isConnected(0);
 
-    for (auto e : context->registry.getEntitiesWith<Player, InputComponent>()) {
-        auto comp = context->registry.getComponent<InputComponent>(e);
-        if (!comp) continue;
+    for (auto e : context->registry.getEntitiesWith<Player, CInput>()) {
+        auto cInput = context->registry.getComponent<CInput>(e);
+        if (!cInput) continue;
 
-        comp->actions.clear();
-        comp->axes.clear();
+        cInput->actions.clear();
+        cInput->axes.clear();
 
         // 🔹 Attack buttons (backhand hold/release)
-        comp->actions["AttackDown"] =
+        cInput->actions["AttackDown"] =
             context->rawInput.isKeyDown(sf::Keyboard::L) ||
-            (gamepadConnected && context->rawInput.isGamepadPressed("LB"));
+            (gamepadConnected && context->rawInput.isGamepadDown("LB"));
 
-        comp->actions["ReleaseAttack"] =
+        cInput->actions["ReleaseAttack"] =
             context->rawInput.isKeyReleased(sf::Keyboard::L) ||
-            (gamepadConnected && context->rawInput.isGamepadReleased("LB"));
+            (gamepadConnected && context->rawInput.isGamepadDown("LB"));
+
+        cInput->actions["StopBackswing"] =
+            context->rawInput.isKeyDown(sf::Keyboard::K) ||
+            (gamepadConnected && context->rawInput.isGamepadDown("RB"));
 
         float moveX = 0.f, moveZ = 0.f;
         float aimX = 0.f, aimY = 0.f;
@@ -46,9 +49,9 @@ void PlayerInputSystem::update(GameContext* context) {
             if (context->rawInput.isKeyDown(sf::Keyboard::S)) moveZ -= 1.f;
         }
 
-        comp->axes["MoveX"] = moveX;
-        comp->axes["MoveZ"] = moveZ;
-        comp->axes["AimX"] = aimX;
-        comp->axes["AimY"] = aimY;
+        cInput->axes["MoveX"] = moveX;
+        cInput->axes["MoveZ"] = moveZ;
+        cInput->axes["AimX"] = aimX;
+        cInput->axes["AimY"] = aimY;
     }
 }

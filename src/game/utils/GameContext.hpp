@@ -12,6 +12,7 @@
 #include <vector>
 #include <string>
 #include "TableParameters.hpp"
+#include "BallSpawnDebug.hpp"
 struct PhysicsDebugSettings {
     Vec3 debugBallSpin = { 0.0f, 0.0f, 0.0f };
     float debugBallHeight = 0.0f;
@@ -55,6 +56,7 @@ struct RenderSettings {
 
 struct FrameStats {
     float fps = 0.f;
+    float dt = 0.f;
     float accumulator = 0.f;
     int frames = 0;
 
@@ -65,6 +67,7 @@ struct ControllerParameters {
     float sensitivity = 1;
 };
 struct GameContext {
+    BallSpawnDebug ballSpawnDebug;
     float frameAlpha = 0;
     sf::RenderWindow window;
     DisplayConfig display;

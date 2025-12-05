@@ -253,7 +253,32 @@ void ImGuiLayer::render(GameContext* context) {
         }
 
     }
+    if (ImGui::CollapsingHeader("Debug Bal Spawn", ImGuiTreeNodeFlags_DefaultOpen)) {
+        ImGui::Separator();
+        ImGui::Text("Ball Feed Testing");
 
+        ImGui::Checkbox("Auto Spawn Balls", &context->ballSpawnDebug.autoSpawn);
+        ImGui::SliderFloat("Interval (s)", &context->ballSpawnDebug.interval, 0.05f, 2.0f);
+        ImGui::SliderFloat("Feed Speed", &context->ballSpawnDebug.feedSpeed, 0.5f, 6.0f);
+
+        // Mode selector
+        int mode = (int)context->ballSpawnDebug.mode;
+        const char* modes[] = { "Toward Racket", "Fixed Position", "Alternate L/R" };
+
+        if (ImGui::Combo("Spawn Mode", &mode, modes, 3))
+        {
+            context->ballSpawnDebug.mode = (BallSpawnMode)mode;
+        }
+
+        if (context->ballSpawnDebug.mode == BallSpawnMode::FixedPosition) {
+            ImGui::DragFloat3("Fixed Position (m)", &context->ballSpawnDebug.fixedPosLeft.x, 0.01f);
+        }
+
+        if (ImGui::Button("Spawn Ball Now")) {
+            spawnDebugBall(context);
+        }
+
+    }
     ImGui::End();
     ImGui::Begin("Controller Debug", nullptr,
         ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse);
@@ -275,9 +300,65 @@ void ImGuiLayer::render(GameContext* context) {
     //}
 
     ImGui::End();
+    
+    auto& debug = context->ballSpawnDebug;
 
+    if (debug.autoSpawn) {
+        debug.timer += context->frameStats.dt;
+
+        if (debug.timer >= debug.interval) {
+            debug.timer = 0.f;
+            spawnDebugBall(context);
+        }
+    }
 }
 
 void ImGuiLayer::shutdown() {
     ImGui::SFML::Shutdown();
+}
+
+void ImGuiLayer::spawnDebugBall(GameContext* context) {
+    auto* player = context->registry.getEntity("player");
+    if (!player) return;
+
+    auto* handle = context->registry.getComponent<CRacketHandle>(*player);
+    if (!handle) return;
+
+    Entity racket = handle->racketEntity;
+    auto* phys = context->registry.getComponent<CRacketPhysical>(racket);
+    auto* cPos = context->registry.getComponent<CTransform3D>(racket);
+
+    if (!phys || !cPos) return;
+
+    auto& debug = context->ballSpawnDebug;
+
+    float speed = debug.feedSpeed;
+
+    // ========== MODE 1: Toward Racket ==========
+    if (debug.mode == BallSpawnMode::TowardRacket) {
+        Vec3 spawnPos = cPos->pos_m + phys->normal * 0.20f;
+        Vec3 vel = -phys->normal * speed;
+        context->entityFactory.createBall(spawnPos, vel);
+        return;
+    }
+
+    // ========== MODE 2: Fixed Position ==========
+    if (debug.mode == BallSpawnMode::FixedPosition) {
+        Vec3 spawnPos = Vec3(debug.fixedPosLeft.x, context->physicsDebug.debugBallHeight, debug.fixedPosLeft.z);
+        context->entityFactory.createBall(spawnPos, context->physicsDebug.debugBallVelocity, context->physicsDebug.debugBallSpin);
+        return;
+    }
+
+    // ========== MODE 3: Alternate Left/Right ==========
+    if (debug.mode == BallSpawnMode::AlternateLeftRight) {
+        debug.spawnLeftLast = !debug.spawnLeftLast;
+        if (debug.spawnLeftLast) {
+            Vec3 spawnPos = Vec3(debug.fixedPosRight.x, context->physicsDebug.debugBallHeight, debug.fixedPosRight.z);
+        }
+        else {
+            Vec3 spawnPos = Vec3(debug.fixedPosLeft.x, context->physicsDebug.debugBallHeight, debug.fixedPosLeft.z);
+        }
+        context->entityFactory.createBall(spawnPos, context->physicsDebug.debugBallVelocity, context->physicsDebug.debugBallSpin);
+        return;
+    }
 }

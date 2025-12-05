@@ -12,4 +12,6 @@ public:
     void init(GameContext* context);
     void render(GameContext* context);
     void shutdown();
+
+    void spawnDebugBall(GameContext* context);
 };

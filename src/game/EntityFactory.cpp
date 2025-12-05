@@ -78,7 +78,7 @@ Entity EntityFactory::createPlayer() {
     Entity player = m_registry.createEntity("player");
 
     m_registry.addComponent<Player>(player);
-    m_registry.addComponent<InputComponent>(player);
+    m_registry.addComponent<CInput>(player);
     m_registry.addComponent<CState>(player, "stand");
 
     // Transform

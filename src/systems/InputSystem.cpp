@@ -1,5 +1,6 @@
 #include "InputSystem.hpp"
 #include "../math/Vec2.hpp"
+#include "../debug/Debug.hpp"
 void InputSystem::update(GameContext* context) {
     RawInputState& raw = context->rawInput;
 
@@ -27,6 +28,12 @@ void InputSystem::update(GameContext* context) {
         sf::Mouse::getPosition(context->window).x,
         sf::Mouse::getPosition(context->window).y
     );
+
+    for (unsigned int i = 0; i < 16; i++) {
+        if (sf::Joystick::isButtonPressed(0, i)) {
+            Debug::debugPrint("Pad", "Pressed: " + std::to_string(i));
+        }
+    }
 
     raw.nextFrame(); // <--- CRITICAL
 }

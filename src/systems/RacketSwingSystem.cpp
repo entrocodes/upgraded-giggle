@@ -10,7 +10,7 @@ void RacketSwingSystem::update(GameContext* context, float dt) {
 
     auto [input, swing, handle] =
         context->registry.getComponents<
-        InputComponent,
+        CInput,
         CRacketSwing,
         CRacketHandle
         >(*player);
@@ -19,10 +19,14 @@ void RacketSwingSystem::update(GameContext* context, float dt) {
 
     // Edge-based button logic ------------------------------
     bool nowDown = input->actions["AttackDown"];   // Held this frame
+    bool stopBackswing = input->actions["StopBackswing"];
     bool wasDown = swing->wasAttackDownLastFrame;  // Held last frame
-
+    if (stopBackswing) {
+        swing->backswingStopped = true;
+        swing->isCharging = false;
+    }
     // Press edge
-    if (nowDown && !wasDown) {
+    if (nowDown && !wasDown && !swing->backswingStopped) {
         swing->isCharging = true;
         // don't reset backswingTime here, allow accumulating
     }
@@ -48,6 +52,7 @@ void RacketSwingSystem::update(GameContext* context, float dt) {
 
         // Signal the burst to the RacketHandleSystem
         swing->swingTriggered = true;
+        swing->backswingStopped = false;
     }
 
     swing->wasAttackDownLastFrame = nowDown;

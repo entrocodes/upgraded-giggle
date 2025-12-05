@@ -8,7 +8,7 @@ void PlayerActionSystem::update(GameContext* context) {
         return;
     }
 
-    auto [input, vel3D, state] = context->registry.getComponents<InputComponent, CVelocity3D, CState>(*player);
+    auto [input, vel3D, state] = context->registry.getComponents<CInput, CVelocity3D, CState>(*player);
 
     vel3D->vel_mps = { 0.f, 0.f, 0.f };
 

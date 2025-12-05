@@ -1,7 +1,7 @@
 #pragma once
 #include "CBoundingBox.hpp"
 #include "CBoundingBox3D.hpp"
-#include "InputComponent.hpp"
+#include "CInput.hpp"
 #include "Player.hpp"
 #include "Sprite.hpp"
 #include "CTransform.hpp"

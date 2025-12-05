@@ -26,11 +26,11 @@ void GameEngine::run() {
         // --- Measure time since last frame ---
         sf::Time frameTime = clock.restart();
         float dt = frameTime.asSeconds();
-
+        
         // Clamp absurd spikes (e.g. minimize/restore)
         if (dt > MAX_ACCUM_TIME)
             dt = MAX_ACCUM_TIME;
-
+        context.frameStats.dt = dt;
         accumulator += dt;
         if (accumulator > MAX_ACCUM_TIME)
             accumulator = MAX_ACCUM_TIME;
