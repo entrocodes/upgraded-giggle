@@ -352,11 +352,12 @@ void ImGuiLayer::spawnDebugBall(GameContext* context) {
     // ========== MODE 3: Alternate Left/Right ==========
     if (debug.mode == BallSpawnMode::AlternateLeftRight) {
         debug.spawnLeftLast = !debug.spawnLeftLast;
+        Vec3 spawnPos = Vec3(0, 0, 0);
         if (debug.spawnLeftLast) {
-            Vec3 spawnPos = Vec3(debug.fixedPosRight.x, context->physicsDebug.debugBallHeight, debug.fixedPosRight.z);
+            spawnPos = Vec3(debug.fixedPosRight.x, context->physicsDebug.debugBallHeight, debug.fixedPosRight.z);
         }
         else {
-            Vec3 spawnPos = Vec3(debug.fixedPosLeft.x, context->physicsDebug.debugBallHeight, debug.fixedPosLeft.z);
+            spawnPos = Vec3(debug.fixedPosLeft.x, context->physicsDebug.debugBallHeight, debug.fixedPosLeft.z);
         }
         context->entityFactory.createBall(spawnPos, context->physicsDebug.debugBallVelocity, context->physicsDebug.debugBallSpin);
         return;
