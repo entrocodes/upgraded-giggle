@@ -17,3 +17,4 @@
 #include "CRacketPhysical.hpp"
 #include "CRacketHandle.hpp"
 #include "CRacketSwing.hpp"
+#include "CArm.hpp"

@@ -81,29 +81,52 @@ Entity EntityFactory::createPlayer() {
     m_registry.addComponent<CInput>(player);
     m_registry.addComponent<CState>(player, "stand");
 
-    // Transform
+    // --- Transform ---
     auto& transform3D = m_registry.addComponent<CTransform3D>(player);
     m_registry.addComponent<CVelocity>(player);
     m_registry.addComponent<CVelocity3D>(player);
     m_registry.addComponent<CTransform>(player);
-    // render
+
+    // --- Render ---
     auto& render = m_registry.addComponent<CRenderLayer>(player, 9);
 
-    // Animation
+    // --- Animation ---
     const Animation& standAnim = m_assets.getAnimation("Stand");
     auto& animComp = m_registry.addComponent<CAnimation>(player, standAnim, false);
 
-    // Ensure sprite origin is set and bounding box uses the animation sprite
     sf::Sprite& s = animComp.animation.getSprite();
-    Vec2 spriteBounds = { s.getLocalBounds().width, s.getLocalBounds().height };
+    Vec2 spriteBounds = {
+        s.getLocalBounds().width,
+        s.getLocalBounds().height
+    };
     s.setOrigin(spriteBounds.x / 2.f, spriteBounds.y / 2.f);
 
     m_registry.addComponent<CBoundingBox>(player, s.getLocalBounds());
+
+    // --- Gameplay Components ---
     m_registry.addComponent<CRacketSwing>(player);
-    transform3D.pos_m = { 0.0f, -m_tableParameters.tableHeight + m_tableParameters.playerHeight * .5f, -.3f }; 
+
+    // Player world position
+    transform3D.pos_m = {
+        0.0f,
+        -m_tableParameters.tableHeight + m_tableParameters.playerHeight * 0.5f,
+        -0.3f
+    };
+
+    auto& cArm = m_registry.addComponent<CArm>(player);
+
+    // Shoulder height relative to player position
+    cArm.shoulderPos_m =
+        transform3D.pos_m + Vec3(0.f, 0.45f, 0.f);
+
+    cArm.maxReach_m = 0.65f; // realistic adult reach
+    
+    auto& handle = m_registry.addComponent<CRacketHandle>(player);
+    handle.freeOffset_m = Vec3(0.f, 0.2f, 0.25f); // neutral ready position
 
     return player;
 }
+
 Entity EntityFactory::createPlayerRacket() {
     Entity racket = m_registry.createEntity("playerRacket");
 
@@ -122,7 +145,8 @@ Entity EntityFactory::createPlayerRacket() {
     handle.racketEntity = racket;
 
     // TEMP: transform set to player; will update next frame
-    auto* cPlayerPos = m_registry.getComponent<CTransform3D>(*player);
+    auto cPlayerPos = m_registry.getComponent<CTransform3D>(*player);
+
     Vec3 startPos = cPlayerPos ? cPlayerPos->pos_m : Vec3();
 
     auto& cTransform3D = m_registry.addComponent<CTransform3D>(racket, startPos);

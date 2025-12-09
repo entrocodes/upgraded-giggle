@@ -2,5 +2,5 @@
 #include "../game/utils/GameContext.hpp"
 class RacketHandleSystem {
 public:
-    void update(GameContext* context, float dt);
+    void update(GameContext* context);
 };

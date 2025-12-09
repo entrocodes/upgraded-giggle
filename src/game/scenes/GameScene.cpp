@@ -51,9 +51,10 @@ void GameScene::update(sf::Time dt) {
 
     playerInput.update(m_context);
     racketSwingSystem.update(m_context, dt.asSeconds());
+    racketArmSystem.update(m_context);
     playerAction.update(m_context);
 
-    racketHandleSystem.update(m_context, dt.asSeconds());
+    racketHandleSystem.update(m_context);
     if (!metaState.paused) {
         entitySpawnTimer++;
         movement.update(m_context, dt);

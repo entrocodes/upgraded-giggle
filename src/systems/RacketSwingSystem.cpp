@@ -1,3 +1,5 @@
+#define NOMINMAX
+
 #include "RacketSwingSystem.hpp"
 #include "../components/Components.hpp"
 #include <algorithm>
@@ -68,13 +70,17 @@ void RacketSwingSystem::update(GameContext* context, float dt) {
         charge = std::clamp(charge, 0.f, 1.f);
 
         // Backward offset = -Z
-        handle->swingOffset_m.z =
-            -swing->backswingDistance * charge;
+        handle->strokeWeight =
+            std::clamp(handle->strokeWeight + dt * 6.f, 0.f, 1.f);
+
     }
     else {
         // Not charging: if burst already consumed, snap to base
         if (!swing->swingTriggered) {
             handle->swingOffset_m.z = 0.f;
         }
+        handle->strokeWeight =
+            std::clamp(handle->strokeWeight - dt * 8.f, 0.f, 1.f);
+
     }
 }

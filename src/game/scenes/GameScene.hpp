@@ -17,6 +17,7 @@
 #include "../systems/LogoRotationSystem.hpp"
 #include "../systems/RacketHandleSystem.hpp"
 #include "../systems/RacketSwingSystem.hpp"
+#include "../systems/RacketArmSystem.hpp"
 class GameScene : public Scene {
 public:
     explicit GameScene(GameContext* context);
@@ -41,6 +42,7 @@ private:
     RenderLayerSystem renderLayerSystem;
     RacketHandleSystem racketHandleSystem;
     RacketSwingSystem racketSwingSystem;
+    RacketArmSystem racketArmSystem;
     sf::Clock deltaClock;
     int entitySpawnTimer = 0;
 };

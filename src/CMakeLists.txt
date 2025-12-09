@@ -24,6 +24,7 @@ add_executable(PixelPong
     systems/RacketCollisionSystem.cpp
     systems/RacketSwingSystem.cpp
     systems/RacketHandleSystem.cpp
+    systems/RacketArmSystem.cpp
     systems/BallMovementSystem.cpp
     systems/LogoRotationSystem.cpp
 )
