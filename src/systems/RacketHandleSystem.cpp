@@ -2,9 +2,9 @@
 #include "../components/Components.hpp"
 #include "../debug/Debug.hpp"
 
-void RacketHandleSystem::update(GameContext* context) {
+SystemExec RacketHandleSystem::update(GameContext* context) {
     auto* player = context->registry.getEntity("player");
-    if (!player) return;
+    if (!player) return { SystemExecResult::EarlyExit, "player entity not found" };
 
     auto [playerPos, handle] =
         context->registry.getComponents<
@@ -12,7 +12,7 @@ void RacketHandleSystem::update(GameContext* context) {
         CRacketHandle
         >(*player);
 
-    if (!playerPos || !handle) return;
+    if (!playerPos || !handle) return { SystemExecResult::EarlyExit, "necessary player components not found" };
 
     // --- Debug visualization only ---
     if (context->physicsDebug.debugRacketAttach) {
@@ -30,4 +30,5 @@ void RacketHandleSystem::update(GameContext* context) {
     }
 
     // Nothing else!
+    return { SystemExecResult::Ran };
 }

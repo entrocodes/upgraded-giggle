@@ -1,6 +1,7 @@
 #pragma once
 #include "../game/utils/GameContext.hpp"
-class RacketHandleSystem {
+#include "../ecs/system/ISystem.hpp"
+class RacketHandleSystem : public ISystem{
 public:
-    void update(GameContext* context);
+    SystemExec update(GameContext* context);
 };

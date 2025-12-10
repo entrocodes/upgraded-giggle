@@ -4,8 +4,9 @@
 #include "../math/Vec3.hpp"
 #include "../math/Vec2.hpp"
 #include "../display/DisplayUtils.hpp"
-void MetaInputSystem::update(GameContext* context, MetaInputState& state) {
-    if (context->inputBlocked) return;
+SystemExec MetaInputSystem::update(GameContext* context) {
+    MetaInputState& state = context->metaInputState;
+    if (context->inputBlocked) return {SystemExecResult::EarlyExit};
     // Quit on Escape
     if (context->rawInput.isKeyDown(sf::Keyboard::Escape)) {
         state.quit = true;
@@ -48,8 +49,9 @@ void MetaInputSystem::update(GameContext* context, MetaInputState& state) {
         }
     }
     else {
-        state.mouseClicked = false;
+        context->metaInputState.mouseClicked = false;
     }
 
     leftWasDown = leftIsDown;
+    return {SystemExecResult::Ran};
 }

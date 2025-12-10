@@ -2,7 +2,8 @@
 #include "../components/Components.hpp"
 #include <SFML/System.hpp> // for sf::Time or deltaTime
 #include "../game/utils/GameContext.hpp"
-class BoundarySystem {
+#include "../ecs/system/ISystem.hpp"
+class BoundarySystem : public ISystem {
 public:
-    void update(GameContext* context);
+    SystemExec update(GameContext* context);
 };

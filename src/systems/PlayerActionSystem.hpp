@@ -1,8 +1,8 @@
 #pragma once
 #include "../game/utils/GameContext.hpp"
-
-class PlayerActionSystem {
+#include "../ecs/system/ISystem.hpp"
+class PlayerActionSystem : public ISystem {
 public:
-    void update(GameContext* context);
+    SystemExec update(GameContext* context);
 
 };

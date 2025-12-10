@@ -3,7 +3,7 @@
 #include "../components/Components.hpp"
 #include "../ecs/Entity.hpp"
 #include "../debug/Debug.hpp"
-void BallRemovalSystem::update(GameContext* context) {
+SystemExec BallRemovalSystem::update(GameContext* context) {
     std::vector<Entity> toRemove;
     for (auto e : context->registry.getEntitiesWith<CBall>()) {
         auto [transformComp, ballComp] = context->registry.getComponents<CTransform, CBall>(e);
@@ -19,6 +19,15 @@ void BallRemovalSystem::update(GameContext* context) {
         context->registry.deleteEntity(e);
         Debug::debugPrint("Deleted off-screen ball.");
     }
+    if (context->physicsDebug.debugRemoveAllBalls) {
+        removeAll(context);
+    }
+    if (!didWork)
+        return { SystemExecResult::EarlyExit, "No balls to remove" };
+
+    return { SystemExecResult::Ran };
+
+
 }
 void BallRemovalSystem::removeAll(GameContext* context) {
     std::vector<Entity> toRemove;

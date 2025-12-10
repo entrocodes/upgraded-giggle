@@ -3,7 +3,8 @@
 #include "../game/utils/GameContext.hpp"
 #include "../components/Components.hpp"
 #include "../ecs/Component.hpp"
-class LogoRotationSystem {
+#include "../ecs/system/ISystem.hpp"
+class LogoRotationSystem : public ISystem {
 public:
-	void update(GameContext* context, float dt);
+	SystemExec update(GameContext* context);
 };

@@ -5,7 +5,7 @@
 #include "../math/MathHelpers.hpp"
 #include "../ecs/DrawItem.hpp"
 #include <cmath>
-void RenderSystem::render(GameContext* context) {
+SystemExec RenderSystem::update(GameContext* context) {
 
     std::vector<DrawItem> drawList;
     // Sprites
@@ -54,11 +54,6 @@ void RenderSystem::render(GameContext* context) {
             drawBallLogo(context, item.ball, item.transform);
         }
     }
-
-    // === Optional Debug Layers ===
-    if (gGridDebug.drawGrid) {
-        gGridDebug.debugShowGrid(context->window, context->display);
-    }
     if (context->camera.homography.drawGrid) {
         context->camera.homography.drawDebugGrid(context->window, 10, 5);
     }
@@ -71,6 +66,7 @@ void RenderSystem::render(GameContext* context) {
     if (context->physicsDebug.debugSpinArrows) {
         Debug::renderQueuedArrows(context);
     }
+    return { SystemExecResult::Ran };
 }
 void RenderSystem::drawBallLogo(GameContext* context, CBall* ballComp, CTransform* transform)
 {

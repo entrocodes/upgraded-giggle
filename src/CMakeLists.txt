@@ -13,7 +13,6 @@ add_executable(PixelPong
     systems/MetaInputSystem.cpp
     systems/PlayerActionSystem.cpp
     systems/GridDebugSystem.cpp
-    systems/MovementSystem.cpp
     systems/BoundarySystem.cpp
     systems/BallRemovalSystem.cpp
     systems/AnimationSystem.cpp
@@ -25,8 +24,10 @@ add_executable(PixelPong
     systems/RacketSwingSystem.cpp
     systems/RacketHandleSystem.cpp
     systems/RacketArmSystem.cpp
-    systems/BallMovementSystem.cpp
+    systems/BallIntegrateSystem.cpp
     systems/LogoRotationSystem.cpp
+    ecs/system/SystemGraph.cpp
+    game/scenes/Scene.cpp
 )
 
 target_compile_features(PixelPong PRIVATE cxx_std_17)

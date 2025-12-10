@@ -1,8 +1,8 @@
 #pragma once
-#include "../ecs/System.hpp"
+#include "../ecs/system/ISystem.hpp"
 #include "../math/Vec3.hpp"
 #include "../game/utils/GameContext.hpp"
-class RacketCollisionSystem {
+class RacketCollisionSystem : public ISystem{
 public:
-    void update(GameContext* context, float dt);
+    SystemExec update(GameContext* context);
 };

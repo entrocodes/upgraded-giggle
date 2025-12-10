@@ -5,16 +5,10 @@
 #include "../ecs/Registry.hpp"
 #include "../display/DisplayConfig.hpp"
 #include "../game/utils/GameContext.hpp"
-struct MetaInputState {
-    bool quit = false;
-    bool paused = false;
+#include "../ecs/system/ISystem.hpp"
 
-    // --- Mouse click info ---
-    bool mouseClicked = false;
-    Vec2 mouseClickPos = { 0, 0 };
-};
 
-class MetaInputSystem {
+class MetaInputSystem : public ISystem {
 public:
-    void update(GameContext* context, MetaInputState& state);
+    SystemExec update(GameContext* context);
 };

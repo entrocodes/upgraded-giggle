@@ -1,7 +1,9 @@
 #pragma once
 
 #include "../game/utils/GameContext.hpp"
-class RacketSwingSystem {
+#include "../ecs/system/ISystem.hpp"
+
+class RacketSwingSystem : public ISystem{
 public:
-    void update(GameContext* context, float dt);
+    SystemExec update(GameContext* context);
 };

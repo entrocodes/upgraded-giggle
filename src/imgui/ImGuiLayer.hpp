@@ -1,17 +1,16 @@
 #pragma once
+#include "../ecs/system/ISystem.hpp"
 
-#include <SFML/Graphics/RenderWindow.hpp>
-#include <SFML/System/Clock.hpp>
-#include <imgui.h>
-#include <imgui-SFML.h>
-#include "../game/utils/Camera.hpp"
-#include "../game/utils/GameContext.hpp"
-#include "../components/Components.hpp"
-class ImGuiLayer {
+class ImGuiLayer : public ISystem {
 public:
     void init(GameContext* context);
-    void render(GameContext* context);
+    SystemExec update(GameContext* context) override;
     void shutdown();
 
+private:
+    void drawDeveloperPanel(GameContext* context);
+    void drawRacketDebug(GameContext* context);
+    void drawControllerDebug(GameContext* context);
+    void drawSystemExecution(GameContext* context);
     void spawnDebugBall(GameContext* context);
 };

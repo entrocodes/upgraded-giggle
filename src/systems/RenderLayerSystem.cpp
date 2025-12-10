@@ -2,17 +2,16 @@
 #include "../components/Components.hpp"
 #include "../game/utils/GameContext.hpp"
 #include "../debug/Debug.hpp"
-void RenderLayerSystem::update(GameContext* context) {
+
+SystemExec RenderLayerSystem::update(GameContext* context) {
     Entity* net = context->registry.getEntity("net");
     if (!net) {
-        Debug::debugPrint("Net entity not found!");
-        return;
+        return { SystemExecResult::EarlyExit, "Net entity not found!" };
     }
 
     auto* netTransform3D = context->registry.getComponent<CTransform3D>(*net);
     if (!netTransform3D) {
-        Debug::debugPrint("Net missing CTransform3D!");
-        return;
+        return { SystemExecResult::EarlyExit, "Net missing CTransform3D!" };
     }
 
     float netZ = netTransform3D->pos_m.z;
@@ -32,4 +31,5 @@ void RenderLayerSystem::update(GameContext* context) {
         }
         cShadowLayer->layer = cLayer->layer - 1;
     }
+    return { SystemExecResult::Ran };
 }

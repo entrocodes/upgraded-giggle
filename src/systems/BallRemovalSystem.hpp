@@ -1,7 +1,10 @@
 #pragma once
 #include "../game/utils/GameContext.hpp"
-class BallRemovalSystem {
+#include "../ecs/system/ISystem.hpp"
+class BallRemovalSystem : public ISystem {
 public:
-    void update(GameContext* context);
+    SystemExec update(GameContext* context);
     void removeAll(GameContext* context);
+private:
+    bool didWork = true;
 };

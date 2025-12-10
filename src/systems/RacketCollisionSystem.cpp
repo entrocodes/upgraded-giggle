@@ -4,7 +4,7 @@
 #include "../math/physics/collision/BallObjectIntersection.hpp"
 #include "../debug/Debug.hpp"
 
-void RacketCollisionSystem::update(GameContext* context, float dt)
+SystemExec RacketCollisionSystem::update(GameContext* context)
 {
     // Iterate over all rackets with physical properties
     for (auto racket : context->registry.getEntitiesWith<CRacketPhysical>()) {
@@ -90,4 +90,5 @@ void RacketCollisionSystem::update(GameContext* context, float dt)
             }
         }
     }
+    return { SystemExecResult::Ran };
 }

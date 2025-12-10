@@ -1,6 +1,7 @@
 #pragma once
 #include "../game/utils/GameContext.hpp"
-class PlayerInputSystem {
+#include "../ecs/system/ISystem.hpp"
+class PlayerInputSystem : public ISystem{
 public:
-    void update(GameContext* context);
+    SystemExec update(GameContext* context);
 };

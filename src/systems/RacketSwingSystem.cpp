@@ -4,11 +4,11 @@
 #include "../components/Components.hpp"
 #include <algorithm>
 
-void RacketSwingSystem::update(GameContext* context, float dt) {
-    if (dt <= 0.f) return;
+SystemExec RacketSwingSystem::update(GameContext* context) {
+    if (context->frameStats.dt <= 0.f) return { SystemExecResult::EarlyExit, "dt = 0" };
 
     auto* player = context->registry.getEntity("player");
-    if (!player) return;
+    if (!player) return { SystemExecResult::EarlyExit, "player entity not found" };
 
     auto [input, swing, handle] =
         context->registry.getComponents<
@@ -17,7 +17,7 @@ void RacketSwingSystem::update(GameContext* context, float dt) {
         CRacketHandle
         >(*player);
 
-    if (!input || !swing || !handle) return;
+    if (!input || !swing || !handle) return { SystemExecResult::EarlyExit, "missing component from player entity" };
 
     // Edge-based button logic ------------------------------
     bool nowDown = input->actions["AttackDown"];   // Held this frame
@@ -63,7 +63,7 @@ void RacketSwingSystem::update(GameContext* context, float dt) {
     // Accumulate backswing while holding
     if (swing->isCharging) {
         swing->backswingTime =
-            std::min(swing->backswingTime + dt, swing->maxBackswing);
+            std::min(swing->backswingTime + context->frameStats.dt, swing->maxBackswing);
 
         float charge = swing->maxBackswing > 0.f ?
             swing->backswingTime / swing->maxBackswing : 0.f;
@@ -71,7 +71,7 @@ void RacketSwingSystem::update(GameContext* context, float dt) {
 
         // Backward offset = -Z
         handle->strokeWeight =
-            std::clamp(handle->strokeWeight + dt * 6.f, 0.f, 1.f);
+            std::clamp(handle->strokeWeight + context->frameStats.dt * 6.f, 0.f, 1.f);
 
     }
     else {
@@ -80,7 +80,8 @@ void RacketSwingSystem::update(GameContext* context, float dt) {
             handle->swingOffset_m.z = 0.f;
         }
         handle->strokeWeight =
-            std::clamp(handle->strokeWeight - dt * 8.f, 0.f, 1.f);
+            std::clamp(handle->strokeWeight - context->frameStats.dt * 8.f, 0.f, 1.f);
 
     }
+    return { SystemExecResult::Ran };
 }

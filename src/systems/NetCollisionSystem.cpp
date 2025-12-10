@@ -8,7 +8,28 @@
 #include "../math/Random.hpp"
 
 
-void NetCollisionSystem::resolve(GameContext* context, Entity ballEntity)
+SystemExec NetCollisionSystem::update(GameContext* context) {
+    Entity* net = context->registry.getEntity("net");
+    if (!net) return {SystemExecResult::EarlyExit};
+
+    auto* cNetBounds =
+        context->registry.getComponent<CBoundingBox3D>(*net);
+
+    if (!cNetBounds) return {SystemExecResult::EarlyExit};
+
+    for (auto ball : context->registry.getEntitiesWith<CBall, CTransform3D, CBoundingBox3D, CVelocity3D>()) {
+
+        auto [cBall, cTransform3D, cBoundingBox3D, cVelocity3D] = context->registry.getComponents<CBall, CTransform3D, CBoundingBox3D, CVelocity3D>(ball);
+
+        if (!cBall || !cBoundingBox3D || !cVelocity3D) continue;
+
+        resolveNetContact(context, ball);
+    }
+    return {SystemExecResult::Ran};
+}
+
+
+void NetCollisionSystem::resolveNetContact(GameContext* context, Entity ballEntity)
 {
     auto [cBall, cTransform3D, cBoundingBox3D, cVelocity3D] = context->registry.getComponents<CBall, CTransform3D, CBoundingBox3D, CVelocity3D>(ballEntity);
 

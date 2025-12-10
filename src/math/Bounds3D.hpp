@@ -1,7 +1,7 @@
 #pragma once
 #include "Vec3.hpp"
 
-struct Bounds3D : Component {
+struct Bounds3D {
     Vec3 min;  // minimum x,y,z corner
     Vec3 max;  // maximum x,y,z corner
 

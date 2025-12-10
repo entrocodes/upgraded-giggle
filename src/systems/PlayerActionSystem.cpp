@@ -1,11 +1,11 @@
 #include "PlayerActionSystem.hpp"
 #include "../components/Components.hpp"
 #include "../debug/Debug.hpp"
-void PlayerActionSystem::update(GameContext* context) {
+SystemExec PlayerActionSystem::update(GameContext* context) {
     Entity* player = context->registry.getEntity("player");
     if (!player) {
         Debug::debugPrint("Player Entity not found.");
-        return;
+        return { SystemExecResult::EarlyExit };
     }
 
     auto [input, vel3D, state] = context->registry.getComponents<CInput, CVelocity3D, CState>(*player);
@@ -20,6 +20,6 @@ void PlayerActionSystem::update(GameContext* context) {
     if (input->actions["MoveRight"]) vel3D->vel_mps.x += 1.5f;
     vel3D->vel_mps.x += input->axes["MoveX"] * 2.0f;
     vel3D->vel_mps.z += input->axes["MoveZ"] * 1.0f;
-
+    return { SystemExecResult::Ran };
 
 };

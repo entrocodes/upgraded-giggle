@@ -18,16 +18,16 @@ public:
         }
     }
 
-    void handleInput() {
-        if (m_current) m_current->handleInput();
-    }
-
-    void update(sf::Time dt) {
-        if (m_current) m_current->update(dt);
+    void update() {
+        if (m_current) m_current->update();
     }
 
     void render() {
         if (m_current) m_current->render();
+    }
+
+    Scene* currentScene() const {
+        return m_current;
     }
 
 private:

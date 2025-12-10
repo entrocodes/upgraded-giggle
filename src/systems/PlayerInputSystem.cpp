@@ -7,8 +7,8 @@ static float applyDeadzone(float v, float dz = 0.15f) {
     return (std::fabs(v) < dz) ? 0.f : v;
 }
 
-void PlayerInputSystem::update(GameContext* context) {
-    if (context->inputBlocked) return;
+SystemExec PlayerInputSystem::update(GameContext* context) {
+    if (context->inputBlocked) return {SystemExecResult::EarlyExit, "input blocked" };
 
     bool gamepadConnected = sf::Joystick::isConnected(0);
 
@@ -54,4 +54,5 @@ void PlayerInputSystem::update(GameContext* context) {
         cInput->axes["AimX"] = aimX;
         cInput->axes["AimY"] = aimY;
     }
+    return { SystemExecResult::Ran };
 }

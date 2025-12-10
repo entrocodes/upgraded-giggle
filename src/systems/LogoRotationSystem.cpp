@@ -5,9 +5,6 @@
 namespace {
     constexpr float DEG2RAD = 3.1415926535f / 180.f;
 }
-#include "LogoRotationSystem.hpp"
-#include <cmath>
-#include "../debug/Debug.hpp"
 
 static constexpr float PI = 3.1415926535f;
 
@@ -18,7 +15,7 @@ static inline float radToDeg(float r) { return r * (180.f / PI); }
 static constexpr float YAW_SPIN_SCALE = 200.f;  // how strongly sidespin affects yaw
 static constexpr float PITCH_SPIN_SCALE = 200.f;  // how strongly topspin affects pitch
 
-void LogoRotationSystem::update(GameContext* context, float dt) {
+SystemExec LogoRotationSystem::update(GameContext* context) {
 
     for (auto ball : context->registry.getEntitiesWith<CBall, CTransform3D>()) {
 
@@ -35,8 +32,8 @@ void LogoRotationSystem::update(GameContext* context, float dt) {
         float yawVelDegPerSec = spin.y * YAW_SPIN_SCALE;
         float pitchVelDegPerSec = spin.x * PITCH_SPIN_SCALE;
 
-        logo.yawDeg += yawVelDegPerSec * dt;
-        logo.pitchDeg += pitchVelDegPerSec * dt;
+        logo.yawDeg += yawVelDegPerSec * context->frameStats.dt;
+        logo.pitchDeg += pitchVelDegPerSec * context->frameStats.dt;
 
         // Keep angles in [-180,180] for sanity
         auto wrap = [](float a) {
@@ -77,4 +74,5 @@ void LogoRotationSystem::update(GameContext* context, float dt) {
         logo.squash = std::max(context->logoDebug.minSquash, 1.f - 0.4f * tiltNorm * context->logoDebug.squashScale); // flattens near edge
         logo.shear = spin.y * 0.3f * context->logoDebug.shearScale;                         // sidespin = sideways smear
     }
+    return { SystemExecResult::Ran };
 }

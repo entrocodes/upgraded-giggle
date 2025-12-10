@@ -1,6 +1,8 @@
 #pragma once
 #include "../game/utils/GameContext.hpp"
-class RenderLayerSystem {
+#include "../ecs/system/ISystem.hpp"
+
+class RenderLayerSystem : public ISystem{
 public:
-    void update(GameContext* context);
+    SystemExec update(GameContext* context);
 };

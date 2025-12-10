@@ -1,4 +1,4 @@
-﻿#include "BallMovementSystem.hpp"
+﻿#include "BallIntegrateSystem.hpp"
 #include "../math/Vec2.hpp"
 #include "../math/Bounds3D.hpp"
 #include "../components/Components.hpp"
@@ -9,87 +9,100 @@
 #include <algorithm>
 #include <iostream>
 
-void BallMovementSystem::update(GameContext* context, float dt) {
-    ballForceSystem.update(context, dt); //updates bForces
+SystemExec BallIntegrateSystem::update(GameContext* context) {
     updateOffTable(context);
-    
+
+    bool didWork = false;
+
     for (auto ball : context->registry.getEntitiesWith<CBall, CTransform>()) {
-        auto [transform, ballComp, boundingBox3D, cBallTransform3D, cBallVelocity3D] = context->registry.getComponents<CTransform, CBall, CBoundingBox3D, CTransform3D, CVelocity3D>(ball);
-        if (!transform || !ballComp || !boundingBox3D || !cBallTransform3D || !cBallVelocity3D) continue;
+        auto [transform, ballComp, boundingBox3D, cBallTransform3D, cBallVelocity3D] =
+            context->registry.getComponents<
+            CTransform, CBall, CBoundingBox3D, CTransform3D, CVelocity3D
+            >(ball);
 
+        if (!transform || !ballComp || !boundingBox3D ||
+            !cBallTransform3D || !cBallVelocity3D)
+            continue;
 
+        // ✅ Count as work once we reach here
+        didWork = true;
 
         cBallTransform3D->lastPos_m = cBallTransform3D->pos_m;
 
-
-
         // --- INTEGRATE POSITION ---
-        cBallVelocity3D->vel_mps += ballComp->bForces.acceleration * dt;
-        cBallTransform3D->pos_m += cBallVelocity3D->vel_mps * dt;
+        cBallVelocity3D->vel_mps +=
+            ballComp->bForces.acceleration * context->frameStats.dt;
+
+        cBallTransform3D->pos_m +=
+            cBallVelocity3D->vel_mps * context->frameStats.dt;
+
         Vec3 p = cBallTransform3D->pos_m;
+
         ballComp->contactingTable = (p.y <= context->tableParameters.tableY);
         ballComp->onFloor = (p.y <= context->tableParameters.floorY);
+
         if (ballComp->contactingTable && !ballComp->offTable && !ballComp->hasFallen) {
-            handleTableContact(context, ball, dt);
+            handleTableContact(context, ball);
         }
         else if (ballComp->onFloor && ballComp->offTable) {
-            handleFloorContact(context, ball, dt);
+            handleFloorContact(context, ball);
         }
-        
-  
 
-        if (!ballComp->hasFallen && ballComp->offTable && cBallTransform3D->pos_m.y < 0) {
+        if (!ballComp->hasFallen && ballComp->offTable && p.y < 0.f) {
             ballComp->hasFallen = true;
-            // Trigger event here (e.g. scoring or reset)
         }
-        //handle net collision
-        boundingBox3D->box = Bounds3D(p - ballComp->ballRadius, p + ballComp->ballRadius);
-        ballForceSystem.netCollision.resolve(context, ball);
 
-        transform->pos = context->camera.homography.worldToImage(p);
+        boundingBox3D->box =
+            Bounds3D(p - ballComp->ballRadius, p + ballComp->ballRadius);
 
+        transform->pos =
+            context->camera.homography.worldToImage(p);
 
-        // --- SHADOW ENTITY ---
+        // --- SHADOW ---
         Entity shadowEntity = ballComp->ballShadow;
-        auto [shadowTransform, shadowTransform3D] = context->registry.getComponents<CTransform, CTransform3D>(shadowEntity);
-        if (!shadowTransform || !shadowTransform3D) continue;
-        
-        
-        // --- PROJECT TO SCREEN USING HOMOGRAPHY ---
-        float scale = 1.0f;
-        
-        if (!ballComp->offTable) {
-            shadowTransform3D->pos_m = Vec3(p.x, context->tableParameters.tableY, p.z);
-            scale = std::max(0.5f, 1.5f - 0.2f * p.y);
+        auto [shadowTransform, shadowTransform3D] =
+            context->registry.getComponents<CTransform, CTransform3D>(shadowEntity);
 
+        if (!shadowTransform || !shadowTransform3D)
+            continue;
+
+        float scale = 1.0f;
+
+        if (!ballComp->offTable) {
+            shadowTransform3D->pos_m =
+                Vec3(p.x, context->tableParameters.tableY, p.z);
+            scale = std::max(0.5f, 1.5f - 0.2f * p.y);
         }
         else {
-            shadowTransform3D->pos_m = Vec3(p.x, context->tableParameters.floorY, p.z);
-            scale = std::max(0.5f, 1.5f - 0.2f * (p.y - context->tableParameters.floorY));
-        }
-        shadowTransform->pos = context->camera.homography.worldToImage(shadowTransform3D->pos_m);
-        shadowTransform->scale = { scale, scale };
-        if (context->physicsDebug.debugSpinArrows) {
-            Debug::queueArrow3D(p, p + cBallVelocity3D->vel_mps.normalized() * 0.15f, sf::Color::Blue);
-            Debug::queueArrow3D(p, p + ballComp->spin.normalized() * 0.10f, sf::Color::Yellow);
-            Debug::queueArrow3D(p, p + ballComp->bForces.forceMagnus.normalized() * 20.0f, sf::Color::Red);
+            shadowTransform3D->pos_m =
+                Vec3(p.x, context->tableParameters.floorY, p.z);
+            scale = std::max(0.5f,
+                1.5f - 0.2f * (p.y - context->tableParameters.floorY));
         }
 
-        // --- DEBUG OUTPUT ---
-        if (context->physicsDebug.enableConsoleDebugOutput) {
-            Debug::debugPrint("Velocity (m/s)", cBallVelocity3D->vel_mps);
-            Debug::debugPrint("Pos (m)", cBallTransform3D->pos_m);
-            Debug::debugPrint("Ball Screen Pos", transform->pos);
-            Debug::debugPrint("Shadow Screen Pos", shadowTransform->pos);
+        shadowTransform->pos =
+            context->camera.homography.worldToImage(shadowTransform3D->pos_m);
+        shadowTransform->scale = { scale, scale };
+
+        if (context->physicsDebug.debugSpinArrows) {
+            Debug::queueArrow3D(
+                p,
+                p + cBallVelocity3D->vel_mps.normalized() * 0.15f,
+                sf::Color::Blue
+            );
         }
     }
-    ////handle racket collision
-    racketCollisionSystem.update(context, dt);
+
+    if (!didWork)
+        return { SystemExecResult::EarlyExit, "No balls to remove" };
+
+    return { SystemExecResult::Ran };
 
 }
 
 
-void BallMovementSystem::updateOffTable(GameContext* context) {
+
+void BallIntegrateSystem::updateOffTable(GameContext* context) {
     for (auto ball : context->registry.getEntitiesWith<CBall, CTransform3D>()) {
         auto [cBall, cBallTransform3D] = context->registry.getComponents<CBall, CTransform3D>(ball);
         // --- CHECK IF BALL IS OFF TABLE ---
@@ -103,7 +116,7 @@ void BallMovementSystem::updateOffTable(GameContext* context) {
 
 }
 
-void BallMovementSystem::handleTableContact(GameContext* context, Entity& ball, float dt) {
+void BallIntegrateSystem::handleTableContact(GameContext* context, Entity& ball) {
     auto [ballComp, cTransform3D, cVelocity3D] =
         context->registry.getComponents<CBall, CTransform3D, CVelocity3D>(ball);
     if (!ballComp || !cTransform3D || !cVelocity3D) return;
@@ -142,13 +155,13 @@ void BallMovementSystem::handleTableContact(GameContext* context, Entity& ball, 
     spin.z *= (1.f - decay);
 
     // Ground friction
-    float frictionAccel = table.tableFrictionCoefficient * Fn * dt;
+    float frictionAccel = table.tableFrictionCoefficient * Fn * context->frameStats.dt;
     if (vel.x > 0) vel.x = std::max(0.f, vel.x - frictionAccel);
     if (vel.x < 0) vel.x = std::min(0.f, vel.x + frictionAccel);
     if (vel.z > 0) vel.z = std::max(0.f, vel.z - frictionAccel);
     if (vel.z < 0) vel.z = std::min(0.f, vel.z + frictionAccel);
 }
-void BallMovementSystem::handleFloorContact(GameContext* context, Entity& ball, float dt) {
+void BallIntegrateSystem::handleFloorContact(GameContext* context, Entity& ball) {
     auto [ballComp, cTransform3D, cVelocity3D] =
         context->registry.getComponents<CBall, CTransform3D, CVelocity3D>(ball);
     if (!ballComp || !cTransform3D || !cVelocity3D) return;
@@ -184,7 +197,7 @@ void BallMovementSystem::handleFloorContact(GameContext* context, Entity& ball, 
     spin.z *= (1.f - decay);
 
     // Strong sliding friction on floor
-    float frictionAccel = table.floorFrictionCoefficient * Fn * dt;
+    float frictionAccel = table.floorFrictionCoefficient * Fn * context->frameStats.dt;
     if (vel.x > 0) vel.x = std::max(0.f, vel.x - frictionAccel);
     if (vel.x < 0) vel.x = std::min(0.f, vel.x + frictionAccel);
     if (vel.z > 0) vel.z = std::max(0.f, vel.z - frictionAccel);

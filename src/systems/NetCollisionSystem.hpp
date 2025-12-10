@@ -1,8 +1,10 @@
 #pragma once
 #include "../game/utils/GameContext.hpp"
 #include "../math/Bounds3D.hpp"
-
-class NetCollisionSystem {
+#include "../ecs/system/ISystem.hpp"
+class NetCollisionSystem : public ISystem{
 public:
-    void resolve(GameContext* context, Entity ballEntity);
+    SystemExec update(GameContext* context);
+private:
+    void resolveNetContact(GameContext* context, Entity ballEntity);
 };

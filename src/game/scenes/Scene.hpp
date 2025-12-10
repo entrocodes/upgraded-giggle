@@ -1,11 +1,17 @@
-#pragma once
-#include <SFML/Graphics.hpp>
-#include "../display/DisplayConfig.hpp"
+﻿#pragma once
+
+class SystemGraph;
+
 class Scene {
 public:
     virtual ~Scene() = default;
 
-    virtual void handleInput() = 0;
-    virtual void update(sf::Time dt) = 0;
+    virtual void update() = 0;
     virtual void render() = 0;
+
+    SystemGraph& systems();
+    const SystemGraph& systems() const;
+
+protected:
+    SystemGraph* m_systems = nullptr;
 };

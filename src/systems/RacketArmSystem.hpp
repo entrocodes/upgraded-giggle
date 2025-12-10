@@ -1,9 +1,11 @@
 #pragma once
-class GameContext;
 
-class RacketArmSystem {
+#include "../game/utils/GameContext.hpp"
+#include "../ecs/system/ISystem.hpp"
+
+class RacketArmSystem : public ISystem {
 public:
-    void update(GameContext* context);
+    SystemExec update(GameContext* context);
 
 private:
     static constexpr float FreeMoveSpeed = 1.2f; // m/s

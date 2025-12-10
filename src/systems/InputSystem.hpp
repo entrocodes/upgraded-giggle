@@ -1,8 +1,8 @@
 #pragma once
 #include <SFML/Graphics.hpp>
 #include "../game/utils/GameContext.hpp"
-
-class InputSystem {
+#include "../ecs/system/ISystem.hpp"
+class InputSystem : public ISystem{
 public:
-    void update(GameContext* context);
+    SystemExec update(GameContext* context);
 };

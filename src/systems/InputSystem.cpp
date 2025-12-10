@@ -1,7 +1,7 @@
 #include "InputSystem.hpp"
 #include "../math/Vec2.hpp"
 #include "../debug/Debug.hpp"
-void InputSystem::update(GameContext* context) {
+SystemExec InputSystem::update(GameContext* context) {
     RawInputState& raw = context->rawInput;
 
     // --- Keyboard poll ---
@@ -36,4 +36,5 @@ void InputSystem::update(GameContext* context) {
     }
 
     raw.nextFrame(); // <--- CRITICAL
+    return { SystemExecResult::Ran };
 }

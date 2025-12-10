@@ -1,84 +1,70 @@
 ﻿#include "GameScene.hpp"
-#include "../game/EntityFactory.hpp"
-#include <array>
-#include "../components/Components.hpp"
-#include "../display/DisplayUtils.hpp"
+
+// system includes ONLY needed here
+#include "../systems/InputSystem.hpp"
+#include "../systems/MetaInputSystem.hpp"
+#include "../systems/PlayerInputSystem.hpp"
+#include "../systems/PlayerActionSystem.hpp"
+#include "../systems/MovementSystemGroup.hpp"
+#include "../systems/BallRemovalSystem.hpp"
+#include "../systems/AnimationSystem.hpp"
+#include "../systems/LogoRotationSystem.hpp"
+#include "../systems/RenderLayerSystem.hpp"
+#include "../systems/RenderSystem.hpp"
+#include "../systems/groups/RacketMovementSystemGroup.hpp"
+#include "../systems/FrameStatsSystem.hpp"
+#include "../imgui/ImGuiLayer.hpp"
+#include "../ecs/system/TickPhase.hpp"
 GameScene::GameScene(GameContext* context)
     : m_context(context)
-{
-    // Pixel coordinates (image space)
+    , m_factory(context) {
+
+    m_systems = &systemGraph;
+    // --- Camera / static setup (still scene responsibility) ---
     std::array<Vec2, 4> imagePoints = {
-        Vec2(531, 497),  // Bottom-Left
-        Vec2(619, 231),  // Top-Left
-        Vec2(842, 497),  // Bottom-Right
-        Vec2(760, 231)   // Top-Right
+    Vec2{531.f, 497.f},
+    Vec2{619.f, 231.f},
+    Vec2{842.f, 497.f},
+    Vec2{760.f, 231.f}
     };
 
-    // Real-world coordinates (meters)
-    // (X = width → left/right, Z = length → near/far)
     std::array<Vec2, 4> worldPoints = {
-        Vec2(0.0f, 0.0f),                                   // Bottom-Left
-        Vec2(0.0f, context->tableParameters.tableLength),   // Top-Left
-        Vec2(context->tableParameters.tableWidth, 0.0f),    // Bottom-Right
-        Vec2(context->tableParameters.tableWidth,
-             context->tableParameters.tableLength)          // Top-Right
+        Vec2{0.f, 0.f},
+        Vec2{0.f, context->tableParameters.tableLength},
+        Vec2{context->tableParameters.tableWidth, 0.f},
+        Vec2{
+            context->tableParameters.tableWidth,
+            context->tableParameters.tableLength
+        }
     };
 
 
-    // Correct order: image → world
-    m_context->camera.homography.calibrate(imagePoints, worldPoints);
+    context->camera.homography.calibrate(imagePoints, worldPoints);
+    context->entityFactory.createBackground();
+    context->entityFactory.createTable();
+    context->entityFactory.createNet();
+    context->entityFactory.createPlayer();
+    context->entityFactory.createPlayerRacket();
 
-    m_context->entityFactory.createBackground();
-    m_context->entityFactory.createTable();
-    m_context->entityFactory.createNet();
-    m_context->entityFactory.createPlayer();
-    m_context->entityFactory.createPlayerRacket();
-
+    // --- System wiring ---
+    systemGraph.add<FrameStatsSystem>(m_factory, 0, TickPhase::Fixed, NotPausable);
+    systemGraph.add<InputSystem>(m_factory, 10, TickPhase::Fixed, NotPausable);
+    systemGraph.add<MetaInputSystem>(m_factory, 20, TickPhase::Fixed, NotPausable);   // quit / pause
+    systemGraph.add<PlayerInputSystem>(m_factory, 30, TickPhase::Fixed, NotPausable);
+    systemGraph.add<PlayerActionSystem>(m_factory, 50, TickPhase::Fixed, NotPausable);
+    systemGraph.add<RacketMovementSystemGroup>(m_factory, 60, TickPhase::Fixed, Pausable, m_factory);
+    systemGraph.add<MovementSystemGroup>(m_factory, 100, TickPhase::Fixed, Pausable, m_factory);
+    systemGraph.add<BallRemovalSystem>(m_factory, 200, TickPhase::Fixed);
+    systemGraph.add<AnimationSystem>(m_factory, 300, TickPhase::Fixed);
+    systemGraph.add<LogoRotationSystem>(m_factory, 400, TickPhase::Fixed);
+    systemGraph.add<RenderLayerSystem>(m_factory, 900, TickPhase::Render, NotPausable);
+    systemGraph.add<RenderSystem>(m_factory, 1000, TickPhase::Render, NotPausable);
+    systemGraph.add<ImGuiLayer>(m_factory, 1200, TickPhase::Render, NotPausable);
 }
-
-
-
-void GameScene::handleInput() {
-    inputSystem.update(m_context);
-    metaInput.update(m_context, metaState);
-}
-
-void GameScene::update(sf::Time dt) {
-    if (metaState.quit) {
-        m_context->window.close();
-        return;
-    }
-
-    playerInput.update(m_context);
-    racketSwingSystem.update(m_context, dt.asSeconds());
-    racketArmSystem.update(m_context);
-    playerAction.update(m_context);
-
-    racketHandleSystem.update(m_context);
-    if (!metaState.paused) {
-        entitySpawnTimer++;
-        movement.update(m_context, dt);
-        ballRemoval.update(m_context);
-        if (m_context->physicsDebug.debugRemoveAllBalls) {
-            ballRemoval.removeAll(m_context);
-        }
-        animationSystem.update(m_context);
-        logoRotationSystem.update(m_context, dt.asSeconds());
-    }
-
-    m_context->frameStats.accumulator += dt.asSeconds();
-    m_context->frameStats.frames++;
-
-    if (m_context->frameStats.accumulator >= 1.0f) {
-        m_context->frameStats.fps = m_context->frameStats.frames / m_context->frameStats.accumulator;
-        m_context->frameStats.frames = 0;
-        m_context->frameStats.accumulator = 0.f;
-    }
-
-    renderLayerSystem.update(m_context);
+void GameScene::update() {
+    systemGraph.run(m_context, TickPhase::Fixed);
 }
 
 void GameScene::render() {
-    renderer.render(m_context);
-    imgui.render(m_context);
+    systemGraph.run(m_context, TickPhase::Render);
 }

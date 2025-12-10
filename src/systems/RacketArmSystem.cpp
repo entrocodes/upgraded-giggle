@@ -2,25 +2,20 @@
 #include "../components/Components.hpp"
 #include "../game/utils/GameContext.hpp"
 
-void RacketArmSystem::update(GameContext* context) {
-    float dt = context->frameStats.dt;
-    if (dt <= 0.f) return;
+SystemExec RacketArmSystem::update(GameContext* context) {
+    if (context->frameStats.dt <= 0.f) return { SystemExecResult::EarlyExit };
 
     auto* player = context->registry.getEntity("player");
-    if (!player) return;
+    if (!player) return { SystemExecResult::EarlyExit, "player entity not found" };
 
-    auto [input, arm, handle] =
-        context->registry.getComponents<CInput, CArm, CRacketHandle>(*player);
-    if (!input || !arm || !handle) return;
-
-    auto* playerPos =
-        context->registry.getComponent<CTransform3D>(*player);
-    if (!playerPos) return;
+    auto [input, arm, handle, playerPos] =
+        context->registry.getComponents<CInput, CArm, CRacketHandle, CTransform3D>(*player);
+    if (!input || !arm || !handle || !playerPos) return { SystemExecResult::EarlyExit, "player entity missing a component" };
 
     Entity racket = handle->racketEntity;
     auto [cPos, cVel] =
         context->registry.getComponents<CTransform3D, CVelocity3D>(racket);
-    if (!cPos || !cVel) return;
+    if (!cPos || !cVel) return { SystemExecResult::EarlyExit, "racket entity missing components" };
 
     Vec3 lastPos = cPos->pos_m;
 
@@ -38,7 +33,7 @@ void RacketArmSystem::update(GameContext* context) {
         float aimY = input->axes["AimY"];
 
         Vec3 delta(aimX, aimY, 0.f);
-        handle->freeOffset_m += delta * FreeMoveSpeed * dt;
+        handle->freeOffset_m += delta * FreeMoveSpeed * context->frameStats.dt;
     }
 
     // --------------------------------------------------
@@ -66,6 +61,7 @@ void RacketArmSystem::update(GameContext* context) {
     // --------------------------------------------------
     // 5) Commit transform + velocity
     // --------------------------------------------------
-    cVel->vel_mps = (finalPos - lastPos) / dt;
+    cVel->vel_mps = (finalPos - lastPos) / context->frameStats.dt;
     cPos->pos_m = finalPos;
+    return { SystemExecResult::Ran };
 }

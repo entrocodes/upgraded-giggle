@@ -1,6 +1,6 @@
 #include "BoundarySystem.hpp"
 #include "../math/GridTransform.hpp"
-void BoundarySystem::update(GameContext* context) {
+SystemExec BoundarySystem::update(GameContext* context) {
     for (auto e : context->registry.getEntitiesWith<CTransform, CBoundingBox, CVelocity>()) {
         auto [transform, boundingBox, velocity] = context->registry.getComponents<CTransform, CBoundingBox, CVelocity>(e);
         if (context->registry.getComponent<Player>(e)) {
@@ -17,6 +17,6 @@ void BoundarySystem::update(GameContext* context) {
             }
         }
     }
-
+    return { SystemExecResult::Ran };
 }
 

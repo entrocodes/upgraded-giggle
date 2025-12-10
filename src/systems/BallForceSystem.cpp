@@ -9,7 +9,7 @@
 #include <algorithm>
 #include <iostream>
 
-void BallForceSystem::update(GameContext* context, float dt) {
+SystemExec BallForceSystem::update(GameContext* context) {
     for (auto ball : context->registry.getEntitiesWith<CBall, CTransform>()) {
         auto [ballComp, cBallVelocity3D, cBallTransform3D] = context->registry.getComponents<CBall, CVelocity3D, CTransform3D>(ball);
         if (!ballComp || !cBallVelocity3D || !cBallTransform3D) continue;
@@ -22,5 +22,5 @@ void BallForceSystem::update(GameContext* context, float dt) {
         ballComp->bForces.acceleration = ballComp->bForces.totalForces / ballComp->mass;
 
     }
-
+    return {SystemExecResult::Ran};
 }

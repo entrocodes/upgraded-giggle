@@ -1,9 +1,10 @@
 #pragma once
-#include "../game/utils/GameContext.hpp"
-class AnimationSystem {
-public:
-	void update(GameContext* context);
-private:
-	void updatePlayer(GameContext* context);
+#include "../ecs/system/ISystem.hpp"
 
+class AnimationSystem : public ISystem {
+public:
+    SystemExec update(GameContext* context) override;
+
+private:
+    SystemExec updatePlayer(GameContext* context);
 };
