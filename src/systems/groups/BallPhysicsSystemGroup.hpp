@@ -5,9 +5,9 @@
 #include "../systems/NetCollisionSystem.hpp"
 #include "../systems/RacketCollisionSystem.hpp"
 #include "../systems/BallForceSystem.hpp"
-#include "../ecs/system/ISystem.hpp"
+#include "../ecs/system/ISystemGroup.hpp"
 
-class BallPhysicsSystemGroup final : public ISystem {
+class BallPhysicsSystemGroup final : public ISystemGroup {
 public:
     explicit BallPhysicsSystemGroup(SystemFactory& factory)
         : m_factory(factory)
@@ -22,6 +22,9 @@ public:
         m_graph.run(context, TickPhase::Fixed);
         return {SystemExecResult::Ran};
     }
+
+    SystemGraph& childGraph() override { return m_graph; }
+    const SystemGraph& childGraph() const override { return m_graph; }
 
 private:
     SystemFactory m_factory;

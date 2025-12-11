@@ -5,7 +5,7 @@
 #include "../systems/MetaInputSystem.hpp"
 #include "../systems/PlayerInputSystem.hpp"
 #include "../systems/PlayerActionSystem.hpp"
-#include "../systems/MovementSystemGroup.hpp"
+#include "../systems/groups/MovementSystemGroup.hpp"
 #include "../systems/BallRemovalSystem.hpp"
 #include "../systems/AnimationSystem.hpp"
 #include "../systems/LogoRotationSystem.hpp"

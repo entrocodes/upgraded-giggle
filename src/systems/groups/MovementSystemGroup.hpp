@@ -2,12 +2,12 @@
 
 #include "../game/utils/GameContext.hpp"
 #include "../systems/BoundarySystem.hpp"
-#include "../systems/BallPhysicsSystemGroup.hpp"
+#include "../systems/groups/BallPhysicsSystemGroup.hpp"
 #include "../systems/PlayerMovementSystem.hpp"
 #include "../systems/TransformSaveSystem.hpp"
-#include "../ecs/system/ISystem.hpp"
+#include "../ecs/system/ISystemGroup.hpp"
 #include "../ecs/system/SystemFactory.hpp"
-class MovementSystemGroup final : public ISystem {
+class MovementSystemGroup final : public ISystemGroup {
 public:
     explicit MovementSystemGroup(SystemFactory& factory)
         : m_factory(factory)
@@ -22,6 +22,8 @@ public:
         m_graph.run(context, TickPhase::Fixed);
         return {SystemExecResult::Ran};
     }
+    SystemGraph& childGraph() override { return m_graph; }
+    const SystemGraph& childGraph() const override { return m_graph; }
 
 private:
     SystemFactory m_factory;

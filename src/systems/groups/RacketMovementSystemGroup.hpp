@@ -4,9 +4,9 @@
 #include "../systems/RacketHandleSystem.hpp"
 #include "../systems/RacketArmSystem.hpp"
 #include "../systems/RacketSwingSystem.hpp"
-#include "../ecs/system/ISystem.hpp"
+#include "../ecs/system/ISystemGroup.hpp"
 
-class RacketMovementSystemGroup final : public ISystem {
+class RacketMovementSystemGroup final : public ISystemGroup {
 public:
     explicit RacketMovementSystemGroup(SystemFactory& factory)
         : m_factory(factory)
@@ -20,7 +20,8 @@ public:
         m_graph.run(context, TickPhase::Fixed);
         return {SystemExecResult::Ran};
     }
-
+    SystemGraph& childGraph() override { return m_graph; }
+    const SystemGraph& childGraph() const override { return m_graph; }
 private:
     SystemFactory m_factory;
     SystemGraph   m_graph;

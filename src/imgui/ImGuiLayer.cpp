@@ -174,63 +174,21 @@ void ImGuiLayer::drawSystemExecution(GameContext* context) {
     ImGui::Begin("System Execution");
 
     Scene* scene = context->sceneManager.currentScene();
-    SystemGraph* graph = scene ? &scene->systems() : nullptr;
-
-
-    if (!graph) {
-        ImGui::TextDisabled("No active system graph");
+    if (!scene) {
+        ImGui::TextDisabled("No active scene");
         ImGui::End();
         return;
     }
 
-    if (ImGui::CollapsingHeader("Execution", ImGuiTreeNodeFlags_DefaultOpen)) {
-        ImGui::Columns(6, "sys_exec");
-        ImGui::Text("System"); ImGui::NextColumn();
-        ImGui::Text("Phase"); ImGui::NextColumn();
-        ImGui::Text("Order"); ImGui::NextColumn();
-        ImGui::Text("Last Frame"); ImGui::NextColumn();
-        ImGui::Text("Runs"); ImGui::NextColumn();
-        ImGui::Text("Status"); ImGui::NextColumn();
-        ImGui::Separator();
+    const SystemGraph& graph = scene->systems();
 
-        for (const auto& node : graph->getNodes()) {
-            ImGui::Text("%s", typeid(*node.system).name());
-            ImGui::NextColumn();
-
-            ImGui::Text("%s",
-                node.phase == TickPhase::Fixed ? "Fixed" : "Render");
-            ImGui::NextColumn();
-
-            ImGui::Text("%d", node.order);
-            ImGui::NextColumn();
-
-            ImGui::Text("%llu", node.debug.lastFrameRan);
-            ImGui::NextColumn();
-
-            ImGui::Text("%llu", node.debug.runCount);
-            ImGui::NextColumn();
-
-            bool early = node.debug.exitedEarlyLastRun;
-            ImGui::TextColored(
-                early ? ImVec4(1, 0.6f, 0.2f, 1) : ImVec4(0.2f, 1, 0.2f, 1),
-                early ? "Early Exit" : "Ran"
-            );
-
-            if (early && ImGui::IsItemHovered()
-                && !node.debug.lastEarlyExitReason.empty()) {
-                ImGui::BeginTooltip();
-                ImGui::TextUnformatted(
-                    node.debug.lastEarlyExitReason.c_str());
-                ImGui::EndTooltip();
-            }
-
-            ImGui::NextColumn();
-        }
-        ImGui::Columns(1);
+    for (const auto& node : graph.getNodes()) {
+        drawSystemNodeRecursive(node);
     }
 
     ImGui::End();
 }
+
 void ImGuiLayer::spawnDebugBall(GameContext* context) {
     auto* player = context->registry.getEntity("player");
     if (!player) return;
@@ -247,10 +205,7 @@ void ImGuiLayer::spawnDebugBall(GameContext* context) {
 
     auto& debug = context->ballSpawnDebug;
     const float speed = debug.feedSpeed;
-
-    // ===========================
     // Mode 1 — Toward Racket
-    // ===========================
     if (debug.mode == BallSpawnMode::TowardRacket) {
         Vec3 spawnPos = cPos->pos_m + phys->normal * 0.20f;
         Vec3 vel = -phys->normal * speed;
@@ -259,9 +214,7 @@ void ImGuiLayer::spawnDebugBall(GameContext* context) {
         return;
     }
 
-    // ===========================
     // Mode 2 — Fixed Position
-    // ===========================
     if (debug.mode == BallSpawnMode::FixedPosition) {
         Vec3 spawnPos(
             debug.fixedPosLeft.x,
@@ -277,9 +230,7 @@ void ImGuiLayer::spawnDebugBall(GameContext* context) {
         return;
     }
 
-    // ===========================
     // Mode 3 — Alternate L / R
-    // ===========================
     if (debug.mode == BallSpawnMode::AlternateLeftRight) {
         debug.spawnLeftLast = !debug.spawnLeftLast;
 
@@ -300,4 +251,51 @@ void ImGuiLayer::spawnDebugBall(GameContext* context) {
         );
         return;
     }
+}
+
+void ImGuiLayer::drawSystemNodeRecursive(const SystemNode& node, int depth) {
+    ImGui::Indent(depth * 14.0f);
+
+    bool isGroup =
+        dynamic_cast<ISystemGroup*>(node.system.get()) != nullptr;
+
+    bool open = true;
+
+    if (isGroup) {
+        open = ImGui::TreeNodeEx(
+            typeid(*node.system).name(),
+            ImGuiTreeNodeFlags_DefaultOpen
+        );
+    }
+    else {
+        ImGui::BulletText("%s", typeid(*node.system).name());
+    }
+
+    ImGui::SameLine(300);
+    ImGui::Text("%s",
+        node.debug.exitedEarlyLastRun ? "Early Exit" : "Ran"
+    );
+
+    if (
+        node.debug.exitedEarlyLastRun &&
+        !node.debug.lastEarlyExitReason.empty() &&
+        ImGui::IsItemHovered()
+        ) {
+        ImGui::BeginTooltip();
+        ImGui::TextUnformatted(node.debug.lastEarlyExitReason.c_str());
+        ImGui::EndTooltip();
+    }
+
+    if (isGroup && open) {
+        auto* group =
+            static_cast<ISystemGroup*>(node.system.get());
+
+        for (const auto& child : group->childGraph().getNodes()) {
+            drawSystemNodeRecursive(child, depth + 1);
+        }
+
+        ImGui::TreePop();
+    }
+
+    ImGui::Unindent(depth * 14.0f);
 }
