@@ -1,4 +1,5 @@
-
+#pragma once
+#include "../ecs/Component.hpp"
 class CState : public Component
 {
 public:
