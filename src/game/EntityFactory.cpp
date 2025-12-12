@@ -206,3 +206,10 @@ Entity EntityFactory::createBallShadow(const Vec3& shadowPos_m) {
 
     return ballShadow;
 }
+Entity EntityFactory::createText(std:string pString, float pCharacterSize, sf::Color pColor, Vec2 pPos, const std::string pFont) {
+    Entity text = m_registry.createEntity("text");
+    auto& cText = m_registry.addComponent<CText>(text, pString, pCharacterSize, pColor, pFont);
+    auto& cTransform = m_registry.addComponent<CTransform>(text, pPos);
+    auto& renderLayer = m_registry.addComponent<CRenderLayer>(text, 0);
+    return text;
+}

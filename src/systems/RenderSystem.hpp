@@ -10,4 +10,5 @@ public:
 private:
     Display3DBoundingBoxes display3DBoundingBoxes;
     void drawBallLogo(GameContext* context, CBall* ballComp, CTransform* transform);
+    void drawText(GameContext* context, CText* text, CTransform* transform)
 };
