@@ -151,7 +151,7 @@ Entity EntityFactory::createPlayerRacket() {
 
     auto& cTransform3D = m_registry.addComponent<CTransform3D>(racket, startPos);
     auto& cVelocity3D = m_registry.addComponent<CVelocity3D>(racket, Vec3());
-
+    m_registry.addComponent<CTransform>(racket);
     // Bounding volume from center
     const Vec3 halfSize = { 0.076f, 0.095f, 0.005f };
     Bounds3D bounds(startPos - halfSize, startPos + halfSize);

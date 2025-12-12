@@ -14,6 +14,7 @@ public:
         m_graph.add<RacketSwingSystem>(m_factory, 0, TickPhase::Fixed);
         m_graph.add<RacketArmSystem>(m_factory, 100, TickPhase::Fixed);
         m_graph.add<RacketHandleSystem>(m_factory, 200, TickPhase::Fixed);
+        m_graph.add<RacketTransformSystem>(m_factory, 300, TickPhase::Fixed);
     }
 
     SystemExec update(GameContext* context) override {

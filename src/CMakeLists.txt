@@ -23,11 +23,13 @@ add_executable(PixelPong
     systems/RacketCollisionSystem.cpp
     systems/RacketSwingSystem.cpp
     systems/RacketHandleSystem.cpp
+    systems/RacketTransformSystem.cpp
     systems/RacketArmSystem.cpp
     systems/BallIntegrateSystem.cpp
     systems/LogoRotationSystem.cpp
     ecs/system/SystemGraph.cpp
     game/scenes/Scene.cpp
+
 )
 
 target_compile_features(PixelPong PRIVATE cxx_std_17)
