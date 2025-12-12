@@ -2,7 +2,7 @@
 
 #include "../components/Components.hpp"
 
-enum class DrawType { Sprite, Logo };
+enum class DrawType { Sprite, Logo, Text };
 
 struct DrawItem {
     int layer;
@@ -10,4 +10,5 @@ struct DrawItem {
     CTransform* transform;
     CAnimation* animation; // only for Sprite
     CBall* ball;           // only for Logo
+    CText* text;
 };

@@ -18,3 +18,4 @@
 #include "CRacketHandle.hpp"
 #include "CRacketSwing.hpp"
 #include "CArm.hpp"
+#include "CText.hpp"
