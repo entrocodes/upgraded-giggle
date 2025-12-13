@@ -12,11 +12,17 @@ public:
     }
 
     void switchTo(const std::string& name) {
+        if (m_current) {
+            m_current->onExit();
+        }
+
         auto it = m_scenes.find(name);
         if (it != m_scenes.end()) {
             m_current = it->second.get();
+            m_current->onEnter();
         }
     }
+
 
     void update() {
         if (m_current) m_current->update();

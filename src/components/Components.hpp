@@ -19,3 +19,4 @@
 #include "CRacketSwing.hpp"
 #include "CArm.hpp"
 #include "CText.hpp"
+#include "CTextButton.hpp"

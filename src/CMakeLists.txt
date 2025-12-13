@@ -29,7 +29,8 @@ add_executable(PixelPong
     systems/LogoRotationSystem.cpp
     ecs/system/SystemGraph.cpp
     game/scenes/Scene.cpp
-
+    helper/FileUtils.cpp
+    game/JsonEntityLoader.cpp
 )
 
 target_compile_features(PixelPong PRIVATE cxx_std_17)
@@ -42,6 +43,8 @@ target_link_libraries(PixelPong
   PUBLIC
     ImGui-SFML::ImGui-SFML
 )
+
+target_link_libraries(PixelPong PRIVATE nlohmann_json::nlohmann_json)
 
 include(Install.cmake)
 add_custom_command(TARGET PixelPong POST_BUILD

@@ -1,0 +1,95 @@
+{
+    "scene": "main_menu",
+    "version": 1,
+    "entities": [
+        {
+            "id": "title",
+            "type": "text",
+            "renderLayer": 5,
+            "transform": {
+                "pos_px": [ 640, 160 ],
+                "rotation": 0,
+                "scale": [ 1.0, 1.0 ]
+            },
+            "text": {
+                "string": "PIXEL PONG",
+                "font": "Tech",
+                "size": 48,
+                "color": [ 255, 255, 255, 255 ],
+                "origin": "center"
+            }
+        },
+        {
+            "id": "startOnePlayer",
+            "type": "textButton",
+            "renderLayer": "5",
+            "transform": {
+                "pos_px": [ 640, 240 ],
+                "rotation": 0,
+                "scale": [ 1.0, 1.0 ]
+            },
+            "text": {
+                "string": "Campaign (DEMO)",
+                "font": "Tech",
+                "size": 32,
+                "color": [ 255, 255, 255, 255 ],
+                "origin": "center"
+            }
+        },
+        {
+            "id": "startTwoPlayer",
+            "type": "text",
+            "renderLayer": "renderLayer",
+            "transform": {
+                "pos_px": [ 640, 320 ],
+                "rotation": 0,
+                "scale": [ 1.0, 1.0 ]
+            },
+            "text": {
+                "string": "VS Mode (Coming Soon)",
+                "font": "Tech",
+                "size": 32,
+                "color": [ 255, 255, 255, 255 ],
+                "origin": "center"
+            }
+        },
+        {
+            "id": "settings",
+            "type": "textButton",
+            "renderLayer": 5,
+            "transform": {
+                "pos_px": [ 640, 440 ],
+                "rotation": 0,
+                "scale": [ 1.0, 1.0 ]
+            },
+            "text": {
+                "string": "Settings",
+                "font": "Tech",
+                "size": 32,
+                "color": [ 255, 255, 255, 255 ],
+                "origin": "center"
+            }
+        },
+        {
+            "id": "quit",
+            "type": "textButton",
+            "renderLayer": 5,
+            "transform": {
+                "pos_px": [ 640, 560 ],
+                "rotation": 0,
+                "scale": [ 1.0, 1.0 ]
+            },
+            "text": {
+                "string": "Quit Game",
+                "font": "Tech",
+                "size": 32,
+                "color": [ 255, 255, 255, 255 ],
+                "origin": "center"
+            },
+            "textButton": {
+                "onClick": "quitGame",
+                "hoverColor": [201, 165, 87, 255 ]
+            }
+        }
+    ]
+}
