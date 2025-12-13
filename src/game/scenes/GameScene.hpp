@@ -11,7 +11,8 @@ public:
 
     void update() override;
     void render() override;
-
+    void onExit() override;
+    void onEnter() override;
 
 
 private:

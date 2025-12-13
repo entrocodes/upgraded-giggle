@@ -14,6 +14,24 @@
 #include "TableParameters.hpp"
 #include "BallSpawnDebug.hpp"
 #include "../ecs/SceneManager.hpp"
+
+struct GlobalIntent {
+    bool quit = false;
+    bool pause = false;
+};
+struct DebugIntent {
+    bool clickSpawnRequested = false;
+    Vec2 clickScreenPos;
+
+    bool stepFrameRequested = false;
+    bool toggleOverlayRequested = false;
+
+    // --- Mouse click info ---
+    bool mouseClicked = false;
+    Vec2 mouseClickPos = { 0, 0 };
+};
+
+
 struct PhysicsDebugSettings {
     Vec3 debugBallSpin = { 0.0f, 0.0f, 0.0f };
     float debugBallHeight = 0.0f;
@@ -34,10 +52,8 @@ struct PhysicsDebugSettings {
 struct MetaInputState {
     bool quit = false;
     bool paused = false;
+    bool returnToMainMenu = false;
 
-    // --- Mouse click info ---
-    bool mouseClicked = false;
-    Vec2 mouseClickPos = { 0, 0 };
 };
 struct LogoDebug {
     float squashScale = 1.0f;
@@ -78,6 +94,7 @@ struct ControllerParameters {
     float sensitivity = 1;
 };
 struct GameContext {
+    DebugIntent debugIntent;
     SceneManager sceneManager;
     BallSpawnDebug ballSpawnDebug;
     float frameAlpha = 0;

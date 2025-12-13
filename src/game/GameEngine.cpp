@@ -2,6 +2,7 @@
 #include <imgui.h>         
 #include <imgui-SFML.h>  
 #include "scenes/GameScene.hpp"
+#include "scenes/MenuScene.hpp"
 #include "../imgui/ImGuiLayer.hpp"
 #include "../display/DisplayUtils.hpp"
 
@@ -13,13 +14,12 @@ GameEngine::GameEngine() {
 
     context.assets.loadFromFile("bin/assets.txt");
     context.sceneManager.registerScene<GameScene>("game", &context);
+    context.sceneManager.registerScene<GameScene>("menu", &context);
     context.sceneManager.switchTo("game");
 }
 
 void GameEngine::run() {
-    if (context.metaInputState.quit) {
-        context.window.close();
-    }
+
     context.window.setVerticalSyncEnabled(true);
     context.window.setFramerateLimit(0);
 
@@ -104,8 +104,15 @@ void GameEngine::run() {
             context.sceneManager.update();
             accumulator -= FIXED_DT;
         }
+        if (context.metaInputState.returnToMainMenu) {
+            context.metaInputState.returnToMainMenu = False;
+            context.sceneManager.switchTo("game"); //THIS WILL BE IMPROVED UPON SOON, WITH A SCENEREQUEST SYSTEM
 
-
+        }
+        if (context.metaInputState.quit) {
+            context.window.close();
+        }
+        
         context.frameAlpha = accumulator / FIXED_DT;
         context.frameStats.dt = realDt;
 

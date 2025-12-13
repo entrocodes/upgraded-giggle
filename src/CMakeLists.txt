@@ -9,9 +9,12 @@ add_executable(PixelPong
     systems/BallForceSystem.cpp
     systems/RenderSystem.cpp
     systems/InputSystem.cpp
-    systems/PlayerInputSystem.cpp
-    systems/MetaInputSystem.cpp
-    systems/PlayerActionSystem.cpp
+    systems/game/intent/PlayerIntentSystem.cpp
+    systems/game/intent/GlobalIntentSystem.cpp
+    systems/game/intent/debug/DebugIntentSystem.cpp
+    systems/game/action/PlayerActionSystem.cpp
+    systems/game/action/GlobalActionSystem.cpp
+    systems/game/action/debug/DebugActionSystem.cpp
     systems/GridDebugSystem.cpp
     systems/BoundarySystem.cpp
     systems/BallRemovalSystem.cpp
@@ -29,8 +32,8 @@ add_executable(PixelPong
     systems/LogoRotationSystem.cpp
     ecs/system/SystemGraph.cpp
     game/scenes/Scene.cpp
-    helper/FileUtils.cpp
-    game/JsonEntityLoader.cpp
+    helpers/FileUtils.cpp
+    game/utils/JsonEntityLoader.cpp
 )
 
 target_compile_features(PixelPong PRIVATE cxx_std_17)

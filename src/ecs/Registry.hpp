@@ -114,6 +114,13 @@ public:
                 ++it;
         }
     }
+    void removeAllEntities() {
+        m_entities.clear();
+        m_nameLookup.clear();
+        m_components.clear();
+        m_nextEntityId = 0;
+    }
+
 private:
     std::uint32_t m_nextEntityId = 0;
     std::vector<Entity> m_entities;

@@ -1,12 +1,22 @@
 # build-run.ps1
-# Navigate to the build folder
+
 Set-Location -Path "C:\PixelPong\PixelPong-build"
 
-# Optional: run CMake configure if needed (only once)
+Write-Host "Configuring project..."
 cmake -DBUILD_SHARED_LIBS=OFF ../PixelPong
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "CMake configure failed"
+    exit $LASTEXITCODE
+}
 
-# Build the project
+Write-Host "Building project..."
 cmake --build . --config Debug
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Build failed"
+    exit $LASTEXITCODE
+}
 
-# Run the executable and wait
-Start-Process ".\src\Debug\PixelPong.exe" -WorkingDirectory ".\src\Debug" -Wait
+Write-Host "Build succeeded. Launching PixelPong..."
+Start-Process ".\src\Debug\PixelPong.exe" `
+    -WorkingDirectory ".\src\Debug" `
+    -Wait

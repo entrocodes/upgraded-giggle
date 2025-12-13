@@ -2,9 +2,12 @@
 
 // system includes ONLY needed here
 #include "../systems/InputSystem.hpp"
-#include "../systems/MetaInputSystem.hpp"
-#include "../systems/PlayerInputSystem.hpp"
-#include "../systems/PlayerActionSystem.hpp"
+#include "../systems/game/intent/PlayerIntentSystem.hpp"
+#include "../systems/game/action/PlayerActionSystem.hpp"
+#include "../systems/game/intent/GlobalIntentSystem.hpp"
+#include "../systems/game/action/GlobalActionSystem.hpp"
+#include "../systems/game/intent/debug/DebugIntentSystem.hpp"
+#include "../systems/game/action/debug/DebugActionSystem.hpp"
 #include "../systems/groups/MovementSystemGroup.hpp"
 #include "../systems/BallRemovalSystem.hpp"
 #include "../systems/AnimationSystem.hpp"
@@ -20,6 +23,8 @@ GameScene::GameScene(GameContext* context)
     , m_factory(context) {
 
     m_systems = &systemGraph;
+}
+void GameScene::onEnter() {
     // --- Camera / static setup (still scene responsibility) ---
     std::array<Vec2, 4> imagePoints = {
     Vec2{531.f, 497.f},
@@ -49,8 +54,11 @@ GameScene::GameScene(GameContext* context)
     // --- System wiring ---
     systemGraph.add<FrameStatsSystem>(m_factory, 0, TickPhase::Fixed, NotPausable);
     systemGraph.add<InputSystem>(m_factory, 10, TickPhase::Fixed, NotPausable);
-    systemGraph.add<MetaInputSystem>(m_factory, 20, TickPhase::Fixed, NotPausable);   // quit / pause
-    systemGraph.add<PlayerInputSystem>(m_factory, 30, TickPhase::Fixed, NotPausable);
+    systemGraph.add<GlobalIntentSystem>(m_factory, 20, TickPhase::Fixed, NotPausable);  
+    systemGraph.add<GlobalActionSystem>(m_factory, 20, TickPhase::Fixed, NotPausable);
+    systemGraph.add<DebugIntentSystem>(m_factory, 20, TickPhase::Fixed, NotPausable);
+    systemGraph.add<DebugActionSystem>(m_factory, 20, TickPhase::Fixed, NotPausable);
+    systemGraph.add<PlayerIntentSystem>(m_factory, 30, TickPhase::Fixed, NotPausable);
     systemGraph.add<PlayerActionSystem>(m_factory, 50, TickPhase::Fixed, NotPausable);
     systemGraph.add<RacketMovementSystemGroup>(m_factory, 60, TickPhase::Fixed, Pausable, m_factory);
     systemGraph.add<MovementSystemGroup>(m_factory, 100, TickPhase::Fixed, Pausable, m_factory);
@@ -67,4 +75,7 @@ void GameScene::update() {
 
 void GameScene::render() {
     systemGraph.run(m_context, TickPhase::Render);
+}
+void GameScene::onExit() {
+    context->registry.removeAllEntities();
 }

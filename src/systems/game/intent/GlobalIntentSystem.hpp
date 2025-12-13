@@ -8,7 +8,7 @@
 #include "../ecs/system/ISystem.hpp"
 
 
-class MetaInputSystem : public ISystem {
+class GlobalIntentSystem : public ISystem {
 public:
     SystemExec update(GameContext* context);
 };

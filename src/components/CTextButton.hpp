@@ -9,6 +9,7 @@ public:
 	sf::Color hoverColor = sf::Color::Red;
 	std::string command;
 
-	CTextButton(sf::Color pHoverColor, std::string pCommand) : hoverColor(pHoverColor), command(pCommand) {}
+	CTextButton() = default;
+	explicit CTextButton(sf::Color pHoverColor, std::string pCommand) : hoverColor(pHoverColor), command(pCommand) {}
 
 };
