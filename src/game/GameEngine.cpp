@@ -3,7 +3,7 @@
 #include <imgui-SFML.h>  
 #include "scenes/GameScene.hpp"
 #include "scenes/MenuScene.hpp"
-#include "../imgui/ImGuiLayer.hpp"
+#include "../systems/game/imgui/ImGuiLayer.hpp"
 #include "../display/DisplayUtils.hpp"
 
 GameEngine::GameEngine() {

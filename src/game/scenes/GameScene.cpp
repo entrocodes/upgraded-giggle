@@ -16,7 +16,7 @@
 #include "../systems/RenderSystem.hpp"
 #include "../systems/groups/RacketMovementSystemGroup.hpp"
 #include "../systems/FrameStatsSystem.hpp"
-#include "../imgui/ImGuiLayer.hpp"
+#include "../systems/game/imgui/ImGuiLayer.hpp"
 #include "../ecs/system/TickPhase.hpp"
 GameScene::GameScene(GameContext* context)
     : m_context(context)
@@ -69,6 +69,8 @@ void GameScene::onEnter() {
     m_context->entityFactory.createPlayer();
     m_context->entityFactory.createPlayerRacket();
 
+    m_context->imGuiState.showGame = true;
+
 }
 void GameScene::update() {
     systemGraph.run(m_context, TickPhase::Fixed);
@@ -79,4 +81,5 @@ void GameScene::render() {
 }
 void GameScene::onExit() {
     m_context->registry.removeAllEntities();
+    m_context->imGuiState.showGame = false;
 }

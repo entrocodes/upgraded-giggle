@@ -15,6 +15,10 @@
 #include "BallSpawnDebug.hpp"
 #include "../ecs/SceneManager.hpp"
 
+struct ImGuiState {
+    bool showGame = false;
+    bool showMenu = false;
+};
 struct GlobalIntent {
     bool quit = false;
     bool paused = false;
@@ -106,6 +110,7 @@ struct ControllerParameters {
     float sensitivity = 1;
 };
 struct GameContext {
+    ImGuiState imGuiState;
     MainMenuIntent mainMenuIntent;
     GlobalIntent globalIntent;
     DebugIntent debugIntent;
