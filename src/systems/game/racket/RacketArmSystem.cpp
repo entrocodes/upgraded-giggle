@@ -13,11 +13,11 @@ SystemExec RacketArmSystem::update(GameContext* context) {
     if (!input || !arm || !handle || !playerPos) return { SystemExecResult::EarlyExit, "player entity missing a component" };
 
     Entity racket = handle->racketEntity;
-    auto [cPos, cVel] =
+    auto [racketPos, racketVel] =
         context->registry.getComponents<CTransform3D, CVelocity3D>(racket);
-    if (!cPos || !cVel) return { SystemExecResult::EarlyExit, "racket entity missing components" };
+    if (!racketPos || !racketVel) return { SystemExecResult::EarlyExit, "racket entity missing components" };
 
-    Vec3 lastPos = cPos->pos_m;
+    Vec3 lastPos = racketPos->pos_m;
 
     // --------------------------------------------------
     // 1) Shoulder follows player (THIS WAS THE MISSING LINK)
@@ -61,7 +61,7 @@ SystemExec RacketArmSystem::update(GameContext* context) {
     // --------------------------------------------------
     // 5) Commit transform + velocity
     // --------------------------------------------------
-    cVel->vel_mps = (finalPos - lastPos) / context->frameStats.dt;
-    cPos->pos_m = finalPos;
+    racketVel->vel_mps = (finalPos - lastPos) / context->frameStats.dt;
+    racketPos->pos_m = finalPos;
     return { SystemExecResult::Ran };
 }

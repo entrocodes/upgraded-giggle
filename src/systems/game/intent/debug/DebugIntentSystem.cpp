@@ -1,8 +1,8 @@
-#include "DebugInputSystem.hpp"
+#include "DebugIntentSystem.hpp"
 #include "../input/RawInputState.hpp"
 
 
-SystemExec DebugInputSystem::update(GameContext* context) {
+SystemExec DebugIntentSystem::update(GameContext* context) {
     if (context->inputBlocked) return { SystemExecResult::EarlyExit };
 
     auto& intent = context->debugIntent;

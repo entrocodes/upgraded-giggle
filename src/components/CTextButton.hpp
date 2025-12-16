@@ -8,8 +8,12 @@ class CTextButton : public Component
 public:
 	sf::Color hoverColor = sf::Color::Red;
 	std::string command;
-
+	int order = 0;
+	bool isHovered = false;
+	bool isSelected = false;
+	bool wasSelected = false;
+	bool wasHovered = false;
 	CTextButton() = default;
-	explicit CTextButton(sf::Color pHoverColor, std::string pCommand) : hoverColor(pHoverColor), command(pCommand) {}
+	explicit CTextButton(sf::Color pHoverColor, std::string pCommand, int pOrder) : hoverColor(pHoverColor), command(pCommand), order(pOrder) {}
 
 };

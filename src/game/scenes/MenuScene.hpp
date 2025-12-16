@@ -5,13 +5,14 @@
 #include "../ecs/system/SystemGraph.hpp"
 #include "../ecs/system/SystemFactory.hpp"
 
-class GameScene final : public Scene {
+class MenuScene final : public Scene {
 public:
-    explicit GameScene(GameContext* context);
+    explicit MenuScene(GameContext* context);
 
     void update() override;
     void render() override;
-
+    void onEnter() override;
+    void onExit() override;
 
 
 private:

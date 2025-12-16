@@ -7,12 +7,15 @@
 class CText : public Component
 {
 public:
+	sf::Text drawable;
 	std::string sString = "Hello World";
 	std::string sFont = "Tech";
 	float characterSize = 32.0f;
 	sf::Color color = sf::Color::White;
+	sf::Color defaultColor = sf::Color::White;
 	bool visible = true;
-	float opacity = 1.f;
+	bool dirty = true;
+	bool wasDirty = true;
 	CText() = default;
-	explicit CText(std::string& pString, float pCharacterSize, sf::Color pColor, const std::string& pFont) : sString(pString), characterSize(pCharacterSize), color(pColor), sFont(pFont) {}
+	explicit CText(std::string& pString, float pCharacterSize, sf::Color pColor, const std::string& pFont) : sString(pString), characterSize(pCharacterSize), color(pColor), defaultColor(pColor), sFont(pFont) {}
 };

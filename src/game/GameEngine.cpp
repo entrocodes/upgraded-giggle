@@ -14,7 +14,7 @@ GameEngine::GameEngine() {
 
     context.assets.loadFromFile("bin/assets.txt");
     context.sceneManager.registerScene<GameScene>("game", &context);
-    context.sceneManager.registerScene<GameScene>("menu", &context);
+    context.sceneManager.registerScene<MenuScene>("menu", &context);
     context.sceneManager.switchTo("game");
 }
 
@@ -105,8 +105,8 @@ void GameEngine::run() {
             accumulator -= FIXED_DT;
         }
         if (context.metaInputState.returnToMainMenu) {
-            context.metaInputState.returnToMainMenu = False;
-            context.sceneManager.switchTo("game"); //THIS WILL BE IMPROVED UPON SOON, WITH A SCENEREQUEST SYSTEM
+            context.metaInputState.returnToMainMenu = false ;
+            context.sceneManager.switchTo("menu"); //THIS WILL BE IMPROVED UPON SOON, WITH A SCENEREQUEST SYSTEM
 
         }
         if (context.metaInputState.quit) {

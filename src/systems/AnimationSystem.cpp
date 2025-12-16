@@ -41,7 +41,7 @@ SystemExec AnimationSystem::updatePlayer(GameContext* context) {
     }
     else {
         auto* bb = context->registry.getComponent<CBoundingBox>(*player);
-        bb->rect = s.getLocalBounds();
+        bb->box = s.getLocalBounds();
     }
 
     return {SystemExecResult::Ran};

@@ -1,65 +1,92 @@
-#include "LoadEntitiesFromJson.hpp"
+#include "JsonEntityLoader.hpp"
 #include "../helpers/FileUtils.hpp"
 #include <nlohmann/json.hpp>
-
+#include "../components/Components.hpp"
 namespace JsonEntityLoader {
 
-    void loadEntitiesFromJson(GameContext* context, std::string& path) {
+    void loadEntitiesFromJson(GameContext* context, const std::string& path) {
         using json = nlohmann::json;
-
-        json scene = json::parse(FileUtils::readFileToString(path));
-
-        const json& entities = scene["entities"];
-
-        for (const json& entityJson : entities) {
-            loadEntity(context, entityJson);
+        try {
+            json scene = json::parse(FileUtils::readFileToString(path));
+            for (const auto& entityJson : scene.at("entities")) {
+                loadEntity(context, entityJson);
+            }
+        }
+        catch (const std::exception& e) {
+            // replace with your logger
+            throw std::runtime_error(std::string("JSON load failed: ") + e.what() + " (path=" + path + ")");
         }
     }
-    void LoadEntitiesFromJson::loadEntity(GameContext* context, const nlohmann::json& entityJson) {
-        std::string id = entityJson["id"];
-        std::string type = entityJson["type"];
-        int renderLayer = entityJson["renderLayer"];
+
+    void loadEntity(GameContext* context, const nlohmann::json& entityJson) {
+        using json = nlohmann::json;
+
+        const std::string id = entityJson.at("id").get<std::string>();
+        const std::string type = entityJson.at("type").get<std::string>();
+
+        // robust renderLayer: allow int or string int
+        int renderLayer = 0;
+        const auto& rl = entityJson.at("renderLayer");
+        if (rl.is_number_integer()) {
+            renderLayer = rl.get<int>();
+        }
+        else if (rl.is_string()) {
+            renderLayer = std::stoi(rl.get<std::string>());
+        }
+        else {
+            throw std::runtime_error("renderLayer must be int or string-int for entity: " + id);
+        }
+
         Entity entity = context->registry.createEntity(id);
 
-        const auto& t = entityJson["transform"];
-        float x = t["pos_px"][0];
-        float y = t["pos_px"][1];
-        float sX = t["scale"][0];
-        float sY = t["scale"][1];
-        float rot = t["rotation"];
+        const auto& t = entityJson.at("transform");
+        const auto& pos = t.at("pos_px");
+        const auto& scale = t.at("scale");
+
+        float x = pos.at(0).get<float>();
+        float y = pos.at(1).get<float>();
+        float sX = scale.at(0).get<float>();
+        float sY = scale.at(1).get<float>();
+        float rot = t.at("rotation").get<float>();
 
         context->registry.addComponent<CRenderLayer>(entity, renderLayer);
-        context->registry.addComponent<CTransform>(entity, Vec2(x, y), Vec2(sX, xY), rot);
+        context->registry.addComponent<CTransform>(entity, Vec2(x, y), Vec2(sX, sY), rot);
+
         if (type == "text" || type == "textButton") {
-            const auto& textJson = entityJson["text"];
+            const auto& textJson = entityJson.at("text");
 
-            std::string str = textJson["string"];
-            std::string font = textJson["font"];
-            int size = textJson["size"];
+            std::string str = textJson.at("string").get<std::string>();
+            std::string font = textJson.at("font").get<std::string>();
+            int size = textJson.at("size").get<int>();
 
+            const auto& c = textJson.at("color");
             sf::Color color(
-                textJson["color"][0],
-                textJson["color"][1],
-                textJson["color"][2],
-                textJson["color"][3]
+                c.at(0).get<sf::Uint8>(),
+                c.at(1).get<sf::Uint8>(),
+                c.at(2).get<sf::Uint8>(),
+                c.at(3).get<sf::Uint8>()
             );
 
-            context->registry.addComponent<CText>(entity, str, size, color, font);
+            context->registry.addComponent<CText>(entity, str, (float)size, color, font);
         }
 
         if (type == "textButton" && entityJson.contains("textButton")) {
-            const auto& btn = entityJson["textButton"];
+            const auto& btn = entityJson.at("textButton");
 
+            const auto& hc = btn.at("hoverColor");
             sf::Color hoverColor(
-                btn["hoverColor"][0],
-                btn["hoverColor"][1],
-                btn["hoverColor"][2],
-                btn["hoverColor"][3]
+                hc.at(0).get<sf::Uint8>(),
+                hc.at(1).get<sf::Uint8>(),
+                hc.at(2).get<sf::Uint8>(),
+                hc.at(3).get<sf::Uint8>()
             );
 
-            std::string command = btn["onClick"];
-
-            context->registry.addComponent<CTextButton>(entity, hoverColor, command);
+            std::string command = btn.at("onClick").get<std::string>();
+            int order = btn.at("order").get<int>();
+            context->registry.addComponent<CTextButton>(entity, hoverColor, command, order);
+            context->registry.addComponent<CBoundingBox>(entity);
         }
     }
+
+
 }

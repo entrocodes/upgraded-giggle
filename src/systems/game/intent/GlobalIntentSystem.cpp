@@ -1,10 +1,9 @@
 #include "GlobalIntentSystem.hpp"
 
 SystemExec GlobalIntentSystem::update(GameContext* context) {
-    MetaInputState& state = context->metaInputState;
     if (context->inputBlocked) return {SystemExecResult::EarlyExit};
 
-    auto& intent = context->globlIntent;
+    auto& intent = context->globalIntent;
     intent = {}; // clear per-frame
 
     // Quit on Escape
@@ -21,10 +20,9 @@ SystemExec GlobalIntentSystem::update(GameContext* context) {
     bool pIsDown = context->rawInput.isKeyDown(sf::Keyboard::P);
 
     if (pIsDown && !pWasDown) {
-        intent.pause = true;
+        intent.paused = true;
     }
     pWasDown = pIsDown;
-
 
     return {SystemExecResult::Ran};
 }

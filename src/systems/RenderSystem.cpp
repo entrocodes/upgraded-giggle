@@ -28,7 +28,7 @@ SystemExec RenderSystem::update(GameContext* context) {
     for (auto e : context->registry.getEntitiesWith<CText, CTransform, CRenderLayer>()) {
         auto [text, t, rl] = context->registry.getComponents<CText, CTransform, CRenderLayer>(e);
         if (!text || !t || !rl) continue;
-        if (!text.visible || text.opacity <= 0.f) continue;
+        if (!text->visible) continue;
 
         drawList.push_back({ rl->layer, DrawType::Text, t, nullptr, nullptr, text });
     }
@@ -62,7 +62,7 @@ SystemExec RenderSystem::update(GameContext* context) {
             drawBallLogo(context, item.ball, item.transform);
         }
         else if (item.type == DrawType::Text) {
-            drawText(context, item.text, item.transform);
+            context->window.draw(item.text->drawable);
         }
     }
     if (context->camera.homography.drawGrid) {
@@ -242,26 +242,4 @@ void RenderSystem::drawBallLogo(GameContext* context, CBall* ballComp, CTransfor
             context->window.draw(quad, states);
         }
     }
-}
-void RenderSystem::drawText(GameContext* context, CText* text, CTransform* transform)
-{
-    if (!text.visible || text.opacity <= 0.f) return;
-
-    // 1) Fetch texture
-    sf::Font& font = context->assets.getFont(text->sFont);
-    sf::Text text;
-    text.setFont(font);
-    text.setString(text->sString);
-    text.setCharacterSize(text->characterSize);
-    text.setFillColor(text->color);
-    // === Interpolated position ===
-    float alpha = context->frameAlpha;
-    item.transform->renderPos =
-        item.transform->lastPos * (1.f - alpha) +
-        item.transform->pos * alpha;
-
-    // Use renderPos instead of pos
-    const auto& renderPos = item.transform->renderPos;
-    text.setPosition(transform->renderPos);
-    context->window.draw(text);
 }

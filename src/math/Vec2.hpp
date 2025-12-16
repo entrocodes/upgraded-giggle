@@ -1,6 +1,7 @@
 #pragma once
 #include <cmath>
-
+#include <SFML/System.hpp>
+#include <SFML/Graphics.hpp>
 struct Vec2 {
     float x = 0.f;
     float y = 0.f;
@@ -24,4 +25,10 @@ struct Vec2 {
 
     float length() const { return std::sqrt(x * x + y * y); }
     Vec2 normalized() const { float len = length(); return len != 0 ? (*this / len) : Vec2{}; }
+    sf::Vector2f toVector2f() {
+        return sf::Vector2f(x, y);
+    }
+    bool intersects(const sf::FloatRect& rect) const {
+        return rect.contains(x, y);  
+    }
 };

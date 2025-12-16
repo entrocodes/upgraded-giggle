@@ -23,38 +23,11 @@ GameScene::GameScene(GameContext* context)
     , m_factory(context) {
 
     m_systems = &systemGraph;
-}
-void GameScene::onEnter() {
-    // --- Camera / static setup (still scene responsibility) ---
-    std::array<Vec2, 4> imagePoints = {
-    Vec2{531.f, 497.f},
-    Vec2{619.f, 231.f},
-    Vec2{842.f, 497.f},
-    Vec2{760.f, 231.f}
-    };
-
-    std::array<Vec2, 4> worldPoints = {
-        Vec2{0.f, 0.f},
-        Vec2{0.f, context->tableParameters.tableLength},
-        Vec2{context->tableParameters.tableWidth, 0.f},
-        Vec2{
-            context->tableParameters.tableWidth,
-            context->tableParameters.tableLength
-        }
-    };
-
-
-    context->camera.homography.calibrate(imagePoints, worldPoints);
-    context->entityFactory.createBackground();
-    context->entityFactory.createTable();
-    context->entityFactory.createNet();
-    context->entityFactory.createPlayer();
-    context->entityFactory.createPlayerRacket();
 
     // --- System wiring ---
     systemGraph.add<FrameStatsSystem>(m_factory, 0, TickPhase::Fixed, NotPausable);
     systemGraph.add<InputSystem>(m_factory, 10, TickPhase::Fixed, NotPausable);
-    systemGraph.add<GlobalIntentSystem>(m_factory, 20, TickPhase::Fixed, NotPausable);  
+    systemGraph.add<GlobalIntentSystem>(m_factory, 20, TickPhase::Fixed, NotPausable);
     systemGraph.add<GlobalActionSystem>(m_factory, 20, TickPhase::Fixed, NotPausable);
     systemGraph.add<DebugIntentSystem>(m_factory, 20, TickPhase::Fixed, NotPausable);
     systemGraph.add<DebugActionSystem>(m_factory, 20, TickPhase::Fixed, NotPausable);
@@ -69,6 +42,34 @@ void GameScene::onEnter() {
     systemGraph.add<RenderSystem>(m_factory, 1000, TickPhase::Render, NotPausable);
     systemGraph.add<ImGuiLayer>(m_factory, 1200, TickPhase::Render, NotPausable);
 }
+void GameScene::onEnter() {
+    // --- Camera / static setup (still scene responsibility) ---
+    std::array<Vec2, 4> imagePoints = {
+    Vec2{531.f, 497.f},
+    Vec2{619.f, 231.f},
+    Vec2{842.f, 497.f},
+    Vec2{760.f, 231.f}
+    };
+
+    std::array<Vec2, 4> worldPoints = {
+        Vec2{0.f, 0.f},
+        Vec2{0.f, m_context->tableParameters.tableLength},
+        Vec2{m_context->tableParameters.tableWidth, 0.f},
+        Vec2{
+            m_context->tableParameters.tableWidth,
+            m_context->tableParameters.tableLength
+        }
+    };
+
+
+    m_context->camera.homography.calibrate(imagePoints, worldPoints);
+    m_context->entityFactory.createBackground();
+    m_context->entityFactory.createTable();
+    m_context->entityFactory.createNet();
+    m_context->entityFactory.createPlayer();
+    m_context->entityFactory.createPlayerRacket();
+
+}
 void GameScene::update() {
     systemGraph.run(m_context, TickPhase::Fixed);
 }
@@ -77,5 +78,5 @@ void GameScene::render() {
     systemGraph.run(m_context, TickPhase::Render);
 }
 void GameScene::onExit() {
-    context->registry.removeAllEntities();
+    m_context->registry.removeAllEntities();
 }

@@ -93,6 +93,58 @@ void ImGuiLayer::drawDeveloperPanel(GameContext* context) {
             ballRemoval.removeAll(context);
         }
     }
+    // ================= BALL SPAWN DEBUG =================
+    if (ImGui::CollapsingHeader("Ball Spawn Debug")) {
+        auto& dbg = context->ballSpawnDebug;
+
+        ImGui::Checkbox("Auto Spawn", &dbg.autoSpawn);
+
+        ImGui::SliderFloat(
+            "Spawn Interval (s)",
+            &dbg.interval,
+            0.05f,
+            3.0f
+        );
+
+        ImGui::SliderFloat(
+            "Feed Speed",
+            &dbg.feedSpeed,
+            0.2f,
+            6.0f
+        );
+
+        const char* modes[] = {
+            "Toward Racket",
+            "Fixed Position",
+            "Alternate L / R"
+        };
+
+        int mode = static_cast<int>(dbg.mode);
+        if (ImGui::Combo("Spawn Mode", &mode, modes, IM_ARRAYSIZE(modes))) {
+            dbg.mode = static_cast<BallSpawnMode>(mode);
+        }
+
+        if (dbg.mode != BallSpawnMode::TowardRacket) {
+            ImGui::DragFloat3(
+                "Left Spawn Pos",
+                &dbg.fixedPosLeft.x,
+                0.01f
+            );
+
+            if (dbg.mode == BallSpawnMode::AlternateLeftRight) {
+                ImGui::DragFloat3(
+                    "Right Spawn Pos",
+                    &dbg.fixedPosRight.x,
+                    0.01f
+                );
+            }
+        }
+
+        if (ImGui::Button("Spawn Ball Now")) {
+            spawnDebugBall(context);
+        }
+    }
+
 
     // ================= LOGO DEBUG =================
     if (ImGui::CollapsingHeader("Logo Debug")) {

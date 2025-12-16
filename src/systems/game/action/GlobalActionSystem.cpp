@@ -1,6 +1,6 @@
 #include "GlobalActionSystem.hpp"
 
-SystemExec DebugActionSystem::update(GameContext* context) {
+SystemExec GlobalActionSystem::update(GameContext* context) {
     auto& intent = context->globalIntent;
     auto& metaState = context->metaInputState;
 
@@ -8,8 +8,8 @@ SystemExec DebugActionSystem::update(GameContext* context) {
     if (intent.quit) {
         metaState.returnToMainMenu = true;
     }
-    if (intent.pause) {
-        metaState.pause = true;
+    if (intent.paused) {
+        metaState.paused = true;
     }
     return { SystemExecResult::Ran };
 }

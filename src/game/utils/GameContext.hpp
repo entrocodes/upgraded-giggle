@@ -17,7 +17,7 @@
 
 struct GlobalIntent {
     bool quit = false;
-    bool pause = false;
+    bool paused = false;
 };
 struct DebugIntent {
     bool clickSpawnRequested = false;
@@ -30,8 +30,20 @@ struct DebugIntent {
     bool mouseClicked = false;
     Vec2 mouseClickPos = { 0, 0 };
 };
+enum class MenuDirection {
+    None,
+    Up,
+    Down
+};
 
+struct MainMenuIntent {
+    bool menuSelectRequested = false;
 
+    bool mouseOverriddenJoystick = false;
+    int mouseHoverOrder = 0;
+    Vec2 mouseClickPos = { 0, 0 };
+    MenuDirection menuSelectionInput = MenuDirection::None;
+};
 struct PhysicsDebugSettings {
     Vec3 debugBallSpin = { 0.0f, 0.0f, 0.0f };
     float debugBallHeight = 0.0f;
@@ -94,6 +106,8 @@ struct ControllerParameters {
     float sensitivity = 1;
 };
 struct GameContext {
+    MainMenuIntent mainMenuIntent;
+    GlobalIntent globalIntent;
     DebugIntent debugIntent;
     SceneManager sceneManager;
     BallSpawnDebug ballSpawnDebug;
