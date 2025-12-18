@@ -3,28 +3,32 @@
 #include <SFML/Graphics.hpp>
 
 SystemExec DirtyTextSystem::update(GameContext* context) {
-    for (Entity e : context->registry.getEntitiesWith<CText>()) {
+    float alpha = context->frameAlpha;
+
+    for (Entity e : context->registry.getEntitiesWith<CText, CTransform>()) {
         auto [cText, cTransform] = context->registry.getComponents<CText, CTransform>(e);
-        cText->wasDirty = cText->dirty;
-        if (!cText->dirty) continue;
 
-        const sf::Font& font = context->assets.getFont(cText->sFont);
+        // 1. Update visual state ONLY if dirty
+        cText->wasDirty = cText->isDirty;
+        if (cText->isDirty) {
+            const sf::Font& font = context->assets.getFont(cText->sFont);
+            cText->drawable.setFont(font);
+            cText->drawable.setString(cText->sString);
+            cText->drawable.setCharacterSize(cText->characterSize);
+            cText->drawable.setFillColor(cText->color);
 
-        cText->drawable.setFont(font);
-        cText->drawable.setString(cText->sString);
-        cText->drawable.setCharacterSize(cText->characterSize);
-        cText->drawable.setFillColor(cText->color);
-        
-        // Use renderPos instead of pos
-            // === Interpolated position ===
-        float alpha = context->frameAlpha;
-        cTransform->renderPos =
-            cTransform->lastPos * (1.f - alpha) +
-            cTransform->pos * alpha;
+            // Re-center origin because text bounds changed
+            sf::FloatRect textRect = cText->drawable.getLocalBounds();
+            cText->drawable.setOrigin(textRect.left + textRect.width / 2.0f,
+                textRect.top + textRect.height / 2.0f);
 
-        const auto& renderPos = cTransform->renderPos;
+            cText->isDirty = false;
+        }
+
+        // 2. ALWAYS update position (Interpolation)
+        // This ensures that even if the text doesn't change, it follows the CTransform
+        cTransform->renderPos = cTransform->lastPos * (1.f - alpha) + cTransform->pos * alpha;
         cText->drawable.setPosition(cTransform->renderPos.toVector2f());
-        cText->dirty = false;
     }
     return { SystemExecResult::Ran };
 }

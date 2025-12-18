@@ -23,7 +23,8 @@ add_executable(PixelPong
     systems/BoundarySystem.cpp
     systems/BallRemovalSystem.cpp
     systems/AnimationSystem.cpp
-    systems/game/imgui/ImGuiLayer.cpp
+    systems/game/imgui/GameImGuiSystem.cpp
+    systems/menu/imgui/MenuImGuiSystem.cpp
     math/TableHomography.cpp
     systems/RenderLayerSystem.cpp
     systems/NetCollisionSystem.cpp
@@ -35,6 +36,7 @@ add_executable(PixelPong
     systems/BallIntegrateSystem.cpp
     systems/LogoRotationSystem.cpp
     systems/DirtyTextSystem.cpp
+    systems/Sync3Dto2DSystem.cpp
     ecs/system/SystemGraph.cpp
     game/scenes/Scene.cpp
     helpers/FileUtils.cpp

@@ -7,6 +7,7 @@
 #include "../systems/TransformSaveSystem.hpp"
 #include "../ecs/system/ISystemGroup.hpp"
 #include "../ecs/system/SystemFactory.hpp"
+#include "../systems/Sync3Dto2DSystem.hpp"
 class MovementSystemGroup final : public ISystemGroup {
 public:
     explicit MovementSystemGroup(SystemFactory& factory)
@@ -16,6 +17,7 @@ public:
         m_graph.add<BallPhysicsSystemGroup>(m_factory, 100, TickPhase::Fixed, Pausable, m_factory);
         m_graph.add<PlayerMovementSystem>(m_factory, 200, TickPhase::Fixed);
         m_graph.add<BoundarySystem>(m_factory, 300, TickPhase::Fixed);
+        m_graph.add<Sync3Dto2DSystem>(m_factory, 400, TickPhase::Fixed);
     }
 
     SystemExec update(GameContext* context) override {

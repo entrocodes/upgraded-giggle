@@ -1,4 +1,4 @@
-﻿#include "ImGuiLayer.hpp"
+﻿#include "GameImGuiSystem.hpp"
 #include <imgui.h>         
 #include <imgui-SFML.h>   
 #include "../ecs/system/TickPhase.hpp"
@@ -8,7 +8,7 @@
 #include "../debug/Debug.hpp"
 
 
-SystemExec ImGuiLayer::update(GameContext* context) {
+SystemExec GameImGuiSystem::update(GameContext* context) {
     ImGuiIO& io = ImGui::GetIO();
     io.DisplaySize = ImVec2(
         context->display.windowSize.x,
@@ -35,10 +35,10 @@ SystemExec ImGuiLayer::update(GameContext* context) {
     return { SystemExecResult::Ran };
 }
 
-void ImGuiLayer::drawDeveloperPanel(GameContext* context) {
+void GameImGuiSystem::drawDeveloperPanel(GameContext* context) {
     BallRemovalSystem ballRemoval;
 
-    ImGui::Begin("Developer Panel##Game", &context->imGuiState.showGame,
+    ImGui::Begin("Developer Panel##Game", nullptr,
         ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse);
 
     // ================= DISPLAY =================
@@ -138,7 +138,26 @@ void ImGuiLayer::drawDeveloperPanel(GameContext* context) {
             spawnDebugBall(context);
         }
     }
+    //Player Debug:
+    if (ImGui::CollapsingHeader("Player Debug", ImGuiTreeNodeFlags_DefaultOpen)) {
+        Entity* player = context->registry.getEntity("player");
+        if (player) {
+            auto* t3d = context->registry.getComponent<CTransform3D>(*player);
+            auto* t2d = context->registry.getComponent<CTransform>(*player);
+            auto* state = context->registry.getComponent<CState>(*player);
 
+            if (t3d) ImGui::Text("3D Pos: %.2f, %.2f, %.2f", t3d->pos_m.x, t3d->pos_m.y, t3d->pos_m.z);
+            if (t2d) ImGui::Text("2D Pos: %.1f, %.1f", t2d->pos.x, t2d->pos.y);
+            if (state) ImGui::Text("State: %s", state->state.c_str());
+
+            if (ImGui::Button("Reset Player Pos")) {
+                t3d->pos_m = { 0.f, -context->tableParameters.tableHeight, -0.5f };
+            }
+        }
+        else {
+            ImGui::TextColored(ImVec4(1, 0, 0, 1), "PLAYER ENTITY NOT FOUND");
+        }
+    }
 
     // ================= LOGO DEBUG =================
     if (ImGui::CollapsingHeader("Logo Debug")) {
@@ -168,8 +187,8 @@ void ImGuiLayer::drawDeveloperPanel(GameContext* context) {
 
     ImGui::End();
 }
-void ImGuiLayer::drawRacketDebug(GameContext* context) {
-    ImGui::Begin("Racket Debug##Game", &context->imGuiState.showGame,
+void GameImGuiSystem::drawRacketDebug(GameContext* context) {
+    ImGui::Begin("Racket Debug##Game", nullptr,
         ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse);
 
     Entity* player = context->registry.getEntity("player");
@@ -207,8 +226,8 @@ void ImGuiLayer::drawRacketDebug(GameContext* context) {
 
     ImGui::End();
 }
-void ImGuiLayer::drawControllerDebug(GameContext* context) {
-    ImGui::Begin("Controller Debug##Game", &context->imGuiState.showGame,
+void GameImGuiSystem::drawControllerDebug(GameContext* context) {
+    ImGui::Begin("Controller Debug##Game", nullptr,
         ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse);
 
     bool connected = sf::Joystick::isConnected(0);
@@ -216,12 +235,12 @@ void ImGuiLayer::drawControllerDebug(GameContext* context) {
 
     ImGui::End();
 }
-void ImGuiLayer::drawSystemExecution(GameContext* context) {
-    ImGui::Begin("System Execution##Game", &context->imGuiState.showGame);
+void GameImGuiSystem::drawSystemExecution(GameContext* context) {
+    ImGui::Begin("System Execution##Game", nullptr);
 
     Scene* scene = context->sceneManager.currentScene();
-    if (!scene) {
-        ImGui::TextDisabled("No active scene");
+    if (!scene || scene->systems().getNodes().empty()) {
+        ImGui::Text("Loading systems...");
         ImGui::End();
         return;
     }
@@ -235,7 +254,7 @@ void ImGuiLayer::drawSystemExecution(GameContext* context) {
     ImGui::End();
 }
 
-void ImGuiLayer::spawnDebugBall(GameContext* context) {
+void GameImGuiSystem::spawnDebugBall(GameContext* context) {
     auto* player = context->registry.getEntity("player");
     if (!player) return;
 
@@ -299,7 +318,7 @@ void ImGuiLayer::spawnDebugBall(GameContext* context) {
     }
 }
 
-void ImGuiLayer::drawSystemNodeRecursive(const SystemNode& node, int depth) {
+void GameImGuiSystem::drawSystemNodeRecursive(const SystemNode& node, int depth) {
     ImGui::Indent(depth * 14.0f);
 
     bool isGroup =

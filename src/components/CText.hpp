@@ -14,7 +14,7 @@ public:
 	sf::Color color = sf::Color::White;
 	sf::Color defaultColor = sf::Color::White;
 	bool visible = true;
-	bool dirty = true;
+	bool isDirty = true;
 	bool wasDirty = true;
 	CText() = default;
 	explicit CText(std::string& pString, float pCharacterSize, sf::Color pColor, const std::string& pFont) : sString(pString), characterSize(pCharacterSize), color(pColor), defaultColor(pColor), sFont(pFont) {}

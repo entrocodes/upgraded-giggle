@@ -3,7 +3,7 @@
 #include <imgui-SFML.h>  
 #include "scenes/GameScene.hpp"
 #include "scenes/MenuScene.hpp"
-#include "../systems/game/imgui/ImGuiLayer.hpp"
+#include "../systems/game/imgui/GameImGuiSystem.hpp"
 #include "../display/DisplayUtils.hpp"
 
 GameEngine::GameEngine() {
@@ -16,6 +16,7 @@ GameEngine::GameEngine() {
     context.sceneManager.registerScene<GameScene>("game", &context);
     context.sceneManager.registerScene<MenuScene>("menu", &context);
     context.sceneManager.switchTo("game");
+    context.sceneManager.currentScene()->firstLoad();
 }
 
 void GameEngine::run() {
@@ -107,7 +108,10 @@ void GameEngine::run() {
         if (context.metaInputState.returnToMainMenu) {
             context.metaInputState.returnToMainMenu = false ;
             context.sceneManager.switchTo("menu"); //THIS WILL BE IMPROVED UPON SOON, WITH A SCENEREQUEST SYSTEM
-
+            // RESET IMGUI INTERNAL STATE
+            ImGui::GetIO().ClearInputCharacters();
+            ImGui::GetIO().ClearInputKeys();
+            context.inputBlocked = false;
         }
         if (context.metaInputState.quit) {
             context.window.close();

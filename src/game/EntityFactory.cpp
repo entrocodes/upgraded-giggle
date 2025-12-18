@@ -48,7 +48,9 @@ Entity EntityFactory::createTable() {
     auto texSize = s.getTexture()->getSize();
 
     // Center in camera space
-    transform.pos = { 532.f + texSize.x / 2, 599.f - texSize.y / 2};
+    Vec2 initialPos = { 532.f + texSize.x / 2, 599.f - texSize.y / 2 };
+    transform.pos = initialPos;
+    transform.lastPos = initialPos; // <--- ADD THIS
     return table;
 }
 Entity EntityFactory::createNet() {
@@ -70,7 +72,9 @@ Entity EntityFactory::createNet() {
 
 
     // Center in camera space
-    transform.pos = m_camera.homography.worldToImage(cTransform3D.pos_m);
+    Vec2 initialPos = m_camera.homography.worldToImage(cTransform3D.pos_m);
+    transform.pos = initialPos;
+    transform.lastPos = initialPos; // <--- ADD THIS
     return net;
 }
 
@@ -151,7 +155,10 @@ Entity EntityFactory::createPlayerRacket() {
 
     auto& cTransform3D = m_registry.addComponent<CTransform3D>(racket, startPos);
     auto& cVelocity3D = m_registry.addComponent<CVelocity3D>(racket, Vec3());
-    m_registry.addComponent<CTransform>(racket);
+    auto& transform = m_registry.addComponent<CTransform>(racket);
+    Vec2 screenPos = m_camera.homography.worldToImage(cTransform3D.pos_m);
+    transform.pos = screenPos;
+    transform.lastPos = screenPos; // Snap interpolation
     // Bounding volume from center
     const Vec3 halfSize = { 0.076f, 0.095f, 0.005f };
     auto& cBounds = m_registry.addComponent<CBoundingBox3D>(racket, startPos, halfSize);
@@ -172,6 +179,7 @@ Entity EntityFactory::createBall(const Vec3& pos_m, const Vec3& vel_mps, const V
     //Vec2 ballScale = { 3.00f, 3.00f };
     auto& ballComp = m_registry.addComponent<CBall>(ball, ballShadow, spin);
     auto& transform = m_registry.addComponent<CTransform>(ball, ballScreenPos, ballScale, 0.f);
+    transform.lastPos = ballScreenPos; // <--- ADD THIS
     Vec3 size_m = { ballComp.ballRadius * 2,ballComp.ballRadius * 2,ballComp.ballRadius * 2 }; //set ball size to a cube (even though its a circle)
     auto& cTransform3D = m_registry.addComponent<CTransform3D>(ball, pos_m); //cTransform3D is initialized with the actual position of the ball in meters.
     auto& cVelocity3D = m_registry.addComponent<CVelocity3D>(ball, vel_mps);

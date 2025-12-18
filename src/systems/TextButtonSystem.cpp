@@ -24,31 +24,29 @@ SystemExec TextButtonSystem::update(GameContext* context) {
 
         // --- Bounding Box Setup (D) & (C) ---
         // 1. Check if the text was modified (DirtyTextSystem ran)
-        if (cText->wasDirty) {
-            // Get the raw text size
+        if (cText->wasDirty || cBoundingBox->box.width == 0) {
             sf::FloatRect textBounds = cText->drawable.getLocalBounds();
 
-
+            // Use renderPos so the "hitbox" matches where the user actually SEES the text
             cBoundingBox->box = sf::FloatRect(
-                cTransform->pos.x - (textBounds.width / 2.0f),
-                cTransform->pos.y - (textBounds.height / 2.0f),
+                cTransform->renderPos.x - (textBounds.width / 2.0f),
+                cTransform->renderPos.y - (textBounds.height / 2.0f),
                 textBounds.width,
                 textBounds.height
             );
+        }
+        if (cTextButton->isHovered) {
+            // Apply hover color if currently hovered
+            cText->drawable.setFillColor(cTextButton->hoverColor);
+        }
+        else {
+            cText->drawable.setFillColor(cText->defaultColor);
+        }
 
-            if (cTextButton->isHovered) {
-                // Apply hover color if currently hovered
-                cText->drawable.setFillColor(cTextButton->hoverColor);
-            }
-            else if (cTextButton->wasHovered) {
-                cText->drawable.setFillColor(cText->defaultColor);
-            }
 
-
-            if (cTextButton->isSelected) {
-                cTextButton->isSelected = false;
-                TextButtonSystem::runFunctionFromString(context, cTextButton->command);
-            }
+        if (cTextButton->isSelected) {
+            cTextButton->isSelected = false;
+            TextButtonSystem::runFunctionFromString(context, cTextButton->command);
         }
     }
     return { SystemExecResult::Ran };

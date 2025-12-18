@@ -2,7 +2,7 @@
 #include "../ecs/system/ISystem.hpp"
 #include "../ecs/system/ISystemGroup.hpp"
 
-class ImGuiLayer : public ISystem {
+class GameImGuiSystem : public ISystem {
 public:
     SystemExec update(GameContext* context) override;
 

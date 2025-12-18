@@ -9,7 +9,9 @@
 #include "../systems/menu/action/ActionSystem.hpp"
 #include "../systems/DirtyTextSystem.hpp"
 #include "../systems/RenderSystem.hpp"
-#include "../systems/menu/imgui/ImGuiLayer.hpp"
+#include "../systems/menu/imgui/MenuImGuiSystem.hpp"
+#include "../systems/TransformSaveSystem.hpp"
+#include <imgui.h>
 MenuScene::MenuScene(GameContext* context)
     : m_context(context)
     , m_factory(context) {
@@ -17,17 +19,16 @@ MenuScene::MenuScene(GameContext* context)
     m_systems = &systemGraph;
     // --- System wiring ---
     systemGraph.add<FrameStatsSystem>(m_factory, 0, TickPhase::Fixed, NotPausable);
+    systemGraph.add<TransformSaveSystem>(m_factory, 5, TickPhase::Fixed, NotPausable);
     systemGraph.add<InputSystem>(m_factory, 10, TickPhase::Fixed, NotPausable);
     systemGraph.add<IntentSystem>(m_factory, 13, TickPhase::Fixed, NotPausable);
     systemGraph.add<ActionSystem>(m_factory, 15, TickPhase::Fixed, NotPausable);
     systemGraph.add<DirtyTextSystem>(m_factory, 30, TickPhase::Fixed, NotPausable);
     systemGraph.add<TextButtonSystem>(m_factory, 40, TickPhase::Fixed, NotPausable);
 
-
     systemGraph.add<RenderSystem>(m_factory, 50, TickPhase::Render, NotPausable);
-    systemGraph.add<ImGuiLayer>(m_factory, 60, TickPhase::Render, NotPausable);
+    systemGraph.add<MenuImGuiSystem>(m_factory, 60, TickPhase::Render, NotPausable);
 
-    m_context->imGuiState.showMenu = false;
 }
 
 void MenuScene::onEnter() {
@@ -42,5 +43,5 @@ void MenuScene::render() {
 }
 void MenuScene::onExit() {
     m_context->registry.removeAllEntities();
-    m_context->imGuiState.showGame = true;
+    ImGui::SetWindowFocus(nullptr);
 }

@@ -13,6 +13,7 @@ public:
     void render() override;
     void onExit() override;
     void onEnter() override;
+    void firstLoad() override;
 
 
 private:

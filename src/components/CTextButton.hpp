@@ -11,8 +11,8 @@ public:
 	int order = 0;
 	bool isHovered = false;
 	bool isSelected = false;
-	bool wasSelected = false;
 	bool wasHovered = false;
+	bool wasSelected = false;
 	CTextButton() = default;
 	explicit CTextButton(sf::Color pHoverColor, std::string pCommand, int pOrder) : hoverColor(pHoverColor), command(pCommand), order(pOrder) {}
 

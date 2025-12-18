@@ -10,6 +10,7 @@ public:
     virtual void render() = 0;
     virtual void onEnter() {}
     virtual void onExit() {}
+    virtual void firstLoad() {};
     SystemGraph& systems();
     const SystemGraph& systems() const;
 
