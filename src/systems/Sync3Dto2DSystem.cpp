@@ -1,5 +1,6 @@
 #include "Sync3Dto2DSystem.hpp"
 
+#include "../components/Components.hpp"
 SystemExec Sync3Dto2DSystem::update(GameContext* context) {
 
     for (auto e : context->registry.getEntitiesWith<CTransform3D, CTransform>()) {

@@ -44,7 +44,26 @@ GameScene::GameScene(GameContext* context)
     systemGraph.add<GameImGuiSystem>(m_factory, 1200, TickPhase::Render, NotPausable);
 }
 void GameScene::firstLoad() {
+    // --- Camera / static setup (still scene responsibility) ---
+    std::array<Vec2, 4> imagePoints = {
+        Vec2{531.f, 497.f},
+        Vec2{619.f, 231.f},
+        Vec2{842.f, 497.f},
+        Vec2{760.f, 231.f}
+    };
 
+    std::array<Vec2, 4> worldPoints = {
+        Vec2{0.f, 0.f},
+        Vec2{0.f, m_context->tableParameters.tableLength},
+        Vec2{m_context->tableParameters.tableWidth, 0.f},
+        Vec2{
+            m_context->tableParameters.tableWidth,
+            m_context->tableParameters.tableLength
+        }
+    };
+
+
+    m_context->camera.homography.calibrate(imagePoints, worldPoints);
 }
 void GameScene::onEnter() {
     m_context->entityFactory.createBackground();

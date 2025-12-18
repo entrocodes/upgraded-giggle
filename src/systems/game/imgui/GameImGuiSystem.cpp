@@ -148,6 +148,8 @@ void GameImGuiSystem::drawDeveloperPanel(GameContext* context) {
 
             if (t3d) ImGui::Text("3D Pos: %.2f, %.2f, %.2f", t3d->pos_m.x, t3d->pos_m.y, t3d->pos_m.z);
             if (t2d) ImGui::Text("2D Pos: %.1f, %.1f", t2d->pos.x, t2d->pos.y);
+            if (t2d) ImGui::Text("2D Render Pos: %.1f, %.1f", t2d->renderPos.x, t2d->renderPos.y);
+            if (t2d) ImGui::Text("Alpha: %.2f", context->frameAlpha);
             if (state) ImGui::Text("State: %s", state->state.c_str());
 
             if (ImGui::Button("Reset Player Pos")) {

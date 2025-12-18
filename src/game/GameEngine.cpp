@@ -124,6 +124,7 @@ void GameEngine::run() {
         context.sceneManager.render();
         ImGui::SFML::Render(context.window);
         context.window.display();
+        context.sceneManager.applyPendingSwitch();
 
     }
 

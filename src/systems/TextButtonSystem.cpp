@@ -4,18 +4,18 @@
 #include <SFML/System/Vector2.hpp>
 #include <SFML/Graphics/Rect.hpp>
 
-// --- Corrected runFunctionFromString Signature ---
-void TextButtonSystem::runFunctionFromString(GameContext* context, const std::string& command) {
-    if (command == "startCampaign") {
-        context->sceneManager.switchTo("game");
+    // --- Corrected runFunctionFromString Signature ---
+    void TextButtonSystem::runFunctionFromString(GameContext* context, const std::string& command) {
+        if (command == "startCampaign") {
+            context->sceneManager.requestSwitch("game");
+        }
+        else if (command == "quitGame") {
+            context->window.close();
+        }
+        else if (command == "openSettings") {
+            // to be implemented
+        }
     }
-    else if (command == "quitGame") {
-        context->window.close();
-    }
-    else if (command == "openSettings") {
-        // to be implemented
-    }
-}
 
 
 SystemExec TextButtonSystem::update(GameContext* context) {

@@ -36,7 +36,18 @@ public:
         return m_current;
     }
 
+    void requestSwitch(const std::string& name) {
+        m_pending = name;
+    }
+
+    void applyPendingSwitch() {
+        if (!m_pending.empty()) {
+            switchTo(m_pending);
+            m_pending.clear();
+        }
+    }
 private:
     std::unordered_map<std::string, std::unique_ptr<Scene>> m_scenes;
     Scene* m_current = nullptr;
+    std::string m_pending;
 };
