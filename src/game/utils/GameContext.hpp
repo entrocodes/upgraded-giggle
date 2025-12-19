@@ -1,21 +1,33 @@
 ﻿#pragma once
 
 #include <SFML/Graphics.hpp>
-#include "../display/DisplayConfig.hpp"
+#include "display/DisplayConfig.hpp"
 #include "Assets.hpp"
-#include "../ecs/Registry.hpp"
-#include "../input/RawInputState.hpp"
-#include "../game/EntityFactory.hpp"   // Full include, since we create an instance
-#include "../game/utils/Camera.hpp"
-#include "../math/Vec3.hpp"
-#include "../math/Vec2.hpp"
+#include "ecs/Registry.hpp"
+#include "input/RawInputState.hpp"
+#include "../EntityFactory.hpp"   // Full include, since we create an instance
+#include "Camera.hpp"
+#include "math/Vec3.hpp"
+#include "math/Vec2.hpp"
 #include <vector>
 #include <string>
 #include "TableParameters.hpp"
 #include "BallSpawnDebug.hpp"
-#include "../ecs/SceneManager.hpp"
+#include "ecs/SceneManager.hpp"
 
+struct PlayerMovement {
+    float maxStrength = 1.0f;
+    float speedFactor = .1f; 
+    float scale = 1.0f;
 
+    float defaultMaxStrength = 1.0f;
+    float defaultSpeedFactor = .1f;
+    float defaultScale = 1.0f;
+
+    Vec2 moveDistance = { 0,0 };
+
+    bool moveTriggered = false;
+};
 struct GlobalIntent {
     bool quit = false;
     bool paused = false;
@@ -107,6 +119,7 @@ struct ControllerParameters {
     float sensitivity = 1;
 };
 struct GameContext {
+    PlayerMovement playerMovement;
     MainMenuIntent mainMenuIntent;
     GlobalIntent globalIntent;
     DebugIntent debugIntent;

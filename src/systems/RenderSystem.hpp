@@ -1,8 +1,8 @@
 #pragma once
 #include <SFML/Graphics.hpp>
-#include "../game/utils/GameContext.hpp"
-#include "../debug/systems/Display3DBoundingBoxes.hpp"
-#include "../ecs/system/ISystem.hpp"
+#include "game/utils/GameContext.hpp"
+#include "debug/systems/Display3DBoundingBoxes.hpp"
+#include "ecs/system/ISystem.hpp"
 struct RenderSystem  : public ISystem{
 
 public:

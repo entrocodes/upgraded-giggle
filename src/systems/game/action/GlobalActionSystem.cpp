@@ -1,5 +1,5 @@
 #include "GlobalActionSystem.hpp"
-
+#include "game/utils/GameContext.hpp"
 SystemExec GlobalActionSystem::update(GameContext* context) {
     auto& intent = context->globalIntent;
     auto& metaState = context->metaInputState;

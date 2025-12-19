@@ -1,5 +1,5 @@
 #pragma once
-#include "../ecs/system/ISystem.hpp"
+#include "ecs/system/ISystem.hpp"
 
 class AnimationSystem : public ISystem {
 public:

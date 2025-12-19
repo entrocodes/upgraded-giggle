@@ -1,9 +1,9 @@
 #pragma once
-#include "../math/Vec3.hpp"
+#include "math/Vec3.hpp"
 #include <cmath>
-#include "../math/MathHelpers.hpp"
-#include "../debug/Debug.hpp"
-#include "../game/utils/GameContext.hpp"
+#include "math/MathHelpers.hpp"
+#include "debug/Debug.hpp"
+#include "game/utils/GameContext.hpp"
 #include <SFML/Graphics.hpp>
 class CalculateMagnusForce {
 public:

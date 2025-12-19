@@ -1,10 +1,10 @@
 ﻿#include "BallIntegrateSystem.hpp"
-#include "../math/Vec2.hpp"
-#include "../math/Bounds3D.hpp"
-#include "../components/Components.hpp"
-#include "../ecs/Entity.hpp"
-#include "../debug/Debug.hpp"
-#include "../math/GridTransform.hpp"
+#include "math/Vec2.hpp"
+#include "math/Bounds3D.hpp"
+#include "components/Components.hpp"
+#include "ecs/Entity.hpp"
+#include "debug/Debug.hpp"
+#include "math/GridTransform.hpp"
 
 #include <algorithm>
 #include <iostream>

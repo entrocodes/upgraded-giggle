@@ -1,6 +1,6 @@
 #pragma once
-#include "../math/Vec3.hpp"
-#include "../math/Bounds3D.hpp"
+#include "math/Vec3.hpp"
+#include "math/Bounds3D.hpp"
 class BallObjectIntersection {
 public:
 

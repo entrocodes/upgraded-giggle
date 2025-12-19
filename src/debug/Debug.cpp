@@ -1,5 +1,5 @@
 ﻿#include "Debug.hpp"
-#include "../game/utils/GameContext.hpp"
+#include "game/utils/GameContext.hpp"
 #include <iostream>
 
 namespace Debug {

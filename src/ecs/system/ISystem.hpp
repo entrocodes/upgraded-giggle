@@ -1,7 +1,7 @@
 #pragma once
 #include "SystemExec.hpp"
 
-class GameContext;
+struct GameContext;
 
 class ISystem {
 public:

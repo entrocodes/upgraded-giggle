@@ -1,6 +1,6 @@
 #include "RacketTransformSystem.hpp"
-#include "../components/Components.hpp"
-#include "../game/utils/GameContext.hpp"
+#include "components/Components.hpp"
+#include "game/utils/GameContext.hpp"
 SystemExec RacketTransformSystem::update(GameContext* context) {
 
     for (auto racket : context->registry.getEntitiesWith<CRacketPhysical, CTransform, CTransform3D>()) {

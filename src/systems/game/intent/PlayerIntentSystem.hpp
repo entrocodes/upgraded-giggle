@@ -1,6 +1,6 @@
 #pragma once
-#include "../game/utils/GameContext.hpp"
-#include "../ecs/system/ISystem.hpp"
+
+#include "ecs/system/ISystem.hpp"
 class PlayerIntentSystem : public ISystem{
 public:
     SystemExec update(GameContext* context);

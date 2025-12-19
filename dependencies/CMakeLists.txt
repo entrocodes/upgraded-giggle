@@ -1,63 +1,44 @@
 include(FetchContent)
 
+# ==============================================================================
+# 1. THE SETTINGS (Must come FIRST)
+# ==============================================================================
+
+# This is the "Magic Flag" - it forces ALL dependencies to be static (.lib)
+# This will stop SFML and ImGui from ever looking for a .dll
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build all dependencies as static" FORCE)
+
+# Specific ImGui-SFML tweaks
+set(IMGUI_SFML_SHARED_LIB OFF CACHE BOOL "" FORCE)
+set(IMGUI_SFML_FIND_SFML OFF CACHE BOOL "" FORCE)
+set(IMGUI_SFML_IMGUI_DEMO ON CACHE BOOL "" FORCE)
+
+# SFML tweaks
+set(SFML_BUILD_AUDIO OFF CACHE BOOL "" FORCE)
+set(SFML_BUILD_NETWORK OFF CACHE BOOL "" FORCE)
+set(SFML_USE_SYSTEM_DEPS OFF CACHE BOOL "" FORCE)
+
+# ==============================================================================
+# 2. THE DECLARATIONS
+# ==============================================================================
 set(SFML_VERSION 2.6.1)
 set(IMGUI_VERSION 1.89)
-# set(IMGUI_SFML_VERSION 2.3)
 
-# It's nice to get stripped-down release zips instead of cloning
-# a repo and checking out a tag
-FetchContent_Declare(
-  SFML
-  URL "https://github.com/SFML/SFML/archive/${SFML_VERSION}.zip"
-)
+FetchContent_Declare(SFML URL "https://github.com/SFML/SFML/archive/${SFML_VERSION}.zip")
+FetchContent_Declare(imgui URL "https://github.com/ocornut/imgui/archive/v${IMGUI_VERSION}.zip")
+FetchContent_Declare(imgui-sfml GIT_REPOSITORY https://github.com/SFML/imgui-sfml.git GIT_TAG 2.6.x)
+FetchContent_Declare(Eigen GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git GIT_TAG 3.4.0)
+FetchContent_Declare(nlohmann_json GIT_REPOSITORY https://github.com/nlohmann/json.git GIT_TAG v3.11.3)
 
-FetchContent_Declare(
-  imgui
-  URL "https://github.com/ocornut/imgui/archive/v${IMGUI_VERSION}.zip"
-)
+# ==============================================================================
+# 3. THE POPULATION (The "Go" Button)
+# ==============================================================================
 
-# Or by tag...
-FetchContent_Declare(
-  imgui-sfml
-  GIT_REPOSITORY https://github.com/SFML/imgui-sfml.git
-  GIT_TAG        2.6.x
-  # GIT_COMMIT 5f54b69b6aee18db846c81633f86f78c2586dded
-  # ^ or like this - sometimes it's better because FetchContent won't look
-  # into remote to see if branch head was updated or not - good for stable
-  # tags like 'vX.X' corresponding to releases
-)
+# First, get SFML, Eigen, and the raw ImGui source
+FetchContent_MakeAvailable(SFML Eigen nlohmann_json imgui)
 
-## finally, let's build
+# IMPORTANT: Tell ImGui-SFML where the ImGui headers are BEFORE making it available
+set(IMGUI_DIR ${imgui_SOURCE_DIR} CACHE PATH "Path to imgui" FORCE)
 
-# SFML
-option(SFML_BUILD_AUDIO "Build audio" OFF)
-option(SFML_BUILD_NETWORK "Build network" OFF)
-FetchContent_MakeAvailable(SFML)
-
-# Dear ImGui
-FetchContent_MakeAvailable(imgui)
-
-# ImGui-SFML
-set(IMGUI_DIR ${imgui_SOURCE_DIR})
-option(IMGUI_SFML_FIND_SFML "Use find_package to find SFML" OFF)
-option(IMGUI_SFML_IMGUI_DEMO "Build imgui_demo.cpp" ON)
-
+# Finally, build the wrapper
 FetchContent_MakeAvailable(imgui-sfml)
-
-
-FetchContent_Declare(
-    Eigen
-    GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
-    GIT_TAG 3.4.0  # or newer
-)
-FetchContent_MakeAvailable(Eigen)
-
-include(FetchContent)
-
-FetchContent_Declare(
-    nlohmann_json
-    GIT_REPOSITORY https://github.com/nlohmann/json.git
-    GIT_TAG v3.11.3
-)
-
-FetchContent_MakeAvailable(nlohmann_json)

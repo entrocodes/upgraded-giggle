@@ -1,6 +1,6 @@
 #pragma once
-#include "../ecs/Component.hpp"
-#include "../math/Vec3.hpp"
+#include "ecs/Component.hpp"
+#include "math/Vec3.hpp"
 
 struct CRacketPhysical : public Component {
     float restitution = 0.85f;   // bounce

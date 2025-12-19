@@ -1,7 +1,7 @@
 #pragma once
 #include <SFML/System.hpp> // for sf::Time or deltaTime
 #include <SFML/Graphics.hpp>
-#include "../math/Vec3.hpp"
+#include "math/Vec3.hpp"
 class CalculateBallGravity {
 public:
     const float kGravity = 9.801f;

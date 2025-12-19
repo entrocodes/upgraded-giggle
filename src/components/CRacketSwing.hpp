@@ -1,5 +1,5 @@
 #pragma once
-#include "../ecs/Component.hpp"
+#include "ecs/Component.hpp"
 
 struct CRacketSwing : public Component {
     float backswingTime = 0.f;

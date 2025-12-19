@@ -3,8 +3,8 @@
 #include <imgui-SFML.h>  
 #include "scenes/GameScene.hpp"
 #include "scenes/MenuScene.hpp"
-#include "../systems/game/imgui/GameImGuiSystem.hpp"
-#include "../display/DisplayUtils.hpp"
+#include "systems/game/imgui/GameImGuiSystem.hpp"
+#include "display/DisplayUtils.hpp"
 
 GameEngine::GameEngine() {
     context.window.create(
@@ -58,6 +58,9 @@ void GameEngine::run() {
                 context.rawInput.keyStates[event.key.code] = true;
                 if (event.key.code == sf::Keyboard::F11 || event.key.code == sf::Keyboard::F)
                     context.display.toggleFullscreen = true;
+                if (context.rawInput.frameKeyPressed.find(event.key.code) == context.rawInput.frameKeyPressed.end()) {
+                    context.rawInput.frameKeyPressed[event.key.code] = context.frameStats.frameIndex;
+                }
                 break;
 
             case sf::Event::KeyReleased:
@@ -78,16 +81,30 @@ void GameEngine::run() {
                     static_cast<float>(event.mouseMove.y)
                 };
                 break;
-
-            case sf::Event::Resized:
-                handleResize(event.size.width, event.size.height);
+            case sf::Event::JoystickButtonPressed: {
+                unsigned int id = event.joystickButton.joystickId;
+                unsigned int button = event.joystickButton.button;
+                // Joystick 0 Button 5 becomes 5, Joystick 1 Button 5 becomes 105
+                unsigned int key = (id * 100) + button;
+                context.rawInput.padStates[key] = true;
+                if (context.rawInput.framePadPressed.find(key) == context.rawInput.framePadPressed.end()) {
+                    context.rawInput.framePadPressed[key] = context.frameStats.frameIndex;
+                }
                 break;
-
-            default:
+            }
+            case sf::Event::JoystickButtonReleased: {
+                unsigned int key = (event.joystickButton.joystickId * 100) + event.joystickButton.button;
+                context.rawInput.padStates[key] = false;
+                break;
+            }
+            case sf::Event::LostFocus:
+                context.rawInput.keyStates.clear();
+                context.rawInput.padStates.clear();
+                context.rawInput.frameKeyPressed.clear();
+                context.rawInput.framePadPressed.clear();
                 break;
             }
         }
-
         if (context.renderSettings.updateResolution || context.display.toggleFullscreen) {
             context.display.isFullscreen = !context.display.isFullscreen;
             updateResolution();
@@ -107,7 +124,7 @@ void GameEngine::run() {
         }
         if (context.metaInputState.returnToMainMenu) {
             context.metaInputState.returnToMainMenu = false ;
-            context.sceneManager.switchTo("menu"); //THIS WILL BE IMPROVED UPON SOON, WITH A SCENEREQUEST SYSTEM
+            context.sceneManager.requestSwitch("menu"); //THIS WILL BE IMPROVED UPON SOON, WITH A SCENEREQUEST SYSTEM
             // RESET IMGUI INTERNAL STATE
             ImGui::GetIO().ClearInputCharacters();
             ImGui::GetIO().ClearInputKeys();
@@ -124,6 +141,9 @@ void GameEngine::run() {
         context.sceneManager.render();
         ImGui::SFML::Render(context.window);
         context.window.display();
+
+
+        
         context.sceneManager.applyPendingSwitch();
 
     }

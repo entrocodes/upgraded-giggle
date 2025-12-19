@@ -1,12 +1,12 @@
 #pragma once
 #include <string>
 #include <SFML/Graphics.hpp>
-#include "../math/Vec3.hpp"
-#include "../ecs/Registry.hpp"
-#include "../display/DisplayConfig.hpp"
-#include "../game/utils/Assets.hpp"
-#include "../game/utils/Camera.hpp"
-#include "../game/utils/TableParameters.hpp"
+#include "math/Vec3.hpp"
+#include "ecs/Registry.hpp"
+#include "display/DisplayConfig.hpp"
+#include "game/utils/Assets.hpp"
+#include "game/utils/Camera.hpp"
+#include "game/utils/TableParameters.hpp"
 class EntityFactory {
 public:
     explicit EntityFactory(Registry& registry, DisplayConfig& display, Assets& assets, Camera& camera, TableParameters& tableParameters)

@@ -1,6 +1,6 @@
 #pragma once
-#include "../math/Vec3.hpp"
-#include "../ecs/Component.hpp"
+#include "math/Vec3.hpp"
+#include "ecs/Component.hpp"
 
 
 struct CVelocity3D : public Component {

@@ -1,7 +1,7 @@
 #include "JsonEntityLoader.hpp"
-#include "../helpers/FileUtils.hpp"
+#include "helpers/FileUtils.hpp"
 #include <nlohmann/json.hpp>
-#include "../components/Components.hpp"
+#include "components/Components.hpp"
 namespace JsonEntityLoader {
 
     void loadEntitiesFromJson(GameContext* context, const std::string& path) {

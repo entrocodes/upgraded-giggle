@@ -1,8 +1,8 @@
 #include "BallRemovalSystem.hpp"
-#include "../ecs/Component.hpp"
-#include "../components/Components.hpp"
-#include "../ecs/Entity.hpp"
-#include "../debug/Debug.hpp"
+#include "ecs/Component.hpp"
+#include "components/Components.hpp"
+#include "ecs/Entity.hpp"
+#include "debug/Debug.hpp"
 SystemExec BallRemovalSystem::update(GameContext* context) {
     std::vector<Entity> toRemove;
     for (auto e : context->registry.getEntitiesWith<CBall>()) {

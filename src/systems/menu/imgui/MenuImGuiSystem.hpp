@@ -1,7 +1,6 @@
 #pragma once
-#include "../ecs/system/ISystem.hpp"
-#include "../ecs/system/ISystemGroup.hpp"
-
+#include "ecs/system/ISystem.hpp"
+#include "ecs/system/SystemNode.hpp"
 class MenuImGuiSystem : public ISystem {
 public:
     SystemExec update(GameContext* context) override;

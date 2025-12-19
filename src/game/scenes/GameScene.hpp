@@ -1,9 +1,9 @@
 #pragma once
 
 #include "Scene.hpp"
-#include "../game/utils/GameContext.hpp"
-#include "../ecs/system/SystemGraph.hpp"
-#include "../ecs/system/SystemFactory.hpp"
+#include "../utils/GameContext.hpp"
+#include "ecs/system/SystemGraph.hpp"
+#include "ecs/system/SystemFactory.hpp"
 
 class GameScene final : public Scene {
 public:

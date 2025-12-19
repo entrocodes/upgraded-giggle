@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../game/utils/GameContext.hpp"
-#include "../components/Components.hpp"
-#include "../math/TableHomography.hpp"
-#include "../math/Rectangle.hpp"
+#include "game/utils/GameContext.hpp"
+#include "components/Components.hpp"
+#include "math/TableHomography.hpp"
+#include "math/Rectangle.hpp"
 #include <SFML/Graphics.hpp>
 
 class Display3DBoundingBoxes {

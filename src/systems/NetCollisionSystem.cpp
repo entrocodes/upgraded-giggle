@@ -1,11 +1,11 @@
 ﻿#include "NetCollisionSystem.hpp"
-#include "../math/Vec2.hpp"
-#include "../math/Vec3.hpp"
-#include "../math/physics/collision/BallObjectIntersection.hpp"
-#include "../components/Components.hpp"
-#include "../ecs/Entity.hpp"
-#include "../debug/Debug.hpp"
-#include "../math/Random.hpp"
+#include "math/Vec2.hpp"
+#include "math/Vec3.hpp"
+#include "math/physics/collision/BallObjectIntersection.hpp"
+#include "components/Components.hpp"
+#include "ecs/Entity.hpp"
+#include "debug/Debug.hpp"
+#include "math/Random.hpp"
 
 
 SystemExec NetCollisionSystem::update(GameContext* context) {

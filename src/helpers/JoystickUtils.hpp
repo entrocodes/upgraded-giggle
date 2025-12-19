@@ -3,7 +3,7 @@
 #pragma once
 #include <SFML/Window/Joystick.hpp>
 #include <string>
-#include "../input/RawInputState.hpp"
+#include "input/RawInputState.hpp"
 
 namespace JoystickUtils {
 

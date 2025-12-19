@@ -1,11 +1,12 @@
 ﻿#include "GameImGuiSystem.hpp"
 #include <imgui.h>         
 #include <imgui-SFML.h>   
-#include "../ecs/system/TickPhase.hpp"
-#include "../ecs/system/SystemGraph.hpp"
-#include "../components/Components.hpp"
-#include "../systems/BallRemovalSystem.hpp"
-#include "../debug/Debug.hpp"
+#include "ecs/system/TickPhase.hpp"
+#include "ecs/system/SystemGraph.hpp"
+#include "components/Components.hpp"
+#include "systems/BallRemovalSystem.hpp"
+#include "ecs/system/ISystemGroup.hpp"
+#include "debug/Debug.hpp"
 
 
 SystemExec GameImGuiSystem::update(GameContext* context) {
@@ -142,18 +143,33 @@ void GameImGuiSystem::drawDeveloperPanel(GameContext* context) {
     if (ImGui::CollapsingHeader("Player Debug", ImGuiTreeNodeFlags_DefaultOpen)) {
         Entity* player = context->registry.getEntity("player");
         if (player) {
-            auto* t3d = context->registry.getComponent<CTransform3D>(*player);
-            auto* t2d = context->registry.getComponent<CTransform>(*player);
-            auto* state = context->registry.getComponent<CState>(*player);
+            auto [t3d, t2d, state, cInput] = context->registry.getComponents<CTransform3D, CTransform, CState, CInput>(*player);
+            if (ImGui::CollapsingHeader("Player Position Stats")) {
+                if (t3d) ImGui::Text("3D Pos: %.2f, %.2f, %.2f", t3d->pos_m.x, t3d->pos_m.y, t3d->pos_m.z);
+                if (t2d) ImGui::Text("2D Pos: %.1f, %.1f", t2d->pos.x, t2d->pos.y);
+                if (t2d) ImGui::Text("2D Render Pos: %.1f, %.1f", t2d->renderPos.x, t2d->renderPos.y);
+                if (t2d) ImGui::Text("Alpha: %.2f", context->frameAlpha);
+                if (state) ImGui::Text("State: %s", state->state.c_str());
 
-            if (t3d) ImGui::Text("3D Pos: %.2f, %.2f, %.2f", t3d->pos_m.x, t3d->pos_m.y, t3d->pos_m.z);
-            if (t2d) ImGui::Text("2D Pos: %.1f, %.1f", t2d->pos.x, t2d->pos.y);
-            if (t2d) ImGui::Text("2D Render Pos: %.1f, %.1f", t2d->renderPos.x, t2d->renderPos.y);
-            if (t2d) ImGui::Text("Alpha: %.2f", context->frameAlpha);
-            if (state) ImGui::Text("State: %s", state->state.c_str());
-
-            if (ImGui::Button("Reset Player Pos")) {
-                t3d->pos_m = { 0.f, -context->tableParameters.tableHeight, -0.5f };
+                if (ImGui::Button("Reset Player Pos")) {
+                    t3d->pos_m = { 0.f, -context->tableParameters.tableHeight, -0.5f };
+                }
+            }
+            if (ImGui::CollapsingHeader("Player Footwork Movement Debug")) {
+                ImGui::SliderFloat("Scale",
+                    &context->playerMovement.scale, 0.5f, 5.f);
+                ImGui::SliderFloat("Max Strength",
+                    &context->playerMovement.maxStrength, 0.3f, 3.f);
+                ImGui::SliderFloat("Speed Factor",
+                    &context->playerMovement.speedFactor, 0.02f, .3f);
+                if (ImGui::Button("Reset Footwork Movement Settings")) {
+                    context->playerMovement.scale = context->playerMovement.defaultScale;
+                    context->playerMovement.maxStrength = context->playerMovement.defaultMaxStrength;
+                    context->playerMovement.speedFactor = context->playerMovement.defaultSpeedFactor;
+                }
+                if (cInput) ImGui::Text("Move Held: %d, %d", cInput->holdTime["MoveLeft"], cInput->holdTime["MoveRight"]);
+                ImGui::Text("Move Distance: %.1f, %.1f", context->playerMovement.moveDistance.x, context->playerMovement.moveDistance.y);
+                ImGui::Text("Has Moved: %s", context->playerMovement.moveTriggered ? "Yes" : "No");
             }
         }
         else {
@@ -234,6 +250,27 @@ void GameImGuiSystem::drawControllerDebug(GameContext* context) {
 
     bool connected = sf::Joystick::isConnected(0);
     ImGui::Text("Connected: %s", connected ? "Yes" : "No");
+   
+
+    static bool testLB = false;
+    testLB = context->rawInput.isGamepadReleased("LB");
+
+    ImGui::Text("Gamepad Connected: %s", sf::Joystick::isConnected(0) ? "Yes" : "No");
+    ImGui::Separator();
+
+    // This will flicker green for one frame when you release the button
+    if (testLB) {
+        ImGui::TextColored(ImVec4(0, 1, 0, 1), "LB RELEASED!");
+    }
+    else {
+        ImGui::Text("LB Status: IDLE");
+    }
+
+    // Show the "Big Number" culprit
+    if (context->rawInput.buttonMap.count("LB")) {
+        unsigned int lbId = context->rawInput.buttonMap.at("LB");
+        ImGui::Text("LB Frame Pressed: %u", context->rawInput.framePadPressed.count(lbId) ? context->rawInput.framePadPressed.at(lbId) : 0);
+    }
 
     ImGui::End();
 }

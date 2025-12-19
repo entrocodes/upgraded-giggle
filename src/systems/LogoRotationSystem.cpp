@@ -1,6 +1,6 @@
 ﻿#include "LogoRotationSystem.hpp"
 #include <cmath>
-#include "../debug/Debug.hpp"
+#include "debug/Debug.hpp"
 
 namespace {
     constexpr float DEG2RAD = 3.1415926535f / 180.f;

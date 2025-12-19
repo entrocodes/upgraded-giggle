@@ -1,7 +1,7 @@
 ﻿#include "IntentSystem.hpp"
-#include "../components/components.hpp"
-#include "../game/utils/GameContext.hpp"
-#include "../helpers/JoystickUtils.hpp"
+#include "components/components.hpp"
+#include "game/utils/GameContext.hpp"
+#include "helpers/JoystickUtils.hpp"
 #include <SFML/Window/Joystick.hpp>
 
 SystemExec IntentSystem::update(GameContext* context) {

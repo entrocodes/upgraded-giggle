@@ -1,9 +1,9 @@
 #pragma once
-#include "../ecs/Entity.hpp"
-#include "../ecs/Component.hpp" // make sure Component is included
-#include "../math/Vec3.hpp"
-#include "../math/Bounds3D.hpp"
-#include "../math/physics/forces/BallForcesStruct.hpp"
+#include "ecs/Entity.hpp"
+#include "ecs/Component.hpp" // make sure Component is included
+#include "math/Vec3.hpp"
+#include "math/Bounds3D.hpp"
+#include "math/physics/forces/BallForcesStruct.hpp"
 
 struct BallLogo {
     // Spherical orientation of the logo’s center on the ball

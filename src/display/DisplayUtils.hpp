@@ -1,10 +1,10 @@
 ﻿#pragma once
 #include <SFML/Graphics.hpp>
-#include "../display/DisplayConfig.hpp"
-#include "../ecs/Registry.hpp"
-#include "../components/Components.hpp"
-#include "../ecs/Entity.hpp"
-#include "../game/utils/GameContext.hpp"
+#include "display/DisplayConfig.hpp"
+#include "ecs/Registry.hpp"
+#include "components/Components.hpp"
+#include "ecs/Entity.hpp"
+#include "game/utils/GameContext.hpp"
 namespace DisplayUtils {
 
     inline void applyLetterboxedView(GameContext* context) {

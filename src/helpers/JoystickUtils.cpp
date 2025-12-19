@@ -1,9 +1,9 @@
 // Assuming this is your actual JoystickUtils.cpp file (or the file where you put the implementation)
 
-#include "../helpers/JoystickUtils.hpp" 
+#include "helpers/JoystickUtils.hpp" 
 #include <cmath> 
 #include <SFML/Window/Joystick.hpp>
-#include "../input/RawInputState.hpp"
+#include "input/RawInputState.hpp"
 
 namespace JoystickUtils {
     // REMOVE THE 'static' KEYWORD HERE

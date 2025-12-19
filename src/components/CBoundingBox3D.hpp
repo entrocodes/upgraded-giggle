@@ -1,8 +1,8 @@
 #pragma once
 #include <SFML/Graphics.hpp>
-#include "../ecs/Component.hpp"
-#include "../math/Bounds3D.hpp"
-#include "../math/Vec3.hpp"
+#include "ecs/Component.hpp"
+#include "math/Bounds3D.hpp"
+#include "math/Vec3.hpp"
 struct CBoundingBox3D : public Component {
     Bounds3D box;
     sf::Color color = sf::Color::Green;

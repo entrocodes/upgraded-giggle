@@ -1,8 +1,8 @@
 #include "RacketCollisionSystem.hpp"
-#include "../components/Components.hpp"
-#include "../math/Vec3.hpp"
-#include "../math/physics/collision/BallObjectIntersection.hpp"
-#include "../debug/Debug.hpp"
+#include "components/Components.hpp"
+#include "math/Vec3.hpp"
+#include "math/physics/collision/BallObjectIntersection.hpp"
+#include "debug/Debug.hpp"
 
 SystemExec RacketCollisionSystem::update(GameContext* context)
 {

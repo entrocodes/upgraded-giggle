@@ -1,11 +1,11 @@
 #pragma once
 
-#include "../game/utils/GameContext.hpp"
-#include "../systems/game/racket/RacketHandleSystem.hpp"
-#include "../systems/game/racket/RacketArmSystem.hpp"
-#include "../systems/game/racket/RacketSwingSystem.hpp"
-#include "../systems/game/racket/RacketTransformSystem.hpp"
-#include "../ecs/system/ISystemGroup.hpp"
+#include "game/utils/GameContext.hpp"
+#include "systems/game/racket/RacketHandleSystem.hpp"
+#include "systems/game/racket/RacketArmSystem.hpp"
+#include "systems/game/racket/RacketSwingSystem.hpp"
+#include "systems/game/racket/RacketTransformSystem.hpp"
+#include "ecs/system/ISystemGroup.hpp"
 
 class RacketMovementSystemGroup final : public ISystemGroup {
 public:

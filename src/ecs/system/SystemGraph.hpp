@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <type_traits>
 
-#include "../game/utils/GameContext.hpp"
+#include "game/utils/GameContext.hpp"
 #include "SystemNode.hpp"
 #include "SystemFactory.hpp"
 #include "ISystem.hpp"

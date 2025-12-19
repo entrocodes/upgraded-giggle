@@ -1,7 +1,7 @@
 #pragma once
-#include "../ecs/Component.hpp"
-#include "../math/Vec3.hpp"
-#include "../ecs/Entity.hpp"
+#include "ecs/Component.hpp"
+#include "math/Vec3.hpp"
+#include "ecs/Entity.hpp"
 
 struct CRacketHandle : public Component {
     Entity racketEntity;

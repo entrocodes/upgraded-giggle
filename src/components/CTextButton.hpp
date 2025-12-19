@@ -1,7 +1,7 @@
 #pragma once
 
 #include <string>
-#include "../ecs/Component.hpp"
+#include "ecs/Component.hpp"
 #include <SFML/Graphics.hpp>
 class CTextButton : public Component
 {

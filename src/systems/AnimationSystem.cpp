@@ -1,7 +1,7 @@
 #include "AnimationSystem.hpp"
 #include <SFML/Graphics.hpp>
-#include "../components/Components.hpp"
-#include "../debug/Debug.hpp"
+#include "components/Components.hpp"
+#include "debug/Debug.hpp"
 
 SystemExec AnimationSystem::update(GameContext* context) {
     return updatePlayer(context);

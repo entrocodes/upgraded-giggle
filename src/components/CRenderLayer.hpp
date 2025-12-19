@@ -1,5 +1,5 @@
 #pragma once
-#include "../ecs/Component.hpp"
+#include "ecs/Component.hpp"
 class CRenderLayer : public Component {
 public:
     int layer = 0; // default

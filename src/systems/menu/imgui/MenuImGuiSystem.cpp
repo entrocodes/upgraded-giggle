@@ -1,9 +1,10 @@
 #include "MenuImGuiSystem.hpp"
 #include <imgui.h>         
 #include <imgui-SFML.h>   
-#include "../ecs/system/SystemGraph.hpp"
-#include "../components/Components.hpp"
-#include "../helpers/JoystickUtils.hpp"
+#include "ecs/system/SystemGraph.hpp"
+#include "components/Components.hpp"
+#include "helpers/JoystickUtils.hpp"
+#include "ecs/system/ISystemGroup.hpp"
 SystemExec MenuImGuiSystem::update(GameContext* context) {
     ImGuiIO& io = ImGui::GetIO();
     io.DisplaySize = ImVec2(

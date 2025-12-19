@@ -1,9 +1,9 @@
 #include "ActionSystem.hpp"
-#include "../components/Components.hpp"""
-#include "../ecs/Entity.hpp"
+#include "components/Components.hpp"""
+#include "ecs/Entity.hpp"
 #include <algorithm>
 #include <map>
-
+#include "game/utils/GameContext.hpp"
 // --- SCROLL CONTROL PARAMETERS ---
 constexpr int SCROLL_INITIAL_DELAY_FRAMES = 30;
 constexpr int SCROLL_RATE_FRAMES = 6;

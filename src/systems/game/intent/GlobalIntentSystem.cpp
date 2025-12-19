@@ -1,5 +1,5 @@
 #include "GlobalIntentSystem.hpp"
-
+#include "game/utils/GameContext.hpp"
 SystemExec GlobalIntentSystem::update(GameContext* context) {
     if (context->inputBlocked) return {SystemExecResult::EarlyExit};
 

@@ -2,8 +2,8 @@
 
 #include <memory>
 #include <type_traits>
-#include "../game/utils/GameContext.hpp"
-#include "../ecs/system/ISystem.hpp"
+#include "game/utils/GameContext.hpp"
+#include "ecs/system/ISystem.hpp"
 class SystemFactory {
 public:
     explicit SystemFactory(GameContext* context)

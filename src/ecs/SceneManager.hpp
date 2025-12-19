@@ -2,7 +2,7 @@
 #include <memory>
 #include <unordered_map>
 #include <string>
-#include "../game/scenes/Scene.hpp"
+#include "game/scenes/Scene.hpp"
 
 class SceneManager {
 public:

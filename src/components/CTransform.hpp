@@ -1,6 +1,6 @@
 #pragma once
-#include "../math/Vec2.hpp"
-#include "../ecs/Component.hpp"
+#include "math/Vec2.hpp"
+#include "ecs/Component.hpp"
 
 
 struct CTransform : public Component {

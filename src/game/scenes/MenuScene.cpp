@@ -1,16 +1,16 @@
 #include "MenuScene.hpp"
-#include "../game/utils/JsonEntityLoader.hpp"
+#include "../utils/JsonEntityLoader.hpp"
 
 // system includes ONLY needed here
-#include "../systems/InputSystem.hpp"
-#include "../systems/FrameStatsSystem.hpp"
-#include "../systems/TextButtonSystem.hpp"
-#include "../systems/menu/intent/IntentSystem.hpp"
-#include "../systems/menu/action/ActionSystem.hpp"
-#include "../systems/DirtyTextSystem.hpp"
-#include "../systems/RenderSystem.hpp"
-#include "../systems/menu/imgui/MenuImGuiSystem.hpp"
-#include "../systems/TransformSaveSystem.hpp"
+#include "systems/InputSystem.hpp"
+#include "systems/FrameStatsSystem.hpp"
+#include "systems/TextButtonSystem.hpp"
+#include "systems/menu/intent/IntentSystem.hpp"
+#include "systems/menu/action/ActionSystem.hpp"
+#include "systems/DirtyTextSystem.hpp"
+#include "systems/RenderSystem.hpp"
+#include "systems/menu/imgui/MenuImGuiSystem.hpp"
+#include "systems/TransformSaveSystem.hpp"
 #include <imgui.h>
 MenuScene::MenuScene(GameContext* context)
     : m_context(context)

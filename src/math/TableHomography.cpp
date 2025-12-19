@@ -1,6 +1,6 @@
 ﻿#include "TableHomography.hpp"
-#include "../debug/Debug.hpp"
-#include "../math/Vec2.hpp"
+#include "debug/Debug.hpp"
+#include "math/Vec2.hpp"
 #include <SFML/Graphics.hpp>
 #include <Eigen/Dense>
 #include <cmath>

@@ -1,6 +1,6 @@
 #pragma once
 #include <SFML/Graphics.hpp>
-#include "../math/Vec2.hpp"
+#include "math/Vec2.hpp"
 
 struct DisplayConfig {
     Vec2 logicalSize = { 1280.f, 720.f };   // game space

@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "Vec2.hpp"
-#include "../display/DisplayConfig.hpp"
+#include "display/DisplayConfig.hpp"
 
 namespace Grid
 {

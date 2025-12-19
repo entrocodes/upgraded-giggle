@@ -1,8 +1,8 @@
 #pragma once
 #include <SFML/Graphics.hpp>
-#include "../ecs/SceneManager.hpp"
-#include "../display/DisplayUtils.hpp"
-#include "../game/utils/GameContext.hpp"
+#include "ecs/SceneManager.hpp"
+#include "display/DisplayUtils.hpp"
+#include "utils/GameContext.hpp"
 class GameEngine {
 public:
     GameEngine();

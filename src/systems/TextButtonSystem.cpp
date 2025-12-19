@@ -1,6 +1,6 @@
 #include "TextButtonSystem.hpp"
-#include "../components/components.hpp"
-#include "../game/utils/GameContext.hpp"
+#include "components/components.hpp"
+#include "game/utils/GameContext.hpp"
 #include <SFML/System/Vector2.hpp>
 #include <SFML/Graphics/Rect.hpp>
 

@@ -1,7 +1,7 @@
 #pragma once
-#include "../math/Vec2.hpp"
-#include "../math/TableHomography.hpp"
-#include "../display/DisplayConfig.hpp"
+#include "math/Vec2.hpp"
+#include "math/TableHomography.hpp"
+#include "display/DisplayConfig.hpp"
 #include <SFML/Graphics.hpp>
 class Camera {
 public:

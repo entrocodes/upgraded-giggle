@@ -1,9 +1,9 @@
 ﻿#include "RenderSystem.hpp"
-#include "../systems/GridDebugSystem.hpp"
-#include "../components/Components.hpp"
-#include "../debug/Debug.hpp"
-#include "../math/MathHelpers.hpp"
-#include "../ecs/DrawItem.hpp"
+#include "systems/GridDebugSystem.hpp"
+#include "components/Components.hpp"
+#include "debug/Debug.hpp"
+#include "math/MathHelpers.hpp"
+#include "ecs/DrawItem.hpp"
 #include <cmath>
 SystemExec RenderSystem::update(GameContext* context) {
 

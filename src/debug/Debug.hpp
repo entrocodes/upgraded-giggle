@@ -1,10 +1,10 @@
 #pragma once
-#include "../math/Vec2.hpp"
-#include "../math/Vec3.hpp"
+#include "math/Vec2.hpp"
+#include "math/Vec3.hpp"
 #include <SFML/Graphics.hpp>
 #include <vector>
 #include <string>
-#include "../game/utils/GameContext.hpp"
+#include "game/utils/GameContext.hpp"
 struct ArrowCommand {
     Vec3 from;
     Vec3 to;

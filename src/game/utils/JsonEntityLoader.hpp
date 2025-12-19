@@ -2,7 +2,7 @@
 
 #include <string>
 #include <nlohmann/json.hpp>
-#include "../game/utils/GameContext.hpp"
+#include "game/utils/GameContext.hpp"
 
 namespace JsonEntityLoader {
 	void loadEntitiesFromJson(GameContext* context, const std::string& path);

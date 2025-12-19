@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../components/Components.hpp"
+#include "components/Components.hpp"
 
 enum class DrawType { Sprite, Logo, Text };
 

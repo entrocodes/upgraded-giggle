@@ -1,5 +1,5 @@
 #pragma once
-#include "../game/utils/Animation.hpp"
+#include "game/utils/Animation.hpp"
 class CAnimation : public Component
 {
 public:

@@ -1,12 +1,12 @@
 ﻿#include "EntityFactory.hpp"
-#include "../components/Components.hpp"
-#include "../math/GridTransform.hpp"
+#include "components/Components.hpp"
+#include "math/GridTransform.hpp"
 #include <SFML/Graphics.hpp>
 #include <memory>
 #include <iostream>
-#include "../debug/Debug.hpp"
-#include "../math/Bounds3D.hpp"
-#include "../game/utils/TableParameters.hpp"
+#include "debug/Debug.hpp"
+#include "math/Bounds3D.hpp"
+#include "game/utils/TableParameters.hpp"
 
 Entity EntityFactory::createBackground() {
     Entity background = m_registry.createEntity("background");

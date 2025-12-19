@@ -1,5 +1,5 @@
 #include "Scene.hpp"
-#include "../ecs/system/SystemGraph.hpp"
+#include "ecs/system/SystemGraph.hpp"
 
 SystemGraph& Scene::systems() {
     return *m_systems;

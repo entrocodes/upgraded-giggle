@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include <SFML/System.hpp> // for sf::Time or deltaTime
 #include <cmath>
-#include "../math/Vec3.hpp"
+#include "math/Vec3.hpp"
 class CalculateBallDrag {
 public:
     const float airDensity = 1.2f;     // kg/m³

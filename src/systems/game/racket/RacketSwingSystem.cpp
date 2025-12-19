@@ -1,7 +1,7 @@
 ﻿#define NOMINMAX
 
 #include "RacketSwingSystem.hpp"
-#include "../components/Components.hpp"
+#include "components/Components.hpp"
 #include <algorithm>
 
 SystemExec RacketSwingSystem::update(GameContext* context) {

@@ -1,7 +1,7 @@
 #include "RenderLayerSystem.hpp"
-#include "../components/Components.hpp"
-#include "../game/utils/GameContext.hpp"
-#include "../debug/Debug.hpp"
+#include "components/Components.hpp"
+#include "game/utils/GameContext.hpp"
+#include "debug/Debug.hpp"
 
 SystemExec RenderLayerSystem::update(GameContext* context) {
     Entity* net = context->registry.getEntity("net");

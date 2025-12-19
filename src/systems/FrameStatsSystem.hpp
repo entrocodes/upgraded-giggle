@@ -1,5 +1,5 @@
 #pragma once
-#include "../ecs/system/ISystem.hpp"
+#include "ecs/system/ISystem.hpp"
 
 class FrameStatsSystem final : public ISystem {
 public:

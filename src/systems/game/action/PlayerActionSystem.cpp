@@ -1,6 +1,10 @@
 #include "PlayerActionSystem.hpp"
-#include "../components/Components.hpp"
-#include "../debug/Debug.hpp"
+#include "components/Components.hpp"
+#include "debug/Debug.hpp"
+#include "game/utils/GameContext.hpp"
+#include <cmath>
+#include <algorithm>
+
 SystemExec PlayerActionSystem::update(GameContext* context) {
     Entity* player = context->registry.getEntity("player");
     if (!player) {
@@ -16,8 +20,18 @@ SystemExec PlayerActionSystem::update(GameContext* context) {
     if (input->actions["ReleaseAttack"]) state->state = "stand";
     if (input->actions["MoveForward"])  vel3D->vel_mps.z += .5f;
     if (input->actions["MoveBackward"])  vel3D->vel_mps.z -= .5f;
-    if (input->actions["StepLeft"])  transform3D->pos_m.x -= .25f;
-    if (input->actions["StepRight"]) transform3D->pos_m.x += 1.5f;
+    if (input->actions["MoveLeft"]) {
+        float moveDistance = (context->playerMovement.maxStrength * (1.0f - std::exp(-context->playerMovement.speedFactor * input->holdTime["MoveLeft"]))) * context->playerMovement.scale;
+        vel3D->vel_mps.x -= moveDistance;
+        context->playerMovement.moveDistance.x = moveDistance;
+        context->playerMovement.moveTriggered = true;
+    }
+    if (input->actions["MoveRight"]) {
+        float moveDistance = (context->playerMovement.maxStrength * (1.0f - std::exp(-context->playerMovement.speedFactor * input->holdTime["MoveRight"]))) * context->playerMovement.scale;
+        vel3D->vel_mps.x += moveDistance;
+        context->playerMovement.moveDistance.y = moveDistance;
+        context->playerMovement.moveTriggered = true;
+    }
     return { SystemExecResult::Ran };
 
 };

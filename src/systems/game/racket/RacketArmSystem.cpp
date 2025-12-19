@@ -1,6 +1,6 @@
 #include "RacketArmSystem.hpp"
-#include "../components/Components.hpp"
-#include "../game/utils/GameContext.hpp"
+#include "components/Components.hpp"
+#include "game/utils/GameContext.hpp"
 
 SystemExec RacketArmSystem::update(GameContext* context) {
     if (context->frameStats.dt <= 0.f) return { SystemExecResult::EarlyExit };

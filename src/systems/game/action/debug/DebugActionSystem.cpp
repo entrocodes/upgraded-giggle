@@ -1,10 +1,11 @@
 #include "DebugActionSystem.hpp"
 
-#include "../debug/Debug.hpp"
-#include "../math/GridTransform.hpp"
-#include "../math/Vec3.hpp"
-#include "../math/Vec2.hpp"
-#include "../display/DisplayUtils.hpp"
+#include "debug/Debug.hpp"
+#include "math/GridTransform.hpp"
+#include "math/Vec3.hpp"
+#include "math/Vec2.hpp"
+#include "display/DisplayUtils.hpp"
+#include "game/utils/GameContext.hpp"
 SystemExec DebugActionSystem::update(GameContext* context) {
     auto& intent = context->debugIntent;
     auto& debug = context->physicsDebug;

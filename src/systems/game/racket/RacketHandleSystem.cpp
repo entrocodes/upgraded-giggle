@@ -1,6 +1,6 @@
 #include "RacketHandleSystem.hpp"
-#include "../components/Components.hpp"
-#include "../debug/Debug.hpp"
+#include "components/Components.hpp"
+#include "debug/Debug.hpp"
 
 SystemExec RacketHandleSystem::update(GameContext* context) {
     auto* player = context->registry.getEntity("player");

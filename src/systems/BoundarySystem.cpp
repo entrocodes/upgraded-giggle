@@ -1,5 +1,5 @@
 #include "BoundarySystem.hpp"
-#include "../math/GridTransform.hpp"
+#include "math/GridTransform.hpp"
 SystemExec BoundarySystem::update(GameContext* context) {
     for (auto e : context->registry.getEntitiesWith<CTransform, CBoundingBox, CVelocity>()) {
         auto [transform, boundingBox, velocity] = context->registry.getComponents<CTransform, CBoundingBox, CVelocity>(e);

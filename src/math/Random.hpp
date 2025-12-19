@@ -1,6 +1,6 @@
 #pragma once
 #include <random>
-#include "../math/Vec2.hpp"  // assuming your Vec2 struct is here
+#include "math/Vec2.hpp"  // assuming your Vec2 struct is here
 
 namespace Math {
 

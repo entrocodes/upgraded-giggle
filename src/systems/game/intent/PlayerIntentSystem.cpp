@@ -1,12 +1,12 @@
 ﻿#include "PlayerIntentSystem.hpp"
-#include "../components/components.hpp"
-#include "../game/utils/GameContext.hpp"
+
 #include <cmath>
 #include <algorithm> // For std::clamp if needed
 
-#include "../helpers/JoystickUtils.hpp"
-
-
+#include "helpers/JoystickUtils.hpp"
+#include "components/Components.hpp"
+#include "game/utils/GameContext.hpp"
+#include "input/RawInputState.hpp"
 SystemExec PlayerIntentSystem::update(GameContext* context) {
     if (context->inputBlocked) return { SystemExecResult::EarlyExit, "input blocked" };
 
@@ -32,41 +32,45 @@ SystemExec PlayerIntentSystem::update(GameContext* context) {
             raw.isKeyDown(sf::Keyboard::K) ||
             (gamepadConnected && raw.isGamepadDown("RT"));
 
-        cInput->actions["StepLeft"] = 
-            raw.isKeyJustPressed(sf::Keyboard::A) ||
-            (gamepadConnected && raw.isGamepadDown("LB"));
-        cInput->actions["StepRight"] =
-            raw.isKeyJustPressed(sf::Keyboard::D) ||
-            (gamepadConnected && raw.isGamepadDown("RB"));
+        if (raw.isKeyDown(sf::Keyboard::A)) {
+            cInput->holdTime["MoveLeft"] = raw.keyHeldFor(context, sf::Keyboard::A);
+        }
+        else if (raw.isGamepadDown("LB")) {
+            cInput->holdTime["MoveLeft"] = raw.gamePadHeldFor(context, "LB");
+            context->playerMovement.moveTriggered = false;
+        }
+        
+        if (raw.isGamepadReleased("LB") || raw.isKeyReleased(sf::Keyboard::A)){
+            cInput->actions["MoveLeft"] = true;
+        }
 
-        float moveX = 0.f, moveZ = 0.f;
+        if (raw.isKeyDown(sf::Keyboard::D)) {
+            cInput->holdTime["MoveRight"] = raw.keyHeldFor(context, sf::Keyboard::D);
+        }
+        else if (raw.isGamepadDown("RB")) {
+            cInput->holdTime["MoveRight"] = raw.gamePadHeldFor(context, "RB");
+            context->playerMovement.moveTriggered = false;
+        }
+        
+        if (raw.isGamepadReleased("RB") || raw.isKeyReleased(sf::Keyboard::A)){
+            cInput->actions["MoveRight"] = true;
+        }
+
         float aimX = 0.f, aimY = 0.f;
 
         if (gamepadConnected) {
             // Read raw axis data from the InputSystem's poll result
-            float rawAimX = raw.joyAxisPositions.at(sf::Joystick::U);
-            float rawAimY = raw.joyAxisPositions.at(sf::Joystick::V);
+            // ✅ Safe lookup: use count() or a lambda to provide a default value
+            float rawAimX = raw.joyAxisPositions.count(sf::Joystick::U) ? raw.joyAxisPositions.at(sf::Joystick::U) : 0.f;
+            float rawAimY = raw.joyAxisPositions.count(sf::Joystick::V) ? raw.joyAxisPositions.at(sf::Joystick::V) : 0.f;
 
-            // Apply deadzone and conversion using the raw polled values
-
+            aimX = JoystickUtils::processAxis(rawAimX, context->controllerParameters.joyUVDeadZone);
+            aimY = JoystickUtils::processAxis(-rawAimY, context->controllerParameters.joyUVDeadZone);
 
             aimX = JoystickUtils::processAxis(rawAimX, context->controllerParameters.joyUVDeadZone);
             aimY = JoystickUtils::processAxis(-rawAimY, context->controllerParameters.joyUVDeadZone); // Assuming -Y is Forward/Up
         }
-        else {
-            // Keyboard Input (WASD)
-            if (raw.isKeyDown(sf::Keyboard::A)) aimX -= 1.f;
-            if (raw.isKeyDown(sf::Keyboard::D)) aimX += 1.f;
-            if (raw.isKeyDown(sf::Keyboard::W)) aimZ += 1.f; // Assuming W is Forward/Up
-            if (raw.isKeyDown(sf::Keyboard::S)) aimZ -= 1.f; // Assuming S is Back/Down
 
-            // Mouse Aiming (Implementation depends on game type, here we'll assume a point)
-            // If you need mouse aim, you'd calculate the vector from player pos to mouse pos here
-        }
-
-        // --- Store Processed Axes (Intent) ---
-        cInput->axes["MoveX"] = moveX;
-        cInput->axes["MoveZ"] = moveZ;
         cInput->axes["AimX"] = aimX;
         cInput->axes["AimY"] = aimY;
     }

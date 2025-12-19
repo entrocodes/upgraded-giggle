@@ -1,6 +1,6 @@
 ﻿#pragma once
-#include "../math/Vec2.hpp"
-#include "../math/Vec3.hpp"
+#include "math/Vec2.hpp"
+#include "math/Vec3.hpp"
 #include <SFML/Graphics.hpp>
 #include <array>
 #include <Eigen/Dense>
