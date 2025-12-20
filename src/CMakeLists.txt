@@ -43,7 +43,9 @@ add_executable(PixelPong
     helpers/JoystickUtils.cpp
     game/utils/JsonEntityLoader.cpp
     input/RawInputState.cpp
-)
+    systems/movement/player/footwork/FootworkMovementSystem.cpp
+    systems/movement/player/VelocityIntegrationSystem.cpp
+ "systems/movement/player/footwork/FootworkMovementSystem.cpp")
 # This solves the "GameContext.hpp" not found error
 target_include_directories(PixelPong PRIVATE 
     "${CMAKE_CURRENT_SOURCE_DIR}" 

@@ -20,3 +20,5 @@
 #include "CArm.hpp"
 #include "CText.hpp"
 #include "CTextButton.hpp"
+#include "CFootworkIntent.hpp"
+#include "CFootworkState.hpp"

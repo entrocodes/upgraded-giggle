@@ -15,7 +15,7 @@ void SystemGraph::run(GameContext* context, TickPhase phase)
 
         // ✅ Record stats
         auto& dbg = node->debug;
-        dbg.lastFrameRan = context->frameStats.frameIndex;
+        dbg.lastFrameRan = context->frameStats.tickIndex;
         dbg.runCount++;
 
         dbg.exitedEarlyLastRun = (exec.result == SystemExecResult::EarlyExit);

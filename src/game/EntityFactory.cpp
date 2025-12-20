@@ -144,6 +144,7 @@ Entity EntityFactory::createPlayerRacket() {
 
     // Attach to player
     Entity* player = m_registry.getEntity("player");
+    m_registry.addComponent<CFootworkState>(*player);
     auto& handle = m_registry.addComponent<CRacketHandle>(*player);
 
     handle.racketEntity = racket;

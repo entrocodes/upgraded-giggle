@@ -120,7 +120,20 @@ public:
         m_components.clear();
         m_nextEntityId = 0;
     }
+    template <typename T>
+    void removeComponent(const Entity& e) {
+        auto it = m_components.find(typeid(T));
+        if (it == m_components.end()) return;
 
+        auto& map = *it->second;
+        map.erase(e);
+    }
+    template <typename T, typename... Args>
+    T& getOrAddComponent(const Entity& e, Args&&... args) {
+        if (auto* c = getComponent<T>(e))
+            return *c;
+        return addComponent<T>(e, std::forward<Args>(args)...);
+    }
 private:
     std::uint32_t m_nextEntityId = 0;
     std::vector<Entity> m_entities;
@@ -140,4 +153,6 @@ private:
         else
             return hasAllComponents<Rest...>(e);
     }
+
+
 };

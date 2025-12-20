@@ -12,25 +12,22 @@ SystemExec PlayerActionSystem::update(GameContext* context) {
         return { SystemExecResult::EarlyExit };
     }
 
-    auto [input, vel3D, transform3D, state] = context->registry.getComponents<CInput, CVelocity3D, CTransform3D, CState>(*player);
-
-    vel3D->vel_mps = { 0.f, 0.f, 0.f };
+    auto [input, transform3D, state] = context->registry.getComponents<CInput, CTransform3D, CState>(*player);
 
     if (input->actions["AttackDown"])  state->state = "backswing";
     if (input->actions["ReleaseAttack"]) state->state = "stand";
-    if (input->actions["MoveForward"])  vel3D->vel_mps.z += .5f;
-    if (input->actions["MoveBackward"])  vel3D->vel_mps.z -= .5f;
     if (input->actions["MoveLeft"]) {
-        float moveDistance = (context->playerMovement.maxStrength * (1.0f - std::exp(-context->playerMovement.speedFactor * input->holdTime["MoveLeft"]))) * context->playerMovement.scale;
-        vel3D->vel_mps.x -= moveDistance;
-        context->playerMovement.moveDistance.x = moveDistance;
+        auto& cFootworkIntent = context->registry.addComponent<CFootworkIntent>(*player);
+        cFootworkIntent.direction = { -1, 0, 0 };
         context->playerMovement.moveTriggered = true;
+        cFootworkIntent.heldFrames = input->holdTime["MoveLeft"];
     }
     if (input->actions["MoveRight"]) {
-        float moveDistance = (context->playerMovement.maxStrength * (1.0f - std::exp(-context->playerMovement.speedFactor * input->holdTime["MoveRight"]))) * context->playerMovement.scale;
-        vel3D->vel_mps.x += moveDistance;
-        context->playerMovement.moveDistance.y = moveDistance;
+        auto& cFootworkIntent = context->registry.addComponent<CFootworkIntent>(*player);
+        cFootworkIntent.direction = { 1, 0, 0 };
         context->playerMovement.moveTriggered = true;
+        cFootworkIntent.heldFrames = input->holdTime["MoveRight"];
+
     }
     return { SystemExecResult::Ran };
 

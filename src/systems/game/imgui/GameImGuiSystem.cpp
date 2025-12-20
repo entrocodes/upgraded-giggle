@@ -10,6 +10,8 @@
 
 
 SystemExec GameImGuiSystem::update(GameContext* context) {
+    
+    
     ImGuiIO& io = ImGui::GetIO();
     io.DisplaySize = ImVec2(
         context->display.windowSize.x,
@@ -139,41 +141,143 @@ void GameImGuiSystem::drawDeveloperPanel(GameContext* context) {
             spawnDebugBall(context);
         }
     }
-    //Player Debug:
+    // =====================
+// Player Debug
+// =====================
     if (ImGui::CollapsingHeader("Player Debug", ImGuiTreeNodeFlags_DefaultOpen)) {
-        Entity* player = context->registry.getEntity("player");
-        if (player) {
-            auto [t3d, t2d, state, cInput] = context->registry.getComponents<CTransform3D, CTransform, CState, CInput>(*player);
-            if (ImGui::CollapsingHeader("Player Position Stats")) {
-                if (t3d) ImGui::Text("3D Pos: %.2f, %.2f, %.2f", t3d->pos_m.x, t3d->pos_m.y, t3d->pos_m.z);
-                if (t2d) ImGui::Text("2D Pos: %.1f, %.1f", t2d->pos.x, t2d->pos.y);
-                if (t2d) ImGui::Text("2D Render Pos: %.1f, %.1f", t2d->renderPos.x, t2d->renderPos.y);
-                if (t2d) ImGui::Text("Alpha: %.2f", context->frameAlpha);
-                if (state) ImGui::Text("State: %s", state->state.c_str());
 
-                if (ImGui::Button("Reset Player Pos")) {
-                    t3d->pos_m = { 0.f, -context->tableParameters.tableHeight, -0.5f };
-                }
+        Entity* player = context->registry.getEntity("player");
+        if (!player) {
+            ImGui::TextColored(ImVec4(1, 0, 0, 1), "PLAYER ENTITY NOT FOUND");
+            return;
+        }
+
+        auto [t3d, t2d, state, cInput, cFootworkState] =
+            context->registry.getComponents<
+            CTransform3D,
+            CTransform,
+            CState,
+            CInput,
+            CFootworkState>(*player);
+
+        // ---------------------
+        // Position / State
+        // ---------------------
+        if (ImGui::CollapsingHeader("Player Position Stats")) {
+            if (t3d)
+                ImGui::Text("3D Pos: %.2f, %.2f, %.2f",
+                    t3d->pos_m.x, t3d->pos_m.y, t3d->pos_m.z);
+
+            if (t2d) {
+                ImGui::Text("2D Pos: %.1f, %.1f", t2d->pos.x, t2d->pos.y);
+                ImGui::Text("2D Render Pos: %.1f, %.1f",
+                    t2d->renderPos.x, t2d->renderPos.y);
             }
-            if (ImGui::CollapsingHeader("Player Footwork Movement Debug")) {
-                ImGui::SliderFloat("Scale",
-                    &context->playerMovement.scale, 0.5f, 5.f);
-                ImGui::SliderFloat("Max Strength",
-                    &context->playerMovement.maxStrength, 0.3f, 3.f);
-                ImGui::SliderFloat("Speed Factor",
-                    &context->playerMovement.speedFactor, 0.02f, .3f);
-                if (ImGui::Button("Reset Footwork Movement Settings")) {
-                    context->playerMovement.scale = context->playerMovement.defaultScale;
-                    context->playerMovement.maxStrength = context->playerMovement.defaultMaxStrength;
-                    context->playerMovement.speedFactor = context->playerMovement.defaultSpeedFactor;
-                }
-                if (cInput) ImGui::Text("Move Held: %d, %d", cInput->holdTime["MoveLeft"], cInput->holdTime["MoveRight"]);
-                ImGui::Text("Move Distance: %.1f, %.1f", context->playerMovement.moveDistance.x, context->playerMovement.moveDistance.y);
-                ImGui::Text("Has Moved: %s", context->playerMovement.moveTriggered ? "Yes" : "No");
+
+            ImGui::Text("Alpha: %.2f", context->frameAlpha);
+
+            if (state)
+                ImGui::Text("State: %s", state->state.c_str());
+
+            if (ImGui::Button("Reset Player Pos") && t3d) {
+                t3d->pos_m = { 0.f, -context->tableParameters.tableHeight, -0.5f };
             }
         }
-        else {
-            ImGui::TextColored(ImVec4(1, 0, 0, 1), "PLAYER ENTITY NOT FOUND");
+
+        // ---------------------
+        // Footwork Debug
+        // ---------------------
+        if (ImGui::CollapsingHeader("Footwork (Debug)", ImGuiTreeNodeFlags_DefaultOpen)) {
+
+            // --- Tuning (isolated) ---
+            if (ImGui::BeginChild("FootworkTuning", ImVec2(0, 160), true)) {
+                ImGui::Text("Tuning");
+                ImGui::Separator();
+
+                ImGui::SliderFloat("Tap Strength",
+                    &context->playerMovement.footworkMovement.tapStrength, 1.f, 25.f);
+                ImGui::SliderFloat("Hop Strength",
+                    &context->playerMovement.footworkMovement.hopStrength, 1.f, 25.f);
+                ImGui::SliderFloat("Leap Strength",
+                    &context->playerMovement.footworkMovement.leapStrength, 1.f, 25.f);
+
+                if (ImGui::Button("Reset Footwork Settings")) {
+                    context->playerMovement.scale =
+                        context->playerMovement.defaultScale;
+                    context->playerMovement.maxStrength =
+                        context->playerMovement.defaultMaxStrength;
+                    context->playerMovement.speedFactor =
+                        context->playerMovement.defaultSpeedFactor;
+                }
+            }
+            ImGui::EndChild();
+
+            ImGui::Spacing();
+
+            // --- Input intent ---
+            if (cInput) {
+                ImGui::Text("Input");
+                ImGui::Separator();
+                ImGui::Text("Move Held (L / R): %d / %d",
+                    cInput->holdTime["MoveLeft"],
+                    cInput->holdTime["MoveRight"]);
+            }
+
+            ImGui::Spacing();
+
+            // --- Footwork state ---
+            ImGui::Text("Resolved Footwork");
+            ImGui::Separator();
+
+            static float smoothedMaxSpeed = 0.f;
+
+            if (cFootworkState && cFootworkState->active) {
+
+                float t =
+                    float(cFootworkState->frame) /
+                    float(cFootworkState->current.totalFrames);
+
+                smoothedMaxSpeed +=
+                    (cFootworkState->current.maxSpeed_mps - smoothedMaxSpeed) * 0.1f;
+                const char* stepName =
+                    (cFootworkState->current.totalFrames == 5) ? "Tap" :
+                    (cFootworkState->current.totalFrames == 10) ? "Hop" :
+                    "Leap";
+
+                ImGui::Text("Status: ACTIVE");
+                ImGui::Text("Step Type: %s", stepName);
+
+                ImGui::ProgressBar(
+                    t,
+                    ImVec2(-1, 0),
+                    (std::string("Step ") +
+                        std::to_string(cFootworkState->frame) + "/" +
+                        std::to_string(cFootworkState->current.totalFrames)).c_str()
+                );
+
+                ImGui::Text("Max Speed (smoothed): %.2f m/s", smoothedMaxSpeed);
+            }
+            else if (cFootworkState) {
+
+                ImGui::Text("Status: IDLE");
+
+                // Recovery visualization (if applicable)
+                int recoveryEnd =
+                    cFootworkState->current.totalFrames +
+                    cFootworkState->current.recoveryFrames;
+
+                if (cFootworkState->frame > cFootworkState->current.totalFrames &&
+                    cFootworkState->frame < recoveryEnd) {
+
+                    float r =
+                        float(cFootworkState->frame -
+                            cFootworkState->current.totalFrames) /
+                        float(cFootworkState->current.recoveryFrames);
+
+                    ImGui::Text("Recovery");
+                    ImGui::ProgressBar(r, ImVec2(-1, 0));
+                }
+            }
         }
     }
 
@@ -250,27 +354,7 @@ void GameImGuiSystem::drawControllerDebug(GameContext* context) {
 
     bool connected = sf::Joystick::isConnected(0);
     ImGui::Text("Connected: %s", connected ? "Yes" : "No");
-   
 
-    static bool testLB = false;
-    testLB = context->rawInput.isGamepadReleased("LB");
-
-    ImGui::Text("Gamepad Connected: %s", sf::Joystick::isConnected(0) ? "Yes" : "No");
-    ImGui::Separator();
-
-    // This will flicker green for one frame when you release the button
-    if (testLB) {
-        ImGui::TextColored(ImVec4(0, 1, 0, 1), "LB RELEASED!");
-    }
-    else {
-        ImGui::Text("LB Status: IDLE");
-    }
-
-    // Show the "Big Number" culprit
-    if (context->rawInput.buttonMap.count("LB")) {
-        unsigned int lbId = context->rawInput.buttonMap.at("LB");
-        ImGui::Text("LB Frame Pressed: %u", context->rawInput.framePadPressed.count(lbId) ? context->rawInput.framePadPressed.at(lbId) : 0);
-    }
 
     ImGui::End();
 }

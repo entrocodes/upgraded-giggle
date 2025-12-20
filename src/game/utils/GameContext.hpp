@@ -15,6 +15,17 @@
 #include "BallSpawnDebug.hpp"
 #include "ecs/SceneManager.hpp"
 
+
+struct FootworkMovement {
+    float tapStrength = .5f;
+    float tapFrameLimit = 6;
+    float hopStrength = 4;
+    float leapStrength = 1;
+    float hopFrameFactor = 30;
+    float hopFrameLimit = 30;
+    float leapFrameFactor = 35;
+    float maxLeapStrength = 25.0f;
+};
 struct PlayerMovement {
     float maxStrength = 1.0f;
     float speedFactor = .1f; 
@@ -27,6 +38,8 @@ struct PlayerMovement {
     Vec2 moveDistance = { 0,0 };
 
     bool moveTriggered = false;
+
+    FootworkMovement footworkMovement;
 };
 struct GlobalIntent {
     bool quit = false;
@@ -107,10 +120,11 @@ struct RenderSettings {
 struct FrameStats {
     float fps = 0.f;
     float dt = 0.f;
+    float fixedDt = 0.f;
     float accumulator = 0.f;
     int frames = 0;
 
-    uint64_t frameIndex = 0;
+    uint64_t tickIndex = 0;
 };
 
 struct ControllerParameters {

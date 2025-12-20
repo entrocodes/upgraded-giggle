@@ -17,8 +17,10 @@ SystemExec PlayerIntentSystem::update(GameContext* context) {
         auto cInput = context->registry.getComponent<CInput>(e);
         if (!cInput) continue;
 
-        cInput->actions.clear();
-        cInput->axes.clear();
+        cInput->actions["MoveLeft"] = false;
+        cInput->actions["MoveRight"] = false;
+        cInput->actions["AttackDown"] = false;
+        cInput->actions["ReleaseAttack"] = false;
 
         cInput->actions["AttackDown"] =
             raw.isKeyDown(sf::Keyboard::L) ||
@@ -40,9 +42,10 @@ SystemExec PlayerIntentSystem::update(GameContext* context) {
             context->playerMovement.moveTriggered = false;
         }
         
-        if (raw.isGamepadReleased("LB") || raw.isKeyReleased(sf::Keyboard::A)){
+        if (raw.isGamepadReleased("LB") || raw.isKeyReleased(sf::Keyboard::A)) {
             cInput->actions["MoveLeft"] = true;
         }
+
 
         if (raw.isKeyDown(sf::Keyboard::D)) {
             cInput->holdTime["MoveRight"] = raw.keyHeldFor(context, sf::Keyboard::D);
@@ -52,9 +55,10 @@ SystemExec PlayerIntentSystem::update(GameContext* context) {
             context->playerMovement.moveTriggered = false;
         }
         
-        if (raw.isGamepadReleased("RB") || raw.isKeyReleased(sf::Keyboard::A)){
+        if (raw.isGamepadReleased("RB") || raw.isKeyReleased(sf::Keyboard::D)) {
             cInput->actions["MoveRight"] = true;
         }
+
 
         float aimX = 0.f, aimY = 0.f;
 
@@ -67,8 +71,6 @@ SystemExec PlayerIntentSystem::update(GameContext* context) {
             aimX = JoystickUtils::processAxis(rawAimX, context->controllerParameters.joyUVDeadZone);
             aimY = JoystickUtils::processAxis(-rawAimY, context->controllerParameters.joyUVDeadZone);
 
-            aimX = JoystickUtils::processAxis(rawAimX, context->controllerParameters.joyUVDeadZone);
-            aimY = JoystickUtils::processAxis(-rawAimY, context->controllerParameters.joyUVDeadZone); // Assuming -Y is Forward/Up
         }
 
         cInput->axes["AimX"] = aimX;

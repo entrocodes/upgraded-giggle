@@ -59,7 +59,7 @@ void GameEngine::run() {
                 if (event.key.code == sf::Keyboard::F11 || event.key.code == sf::Keyboard::F)
                     context.display.toggleFullscreen = true;
                 if (context.rawInput.frameKeyPressed.find(event.key.code) == context.rawInput.frameKeyPressed.end()) {
-                    context.rawInput.frameKeyPressed[event.key.code] = context.frameStats.frameIndex;
+                    context.rawInput.frameKeyPressed[event.key.code] = context.frameStats.tickIndex;
                 }
                 break;
 
@@ -88,7 +88,7 @@ void GameEngine::run() {
                 unsigned int key = (id * 100) + button;
                 context.rawInput.padStates[key] = true;
                 if (context.rawInput.framePadPressed.find(key) == context.rawInput.framePadPressed.end()) {
-                    context.rawInput.framePadPressed[key] = context.frameStats.frameIndex;
+                    context.rawInput.framePadPressed[key] = context.frameStats.tickIndex;
                 }
                 break;
             }
@@ -118,7 +118,8 @@ void GameEngine::run() {
 
         while (accumulator >= FIXED_DT) {
             context.frameStats.dt = FIXED_DT;
-            context.frameStats.frameIndex++;
+            context.frameStats.fixedDt = FIXED_DT;
+            context.frameStats.tickIndex++;
             context.sceneManager.update();
             accumulator -= FIXED_DT;
         }

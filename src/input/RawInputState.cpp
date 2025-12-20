@@ -22,7 +22,7 @@ bool RawInputState::isKeyReleased(sf::Keyboard::Key k) const {
 int RawInputState::keyHeldFor(GameContext* context, sf::Keyboard::Key k) const {
     auto it = frameKeyPressed.find(k);
     if (it == frameKeyPressed.end()) return 0;
-    return context->frameStats.frameIndex - it->second;
+    return context->frameStats.tickIndex - it->second;
 }
 
 // --- Mouse ---
@@ -69,7 +69,7 @@ int RawInputState::gamePadHeldFor(GameContext* context, const std::string& btn) 
     unsigned int b = buttonMap.at(btn);
     auto it = framePadPressed.find(b);
     if (it == framePadPressed.end()) return 0;
-    return context->frameStats.frameIndex - it->second;
+    return context->frameStats.tickIndex - it->second;
 }
 
 // --- Cycle ---
