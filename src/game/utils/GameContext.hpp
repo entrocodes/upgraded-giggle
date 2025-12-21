@@ -19,12 +19,12 @@
 struct FootworkMovement {
     float tapStrength = .5f;
     float tapFrameLimit = 6;
-    float hopStrength = 4;
-    float leapStrength = 1;
+    float hopStrength = 2.5;
+    float leapStrength = 3.5;
     float hopFrameFactor = 30;
-    float hopFrameLimit = 30;
-    float leapFrameFactor = 35;
-    float maxLeapStrength = 25.0f;
+    float hopFrameLimit = 20;
+    float leapFrameFactor = 25;
+    float maxLeapStrength = 7.0f;
 };
 struct PlayerMovement {
     float maxStrength = 1.0f;
@@ -34,8 +34,6 @@ struct PlayerMovement {
     float defaultMaxStrength = 1.0f;
     float defaultSpeedFactor = .1f;
     float defaultScale = 1.0f;
-
-    Vec2 moveDistance = { 0,0 };
 
     bool moveTriggered = false;
 

@@ -18,11 +18,11 @@ SystemExec RenderSystem::update(GameContext* context) {
 
     // Logos — drawn on ball
     for (auto e : context->registry.getEntitiesWith<CBall, CTransform, CRenderLayer>()) {
-        auto [ballComp, t, rl] = context->registry.getComponents<CBall, CTransform, CRenderLayer>(e);
-        if (!ballComp || !t || !rl) continue;
-        if (!ballComp->logo.visible || ballComp->logo.opacity <= 0.f) continue;
+        auto [cBall, t, rl] = context->registry.getComponents<CBall, CTransform, CRenderLayer>(e);
+        if (!cBall || !t || !rl) continue;
+        if (!cBall->logo.visible || cBall->logo.opacity <= 0.f) continue;
 
-        drawList.push_back({ rl->layer, DrawType::Logo, t, nullptr, ballComp, nullptr });
+        drawList.push_back({ rl->layer, DrawType::Logo, t, nullptr, cBall, nullptr });
     }
     // Text
     for (auto e : context->registry.getEntitiesWith<CText, CTransform, CRenderLayer>()) {
@@ -79,12 +79,12 @@ SystemExec RenderSystem::update(GameContext* context) {
     }
     return { SystemExecResult::Ran };
 }
-void RenderSystem::drawBallLogo(GameContext* context, CBall* ballComp, CTransform* transform)
+void RenderSystem::drawBallLogo(GameContext* context, CBall* cBall, CTransform* transform)
 {
     // how finely we split the logo (higher = smoother edge, more CPU)
     constexpr int GRID = 14;
 
-    auto& logo = ballComp->logo;
+    auto& logo = cBall->logo;
     if (!logo.visible || logo.opacity <= 0.f) return;
 
     // 1) Fetch texture
@@ -105,7 +105,7 @@ void RenderSystem::drawBallLogo(GameContext* context, CBall* ballComp, CTransfor
     sf::Vector2f ballCenter(renderPos.x, renderPos.y);
 
     // If you have a known pixel radius, use that instead:
-    float ballRadiusPx = context->tableParameters.pixelsPerMeter * ballComp->ballRadius + 3.5;
+    float ballRadiusPx = context->tableParameters.pixelsPerMeter * cBall->ballRadius + 3.5;
 
 
     // 4) Tangent basis around the logo normal

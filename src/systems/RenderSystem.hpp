@@ -9,5 +9,5 @@ public:
     SystemExec update(GameContext* context);
 private:
     Display3DBoundingBoxes display3DBoundingBoxes;
-    void drawBallLogo(GameContext* context, CBall* ballComp, CTransform* transform);
+    void drawBallLogo(GameContext* context, CBall* cBall, CTransform* transform);
 };

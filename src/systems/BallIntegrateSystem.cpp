@@ -15,12 +15,12 @@ SystemExec BallIntegrateSystem::update(GameContext* context) {
     bool didWork = false;
 
     for (auto ball : context->registry.getEntitiesWith<CBall, CTransform>()) {
-        auto [transform, ballComp, boundingBox3D, cBallTransform3D, cBallVelocity3D] =
+        auto [cBallTransform, cBall, boundingBox3D, cBallTransform3D, cBallVelocity3D] =
             context->registry.getComponents<
             CTransform, CBall, CBoundingBox3D, CTransform3D, CVelocity3D
             >(ball);
 
-        if (!transform || !ballComp || !boundingBox3D ||
+        if (!cBallTransform || !cBall || !boundingBox3D ||
             !cBallTransform3D || !cBallVelocity3D)
             continue;
 
@@ -31,35 +31,35 @@ SystemExec BallIntegrateSystem::update(GameContext* context) {
 
         // --- INTEGRATE POSITION ---
         cBallVelocity3D->vel_mps +=
-            ballComp->bForces.acceleration * context->frameStats.dt;
+            cBall->bForces.acceleration * context->frameStats.dt;
 
         cBallTransform3D->pos_m +=
             cBallVelocity3D->vel_mps * context->frameStats.dt;
 
         Vec3 p = cBallTransform3D->pos_m;
 
-        ballComp->contactingTable = (p.y <= context->tableParameters.tableY);
-        ballComp->onFloor = (p.y <= context->tableParameters.floorY);
+        cBall->contactingTable = (p.y <= context->tableParameters.tableY);
+        cBall->onFloor = (p.y <= context->tableParameters.floorY);
 
-        if (ballComp->contactingTable && !ballComp->offTable && !ballComp->hasFallen) {
+        if (cBall->contactingTable && !cBall->offTable && !cBall->hasFallen) {
             handleTableContact(context, ball);
         }
-        else if (ballComp->onFloor && ballComp->offTable) {
+        else if (cBall->onFloor && cBall->offTable) {
             handleFloorContact(context, ball);
         }
 
-        if (!ballComp->hasFallen && ballComp->offTable && p.y < 0.f) {
-            ballComp->hasFallen = true;
+        if (!cBall->hasFallen && cBall->offTable && p.y < 0.f) {
+            cBall->hasFallen = true;
         }
 
         boundingBox3D->box =
-            Bounds3D(p - ballComp->ballRadius, p + ballComp->ballRadius);
+            Bounds3D(p - cBall->ballRadius, p + cBall->ballRadius);
 
-        transform->pos =
+        cBallTransform->pos =
             context->camera.homography.worldToImage(p);
 
         // --- SHADOW ---
-        Entity shadowEntity = ballComp->ballShadow;
+        Entity shadowEntity = cBall->ballShadow;
         auto [shadowTransform, shadowTransform3D] =
             context->registry.getComponents<CTransform, CTransform3D>(shadowEntity);
 
@@ -68,7 +68,7 @@ SystemExec BallIntegrateSystem::update(GameContext* context) {
 
         float scale = 1.0f;
 
-        if (!ballComp->offTable) {
+        if (!cBall->offTable) {
             shadowTransform3D->pos_m =
                 Vec3(p.x, context->tableParameters.tableY, p.z);
             scale = std::max(0.5f, 1.5f - 0.2f * p.y);
@@ -79,9 +79,6 @@ SystemExec BallIntegrateSystem::update(GameContext* context) {
             scale = std::max(0.5f,
                 1.5f - 0.2f * (p.y - context->tableParameters.floorY));
         }
-
-        shadowTransform->pos =
-            context->camera.homography.worldToImage(shadowTransform3D->pos_m);
         shadowTransform->scale = { scale, scale };
 
         if (context->physicsDebug.debugSpinArrows) {
@@ -117,23 +114,23 @@ void BallIntegrateSystem::updateOffTable(GameContext* context) {
 }
 
 void BallIntegrateSystem::handleTableContact(GameContext* context, Entity& ball) {
-    auto [ballComp, cTransform3D, cVelocity3D] =
+    auto [cBall, cTransform3D, cVelocity3D] =
         context->registry.getComponents<CBall, CTransform3D, CVelocity3D>(ball);
-    if (!ballComp || !cTransform3D || !cVelocity3D) return;
+    if (!cBall || !cTransform3D || !cVelocity3D) return;
 
     Vec3& vel = cVelocity3D->vel_mps;
-    Vec3& spin = ballComp->spin;
+    Vec3& spin = cBall->spin;
     auto& table = context->tableParameters;
 
-    const float R = ballComp->ballRadius;
-    const float Fn = ballComp->mass * 9.8f;
+    const float R = cBall->ballRadius;
+    const float Fn = cBall->mass * 9.8f;
 
     // Snap to table
     cTransform3D->pos_m.y = table.tableY;
 
     // Bounce (vertical)
     if (vel.y < 0.f)
-        vel.y = -vel.y * ballComp->restitution * table.tableRestitution;
+        vel.y = -vel.y * cBall->restitution * table.tableRestitution;
 
     // Compute forward-ground speed and roll speed from spin
     float forwardSpeed = std::sqrt(vel.x * vel.x + vel.z * vel.z);
@@ -162,23 +159,23 @@ void BallIntegrateSystem::handleTableContact(GameContext* context, Entity& ball)
     if (vel.z < 0) vel.z = std::min(0.f, vel.z + frictionAccel);
 }
 void BallIntegrateSystem::handleFloorContact(GameContext* context, Entity& ball) {
-    auto [ballComp, cTransform3D, cVelocity3D] =
+    auto [cBall, cTransform3D, cVelocity3D] =
         context->registry.getComponents<CBall, CTransform3D, CVelocity3D>(ball);
-    if (!ballComp || !cTransform3D || !cVelocity3D) return;
+    if (!cBall || !cTransform3D || !cVelocity3D) return;
 
     Vec3& vel = cVelocity3D->vel_mps;
-    Vec3& spin = ballComp->spin;
+    Vec3& spin = cBall->spin;
     auto& table = context->tableParameters;
 
-    const float R = ballComp->ballRadius;
-    const float Fn = ballComp->mass * 9.8f;
+    const float R = cBall->ballRadius;
+    const float Fn = cBall->mass * 9.8f;
 
     // Snap to floor
     cTransform3D->pos_m.y = table.floorY;
 
     // Bounce
     if (vel.y < 0.f)
-        vel.y = -vel.y * ballComp->restitution * table.floorRestitution;
+        vel.y = -vel.y * cBall->restitution * table.floorRestitution;
 
     float forwardSpeed = std::sqrt(vel.x * vel.x + vel.z * vel.z);
     float spinRollingSpeed = std::fabs(spin.x * R);

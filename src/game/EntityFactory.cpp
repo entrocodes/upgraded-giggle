@@ -9,15 +9,15 @@
 #include "game/utils/TableParameters.hpp"
 
 Entity EntityFactory::createBackground() {
-    Entity background = m_registry.createEntity("background");
+    Entity eBackground = m_registry.createEntity("background");
 
-    auto& transform = m_registry.addComponent<CTransform>(background);
+    auto& cBackgroundTransform = m_registry.addComponent<CTransform>(eBackground);
 
     const Animation& roomAnim = m_assets.getAnimation("OrangeRoom");
-    auto& animComp = m_registry.addComponent<CAnimation>(background, roomAnim, false);
-    auto& render = m_registry.addComponent<CRenderLayer>(background, 0);
+    auto& cBackgroundAnimation = m_registry.addComponent<CAnimation>(eBackground, roomAnim, false);
+    m_registry.addComponent<CRenderLayer>(eBackground, 0);
     // Ensure sprite origin is set and bounding box uses the animation sprite
-    sf::Sprite& s = animComp.animation.getSprite();
+    sf::Sprite& s = cBackgroundAnimation.animation.getSprite();
     s.setOrigin(s.getLocalBounds().width / 2.f, s.getLocalBounds().height / 2.f);
     auto texSize = s.getTexture()->getSize();
 
@@ -26,198 +26,198 @@ Entity EntityFactory::createBackground() {
     float scaleY = m_display.logicalSize.y / static_cast<float>(texSize.y);
     float uniformScale = std::min(scaleX, scaleY);
 
-    // Apply scale to transform, not directly to sprite
-    transform.scale = { uniformScale, uniformScale };
+    // Apply scale to cBackgroundTransform, not directly to sprite
+    cBackgroundTransform.scale = { uniformScale, uniformScale };
 
     // Center in camera space
-    transform.pos = { m_display.logicalSize.x / 2.f, m_display.logicalSize.y / 2.f }; //center of screen
-    return background;
+    cBackgroundTransform.pos = { m_display.logicalSize.x / 2.f, m_display.logicalSize.y / 2.f }; //center of screen
+    return eBackground;
 }
 
 Entity EntityFactory::createTable() {
-    Entity table = m_registry.createEntity("table");
+    Entity eTable = m_registry.createEntity("table");
 
-    auto& transform = m_registry.addComponent<CTransform>(table);
+    auto& cTableTransform = m_registry.addComponent<CTransform>(eTable);
 
     const Animation& tableAnim = m_assets.getAnimation("Table");
-    auto& animComp = m_registry.addComponent<CAnimation>(table, tableAnim, false);
-    auto& render = m_registry.addComponent<CRenderLayer>(table, 3);
+    auto& cTableAnimation = m_registry.addComponent<CAnimation>(eTable, tableAnim, false);
+    m_registry.addComponent<CRenderLayer>(eTable, 3);
     // Ensure sprite origin is set and bounding box uses the animation sprite
-    sf::Sprite& s = animComp.animation.getSprite();
+    sf::Sprite& s = cTableAnimation.animation.getSprite();
     s.setOrigin(s.getLocalBounds().width / 2.f, s.getLocalBounds().height / 2.f);
     auto texSize = s.getTexture()->getSize();
 
     // Center in camera space
     Vec2 initialPos = { 532.f + texSize.x / 2, 599.f - texSize.y / 2 };
-    transform.pos = initialPos;
-    transform.lastPos = initialPos; // <--- ADD THIS
-    return table;
+    cTableTransform.pos = initialPos;
+    cTableTransform.lastPos = initialPos; // <--- ADD THIS
+    return eTable;
 }
 Entity EntityFactory::createNet() {
-    Entity net = m_registry.createEntity("net");
+    Entity eNet = m_registry.createEntity("net");
     //these should probably be stored somewhere else
     const Vec3 netPos_m = { 1.525 / 2, .1525f / 2, 2.74f / 2 };
     const Vec3 netSize_m = { (1.525 + .15), .1525f, .0001f }; //net should be made to be a little longer than the table later
 
-    auto& transform = m_registry.addComponent<CTransform>(net);
+    auto& cNetTransform = m_registry.addComponent<CTransform>(eNet);
     const Animation& netAnim = m_assets.getAnimation("Net");
-    auto& animComp = m_registry.addComponent<CAnimation>(net, netAnim, false);
-    auto& cTransform3D = m_registry.addComponent<CTransform3D>(net, netPos_m);
-    auto& cBoundingBox3D = m_registry.addComponent<CBoundingBox3D>(net, Bounds3D(netPos_m - netSize_m / 2, netPos_m + netSize_m / 2));
-    auto& render = m_registry.addComponent<CRenderLayer>(net, 6);
+    auto& cNetAnimation = m_registry.addComponent<CAnimation>(eNet, netAnim, false);
+    auto& cNetTransform3D = m_registry.addComponent<CTransform3D>(eNet, netPos_m);
+    auto& cBoundingBox3D = m_registry.addComponent<CBoundingBox3D>(eNet, Bounds3D(netPos_m - netSize_m / 2, netPos_m + netSize_m / 2));
+    m_registry.addComponent<CRenderLayer>(eNet, 6);
     // Ensure sprite origin is set and bounding box uses the animation sprite
-    sf::Sprite& s = animComp.animation.getSprite();
+    sf::Sprite& s = cNetAnimation.animation.getSprite();
     s.setOrigin(s.getLocalBounds().width / 2.f, s.getLocalBounds().height / 2.f);
     auto texSize = s.getTexture()->getSize();
 
 
     // Center in camera space
-    Vec2 initialPos = m_camera.homography.worldToImage(cTransform3D.pos_m);
-    transform.pos = initialPos;
-    transform.lastPos = initialPos; // <--- ADD THIS
-    return net;
+    Vec2 initialPos = m_camera.homography.worldToImage(cNetTransform3D.pos_m);
+    cNetTransform.pos = initialPos;
+    cNetTransform.lastPos = initialPos;
+    return eNet;
 }
 
 Entity EntityFactory::createPlayer() {
-    Entity player = m_registry.createEntity("player");
+    Entity ePlayer = m_registry.createEntity("player");
 
-    m_registry.addComponent<Player>(player);
-    m_registry.addComponent<CInput>(player);
-    m_registry.addComponent<CState>(player, "stand");
+    m_registry.addComponent<Player>(ePlayer);
+    m_registry.addComponent<CInput>(ePlayer);
+    m_registry.addComponent<CState>(ePlayer, "stand");
 
     // --- Transform ---
-    auto& transform3D = m_registry.addComponent<CTransform3D>(player);
-    m_registry.addComponent<CVelocity>(player);
-    m_registry.addComponent<CVelocity3D>(player);
-    m_registry.addComponent<CTransform>(player);
+    auto& cPlayerTransform3D = m_registry.addComponent<CTransform3D>(ePlayer);
+    m_registry.addComponent<CVelocity>(ePlayer);
+    m_registry.addComponent<CVelocity3D>(ePlayer);
+    m_registry.addComponent<CTransform>(ePlayer);
 
     // --- Render ---
-    auto& render = m_registry.addComponent<CRenderLayer>(player, 9);
+    m_registry.addComponent<CRenderLayer>(ePlayer, 9);
 
     // --- Animation ---
     const Animation& standAnim = m_assets.getAnimation("Stand");
-    auto& animComp = m_registry.addComponent<CAnimation>(player, standAnim, false);
+    auto& cPlayerAnimation = m_registry.addComponent<CAnimation>(ePlayer, standAnim, false);
 
-    sf::Sprite& s = animComp.animation.getSprite();
+    sf::Sprite& s = cPlayerAnimation.animation.getSprite();
     Vec2 spriteBounds = {
         s.getLocalBounds().width,
         s.getLocalBounds().height
     };
     s.setOrigin(spriteBounds.x / 2.f, spriteBounds.y / 2.f);
 
-    m_registry.addComponent<CBoundingBox>(player, s.getLocalBounds());
+    m_registry.addComponent<CBoundingBox>(ePlayer, s.getLocalBounds());
 
     // --- Gameplay Components ---
-    m_registry.addComponent<CRacketSwing>(player);
+    m_registry.addComponent<CRacketSwing>(ePlayer);
 
     // Player world position
-    transform3D.pos_m = {
+    cPlayerTransform3D.pos_m = {
         0.0f,
         -m_tableParameters.tableHeight + m_tableParameters.playerHeight * 0.5f,
         -0.3f
     };
 
-    auto& cArm = m_registry.addComponent<CArm>(player);
+    auto& cPlayerArm = m_registry.addComponent<CArm>(ePlayer);
 
     // Shoulder height relative to player position
-    cArm.shoulderPos_m =
-        transform3D.pos_m + Vec3(0.f, 0.45f, 0.f);
+    cPlayerArm.shoulderPos_m =
+        cPlayerTransform3D.pos_m + Vec3(0.f, 0.45f, 0.f);
 
-    cArm.maxReach_m = 0.65f; // realistic adult reach
+    cPlayerArm.maxReach_m = 0.65f; // realistic adult reach
     
-    auto& handle = m_registry.addComponent<CRacketHandle>(player);
-    handle.freeOffset_m = Vec3(0.f, 0.2f, 0.25f); // neutral ready position
+    auto& cPlayerRacketHandle = m_registry.addComponent<CRacketHandle>(ePlayer);
+    cPlayerRacketHandle.freeOffset_m = Vec3(0.f, 0.2f, 0.25f); // neutral ready position
 
-    return player;
+    return ePlayer;
 }
 
 Entity EntityFactory::createPlayerRacket() {
-    Entity racket = m_registry.createEntity("playerRacket");
+    Entity eRacket = m_registry.createEntity("playerRacket");
 
-    auto& cRacketPhys = m_registry.addComponent<CRacketPhysical>(racket);
-    cRacketPhys.restitution = 0.85f;
-    cRacketPhys.friction = 0.50f;
+    auto& cPlayerRacketRacketPhysical = m_registry.addComponent<CRacketPhysical>(eRacket);
+    cPlayerRacketRacketPhysical.restitution = 0.85f;
+    cPlayerRacketRacketPhysical.friction = 0.50f;
     //cRacketPhys.normal = Vec3(0, 0, 1);
 
     //TEMP
-    cRacketPhys.normal = Vec3(0.08f, -0.15f, 0.98f).normalized();
+    cPlayerRacketRacketPhysical.normal = Vec3(0.08f, -0.15f, 0.98f).normalized();
 
     // Attach to player
-    Entity* player = m_registry.getEntity("player");
-    m_registry.addComponent<CFootworkState>(*player);
-    auto& handle = m_registry.addComponent<CRacketHandle>(*player);
+    Entity* ePlayer = m_registry.getEntity("player");
+    m_registry.addComponent<CFootworkState>(*ePlayer);
+    auto& cPlayerRacketHandle = m_registry.addComponent<CRacketHandle>(*ePlayer);
 
-    handle.racketEntity = racket;
+    cPlayerRacketHandle.racketEntity = eRacket;
 
     // TEMP: transform set to player; will update next frame
-    auto cPlayerPos = m_registry.getComponent<CTransform3D>(*player);
+    auto cPlayerTransform3D = m_registry.getComponent<CTransform3D>(*ePlayer);
 
-    Vec3 startPos = cPlayerPos ? cPlayerPos->pos_m : Vec3();
+    Vec3 startPos = cPlayerTransform3D ? cPlayerTransform3D->pos_m : Vec3();
 
-    auto& cTransform3D = m_registry.addComponent<CTransform3D>(racket, startPos);
-    auto& cVelocity3D = m_registry.addComponent<CVelocity3D>(racket, Vec3());
-    auto& transform = m_registry.addComponent<CTransform>(racket);
-    Vec2 screenPos = m_camera.homography.worldToImage(cTransform3D.pos_m);
-    transform.pos = screenPos;
-    transform.lastPos = screenPos; // Snap interpolation
+    auto& cPlayerRacketTransform3D = m_registry.addComponent<CTransform3D>(eRacket, startPos);
+    m_registry.addComponent<CVelocity3D>(eRacket, Vec3());
+    auto& cPlayerRacketTransform = m_registry.addComponent<CTransform>(eRacket);
+    Vec2 screenPos = m_camera.homography.worldToImage(cPlayerRacketTransform3D.pos_m);
+    cPlayerRacketTransform.pos = screenPos;
+    cPlayerRacketTransform.lastPos = screenPos; // Snap interpolation
     // Bounding volume from center
-    const Vec3 halfSize = { 0.076f, 0.095f, 0.005f };
-    auto& cBounds = m_registry.addComponent<CBoundingBox3D>(racket, startPos, halfSize);
+    const Vec3 halfSize = { 0.076f, 0.095f, 0.005f }; // bad place for this
+    m_registry.addComponent<CBoundingBox3D>(eRacket, startPos, halfSize);
 
-    return racket;
+    return eRacket;
 }
 
 Entity EntityFactory::createBall(const Vec3& pos_m, const Vec3& vel_mps, const Vec3& spin) {
     // pos parameter is passed in in pixels, pos.x and pos.z are the (x,y) coordinates to spawn at, y is the height offset 
     Vec3 shadowPos_m = { pos_m.x, 0.0f, pos_m.z }; // no Y offset for shadow
-    Entity ballShadow = EntityFactory::createBallShadow(shadowPos_m); //we pass the (x, y) coordinates in pixels
+    Entity eBallShadow = EntityFactory::createBallShadow(shadowPos_m); //we pass the (x, y) coordinates in pixels
 
     Vec2 ballScreenPos = m_camera.homography.worldToImage(pos_m); 
 
 
-    Entity ball = m_registry.createEntity("ball");
+    Entity eBall = m_registry.createEntity("ball");
     Vec2 ballScale = { 0.12f, 0.12f };
     //Vec2 ballScale = { 3.00f, 3.00f };
-    auto& ballComp = m_registry.addComponent<CBall>(ball, ballShadow, spin);
-    auto& transform = m_registry.addComponent<CTransform>(ball, ballScreenPos, ballScale, 0.f);
-    transform.lastPos = ballScreenPos; // <--- ADD THIS
-    Vec3 size_m = { ballComp.ballRadius * 2,ballComp.ballRadius * 2,ballComp.ballRadius * 2 }; //set ball size to a cube (even though its a circle)
-    auto& cTransform3D = m_registry.addComponent<CTransform3D>(ball, pos_m); //cTransform3D is initialized with the actual position of the ball in meters.
-    auto& cVelocity3D = m_registry.addComponent<CVelocity3D>(ball, vel_mps);
-    Bounds3D ballBox3D = Bounds3D(pos_m - ballComp.ballRadius, pos_m + ballComp.ballRadius);
-    auto& boundingBox3D = m_registry.addComponent<CBoundingBox3D>(ball, ballBox3D);
+    auto& cBallBall = m_registry.addComponent<CBall>(eBall, eBallShadow, spin);
+    auto& cBallTransform = m_registry.addComponent<CTransform>(eBall, ballScreenPos, ballScale, 0.f);
+    cBallTransform.lastPos = ballScreenPos; // <--- ADD THIS
+    Vec3 size_m = { cBallBall.ballRadius * 2,cBallBall.ballRadius * 2,cBallBall.ballRadius * 2 }; //set ball size to a cube (even though its a circle)
+    m_registry.addComponent<CTransform3D>(eBall, pos_m); //cTransform3D is initialized with the actual position of the ball in meters.
+    m_registry.addComponent<CVelocity3D>(eBall, vel_mps);
+    Bounds3D ballBox3D = Bounds3D(pos_m - cBallBall.ballRadius, pos_m + cBallBall.ballRadius);
+    m_registry.addComponent<CBoundingBox3D>(eBall, ballBox3D);
     
     
     // animation
-    const Animation& animBall = m_assets.getAnimation("Ball");
-    auto& animComp = m_registry.addComponent<CAnimation>(ball, animBall, true);
-    auto& render = m_registry.addComponent<CRenderLayer>(ball, 4);
-    sf::Sprite& s = animComp.animation.getSprite();
+    const Animation& aBall = m_assets.getAnimation("Ball");
+    auto& cBallAnimation = m_registry.addComponent<CAnimation>(eBall, aBall, true);
+    m_registry.addComponent<CRenderLayer>(eBall, 4);
+    sf::Sprite& s = cBallAnimation.animation.getSprite();
     s.setOrigin(s.getLocalBounds().width / 2.f, s.getLocalBounds().height / 2.f);
 
-    return ball;
+    return eBall;
 }
 Entity EntityFactory::createBallShadow(const Vec3& shadowPos_m) {
-    Entity ballShadow = m_registry.createEntity("ballShadow");
+    Entity eBallShadow = m_registry.createEntity("ballShadow");
     Vec2 shadowScreenPos = m_camera.homography.worldToImage(shadowPos_m);
     // Transform
-    auto& transform = m_registry.addComponent<CTransform>(ballShadow, shadowScreenPos, Vec2(2.0f,2.0f)); //this is setting the ballShadow to the same screen coordinates as the ball.
+    auto& cBallShadowTransform = m_registry.addComponent<CTransform>(eBallShadow, shadowScreenPos, Vec2(2.0f,2.0f)); //this is setting the ballShadow to the same screen coordinates as the ball.
 
     // animation
     const Animation& animShadow = m_assets.getAnimation("BallShadow");
-    auto& animComp = m_registry.addComponent<CAnimation>(ballShadow, animShadow, false);
-    auto& render = m_registry.addComponent<CRenderLayer>(ballShadow, 3);
-    auto& cTransform3D = m_registry.addComponent<CTransform3D>(ballShadow, shadowPos_m);
-    sf::Sprite& s = animComp.animation.getSprite();
+    auto& cBallShadowAnimation = m_registry.addComponent<CAnimation>(eBallShadow, animShadow, false);
+    m_registry.addComponent<CRenderLayer>(eBallShadow, 3);
+    m_registry.addComponent<CTransform3D>(eBallShadow, shadowPos_m);
+    sf::Sprite& s = cBallShadowAnimation.animation.getSprite();
     s.setOrigin(s.getLocalBounds().width / 2.f, s.getLocalBounds().height / 2.f);
 
 
-    return ballShadow;
+    return eBallShadow;
 }
 Entity EntityFactory::createText(std::string pString, float pCharacterSize, sf::Color pColor, Vec2 pPos, const std::string pFont) {
-    Entity text = m_registry.createEntity("text");
-    auto& cText = m_registry.addComponent<CText>(text, pString, pCharacterSize, pColor, pFont);
-    auto& cTransform = m_registry.addComponent<CTransform>(text, pPos);
-    auto& renderLayer = m_registry.addComponent<CRenderLayer>(text, 0);
-    return text;
+    Entity eText = m_registry.createEntity("text");
+    m_registry.addComponent<CText>(eText, pString, pCharacterSize, pColor, pFont);
+    m_registry.addComponent<CTransform>(eText, pPos);
+    m_registry.addComponent<CRenderLayer>(eText, 0);
+    return eText;
 }
