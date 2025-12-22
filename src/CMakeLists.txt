@@ -36,7 +36,7 @@ add_executable(PixelPong
     systems/BallIntegrateSystem.cpp
     systems/LogoRotationSystem.cpp
     systems/DirtyTextSystem.cpp
-    systems/Sync3Dto2DSystem.cpp
+    systems/game/debug/BallSpawnDebugSystem.cpp
     ecs/system/SystemGraph.cpp
     game/scenes/Scene.cpp
     helpers/FileUtils.cpp
@@ -45,7 +45,7 @@ add_executable(PixelPong
     input/RawInputState.cpp
     systems/movement/player/footwork/FootworkMovementSystem.cpp
     systems/movement/player/VelocityIntegrationSystem.cpp
- "systems/movement/player/footwork/FootworkMovementSystem.cpp")
+ "systems/movement/player/footwork/FootworkMovementSystem.cpp" "systems/game/debug/BallSpawnDebugSystem.cpp")
 # This solves the "GameContext.hpp" not found error
 target_include_directories(PixelPong PRIVATE 
     "${CMAKE_CURRENT_SOURCE_DIR}" 

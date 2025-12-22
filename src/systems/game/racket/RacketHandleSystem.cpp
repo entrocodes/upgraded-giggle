@@ -3,27 +3,27 @@
 #include "debug/Debug.hpp"
 
 SystemExec RacketHandleSystem::update(GameContext* context) {
-    auto* player = context->registry.getEntity("player");
-    if (!player) return { SystemExecResult::EarlyExit, "player entity not found" };
+    auto* ePlayer = context->registry.getEntity("player");
+    if (!ePlayer) return { SystemExecResult::EarlyExit, "player entity not found" };
 
-    auto [playerPos, handle] =
+    auto [cPlayerTransform3D, cPlayerRacketHandle] =
         context->registry.getComponents<
         CTransform3D,
         CRacketHandle
-        >(*player);
+        >(*ePlayer);
 
-    if (!playerPos || !handle) return { SystemExecResult::EarlyExit, "necessary player components not found" };
+    if (!cPlayerTransform3D || !cPlayerRacketHandle) return { SystemExecResult::EarlyExit, "necessary player components not found" };
 
     // --- Debug visualization only ---
     if (context->physicsDebug.debugRacketAttach) {
-        auto racket = handle->racketEntity;
-        auto* racketPos =
-            context->registry.getComponent<CTransform3D>(racket);
+        auto eRacket = cPlayerRacketHandle->racketEntity;
+        auto* cRacketTransform3D =
+            context->registry.getComponent<CTransform3D>(eRacket);
 
-        if (racketPos) {
+        if (cRacketTransform3D) {
             Debug::queueArrow3D(
-                playerPos->pos_m,
-                racketPos->pos_m,
+                cPlayerTransform3D->pos_m,
+                cRacketTransform3D->pos_m,
                 sf::Color::Cyan
             );
         }

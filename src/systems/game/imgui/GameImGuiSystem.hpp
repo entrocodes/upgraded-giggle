@@ -10,6 +10,5 @@ private:
     void drawRacketDebug(GameContext* context);
     void drawControllerDebug(GameContext* context);
     void drawSystemExecution(GameContext* context);
-    void spawnDebugBall(GameContext* context);
     static void drawSystemNodeRecursive(const SystemNode& node, int depth = 0);
 };

@@ -8,9 +8,12 @@
 #include "ecs/system/ISystemGroup.hpp"
 #include "debug/Debug.hpp"
 
-
+#include <cmath>
 SystemExec GameImGuiSystem::update(GameContext* context) {
-    
+    if (context->renderSettings.hideImGui) {
+        context->inputBlocked = false;
+        return { SystemExecResult::EarlyExit, "UI Hidden" };
+    }
     
     ImGuiIO& io = ImGui::GetIO();
     io.DisplaySize = ImVec2(
@@ -24,16 +27,6 @@ SystemExec GameImGuiSystem::update(GameContext* context) {
     drawRacketDebug(context);
     drawControllerDebug(context);
     drawSystemExecution(context);
-
-    // --- Auto ball spawn ---
-    auto& debug = context->ballSpawnDebug;
-    if (debug.autoSpawn) {
-        debug.timer += context->frameStats.dt;
-        if (debug.timer >= debug.interval) {
-            debug.timer = 0.f;
-            spawnDebugBall(context);
-        }
-    }
 
     return { SystemExecResult::Ran };
 }
@@ -68,7 +61,29 @@ void GameImGuiSystem::drawDeveloperPanel(GameContext* context) {
         ImGui::Checkbox("Show Homography Grid",
             &context->camera.homography.drawGrid);
     }
+    // ================= ENTITY TRANSFORM DEBUG =================
+    if (ImGui::CollapsingHeader("3D Transform Inspector")) {
+        if (ImGui::BeginChild("TransformScroll", ImVec2(0, 200), true)) {
+            for (auto e : context->registry.getEntitiesWith<CTransform3D>()) {
+                auto* c3D = context->registry.getComponent<CTransform3D>(e);
+                if (!c3D) continue;
 
+                // Use entity name or ID as a label
+                std::string label = e.name.empty() ? "Entity " + std::to_string(e.id) : e.name;
+
+                if (ImGui::TreeNode(label.c_str())) {
+                    ImGui::Text("Scale M: %.3f, %.3f, %.3f", c3D->scale_m.x, c3D->scale_m.y, c3D->scale_m.z);
+                    ImGui::Text("Last Scale M: %.3f, %.3f, %.3f", c3D->lastScale_m.x, c3D->lastScale_m.y, c3D->lastScale_m.z);
+
+                    ImGui::Separator();
+                    ImGui::Text("Pos: %.2f, %.2f, %.2f", c3D->pos_m.x, c3D->pos_m.y, c3D->pos_m.z);
+
+                    ImGui::TreePop();
+                }
+            }
+        }
+        ImGui::EndChild();
+    }
     // ================= BALL DEBUG =================
     if (ImGui::CollapsingHeader("Ball Debug")) {
         ImGui::SliderFloat("Ball Height",
@@ -89,23 +104,28 @@ void GameImGuiSystem::drawDeveloperPanel(GameContext* context) {
         if (ImGui::Button("Remove All Balls")) {
             ballRemoval.removeAll(context);
         }
+        if (ImGui::CollapsingHeader("Ball Limit Debug")) {
+            ImGui::SliderInt("Max Balls to Keep", &context->physicsDebug.debugIntKeepXBalls, 1, 15);
+
+            if (ImGui::Checkbox("Enable Ball Limit", &context->physicsDebug.debugBoolKeepXBalls));
+        }
     }
     // ================= BALL SPAWN DEBUG =================
     if (ImGui::CollapsingHeader("Ball Spawn Debug")) {
-        auto& dbg = context->ballSpawnDebug;
+        auto& ctxBallSpawnDebug = context->ballSpawnDebug;
 
-        ImGui::Checkbox("Auto Spawn", &dbg.autoSpawn);
+        ImGui::Checkbox("Auto Spawn", &ctxBallSpawnDebug.autoSpawn);
 
         ImGui::SliderFloat(
             "Spawn Interval (s)",
-            &dbg.interval,
+            &ctxBallSpawnDebug.interval,
             0.05f,
             3.0f
         );
 
         ImGui::SliderFloat(
             "Feed Speed",
-            &dbg.feedSpeed,
+            &ctxBallSpawnDebug.feedSpeed,
             0.2f,
             6.0f
         );
@@ -116,29 +136,25 @@ void GameImGuiSystem::drawDeveloperPanel(GameContext* context) {
             "Alternate L / R"
         };
 
-        int mode = static_cast<int>(dbg.mode);
+        int mode = static_cast<int>(ctxBallSpawnDebug.mode);
         if (ImGui::Combo("Spawn Mode", &mode, modes, IM_ARRAYSIZE(modes))) {
-            dbg.mode = static_cast<BallSpawnMode>(mode);
+            ctxBallSpawnDebug.mode = static_cast<BallSpawnMode>(mode);
         }
 
-        if (dbg.mode != BallSpawnMode::TowardRacket) {
+        if (ctxBallSpawnDebug.mode != BallSpawnMode::TowardRacket) {
             ImGui::DragFloat3(
                 "Left Spawn Pos",
-                &dbg.fixedPosLeft.x,
+                &ctxBallSpawnDebug.fixedPosLeft.x,
                 0.01f
             );
 
-            if (dbg.mode == BallSpawnMode::AlternateLeftRight) {
+            if (ctxBallSpawnDebug.mode == BallSpawnMode::AlternateLeftRight) {
                 ImGui::DragFloat3(
                     "Right Spawn Pos",
-                    &dbg.fixedPosRight.x,
+                    &ctxBallSpawnDebug.fixedPosRight.x,
                     0.01f
                 );
             }
-        }
-
-        if (ImGui::Button("Spawn Ball Now")) {
-            spawnDebugBall(context);
         }
     }
     // =====================
@@ -146,41 +162,41 @@ void GameImGuiSystem::drawDeveloperPanel(GameContext* context) {
 // =====================
     if (ImGui::CollapsingHeader("Player Debug", ImGuiTreeNodeFlags_DefaultOpen)) {
 
-        Entity* player = context->registry.getEntity("player");
-        if (!player) {
+        Entity* ePlayer = context->registry.getEntity("player");
+        if (!ePlayer) {
             ImGui::TextColored(ImVec4(1, 0, 0, 1), "PLAYER ENTITY NOT FOUND");
             return;
         }
 
-        auto [t3d, t2d, state, cInput, cFootworkState] =
+        auto [cPlayerTransform3D, cPlayerTransform, cPlayerState, cPlayerInput, cPlayerFootworkState] =
             context->registry.getComponents<
             CTransform3D,
             CTransform,
             CState,
             CInput,
-            CFootworkState>(*player);
+            CFootworkState>(*ePlayer);
 
         // ---------------------
         // Position / State
         // ---------------------
         if (ImGui::CollapsingHeader("Player Position Stats")) {
-            if (t3d)
+            if (cPlayerTransform3D)
                 ImGui::Text("3D Pos: %.2f, %.2f, %.2f",
-                    t3d->pos_m.x, t3d->pos_m.y, t3d->pos_m.z);
+                    cPlayerTransform3D->pos_m.x, cPlayerTransform3D->pos_m.y, cPlayerTransform3D->pos_m.z);
 
-            if (t2d) {
-                ImGui::Text("2D Pos: %.1f, %.1f", t2d->pos.x, t2d->pos.y);
+            if (cPlayerTransform) {
+                ImGui::Text("2D Pos: %.1f, %.1f", cPlayerTransform->pos.x, cPlayerTransform->pos.y);
                 ImGui::Text("2D Render Pos: %.1f, %.1f",
-                    t2d->renderPos.x, t2d->renderPos.y);
+                    cPlayerTransform->renderPos.x, cPlayerTransform->renderPos.y);
             }
 
             ImGui::Text("Alpha: %.2f", context->frameAlpha);
 
-            if (state)
-                ImGui::Text("State: %s", state->state.c_str());
+            if (cPlayerState)
+                ImGui::Text("State: %s", cPlayerState->state.c_str());
 
-            if (ImGui::Button("Reset Player Pos") && t3d) {
-                t3d->pos_m = { 0.f, -context->tableParameters.tableHeight, -0.5f };
+            if (ImGui::Button("Reset Player Pos") && cPlayerTransform3D) {
+                cPlayerTransform3D->pos_m = { 0.f, -context->tableParameters.tableHeight, -0.5f };
             }
         }
 
@@ -215,12 +231,12 @@ void GameImGuiSystem::drawDeveloperPanel(GameContext* context) {
             ImGui::Spacing();
 
             // --- Input intent ---
-            if (cInput) {
+            if (cPlayerInput) {
                 ImGui::Text("Input");
                 ImGui::Separator();
                 ImGui::Text("Move Held (L / R): %d / %d",
-                    cInput->holdTime["MoveLeft"],
-                    cInput->holdTime["MoveRight"]);
+                    cPlayerInput->holdTime["MoveLeft"],
+                    cPlayerInput->holdTime["MoveRight"]);
             }
 
             ImGui::Spacing();
@@ -231,17 +247,17 @@ void GameImGuiSystem::drawDeveloperPanel(GameContext* context) {
 
             static float smoothedMaxSpeed = 0.f;
 
-            if (cFootworkState && cFootworkState->active) {
+            if (cPlayerFootworkState && cPlayerFootworkState->active) {
 
                 float t =
-                    float(cFootworkState->frame) /
-                    float(cFootworkState->current.totalFrames);
+                    float(cPlayerFootworkState->frame) /
+                    float(cPlayerFootworkState->current.totalFrames);
 
                 smoothedMaxSpeed +=
-                    (cFootworkState->current.maxSpeed_mps - smoothedMaxSpeed) * 0.1f;
+                    (cPlayerFootworkState->current.maxSpeed_mps - smoothedMaxSpeed) * 0.1f;
                 const char* stepName =
-                    (cFootworkState->current.totalFrames == 5) ? "Tap" :
-                    (cFootworkState->current.totalFrames == 10) ? "Hop" :
+                    (cPlayerFootworkState->current.totalFrames == 5) ? "Tap" :
+                    (cPlayerFootworkState->current.totalFrames == 10) ? "Hop" :
                     "Leap";
 
                 ImGui::Text("Status: ACTIVE");
@@ -251,28 +267,28 @@ void GameImGuiSystem::drawDeveloperPanel(GameContext* context) {
                     t,
                     ImVec2(-1, 0),
                     (std::string("Step ") +
-                        std::to_string(cFootworkState->frame) + "/" +
-                        std::to_string(cFootworkState->current.totalFrames)).c_str()
+                        std::to_string(cPlayerFootworkState->frame) + "/" +
+                        std::to_string(cPlayerFootworkState->current.totalFrames)).c_str()
                 );
 
                 ImGui::Text("Max Speed (smoothed): %.2f m/s", smoothedMaxSpeed);
             }
-            else if (cFootworkState) {
+            else if (cPlayerFootworkState) {
 
                 ImGui::Text("Status: IDLE");
 
                 // Recovery visualization (if applicable)
                 int recoveryEnd =
-                    cFootworkState->current.totalFrames +
-                    cFootworkState->current.recoveryFrames;
+                    cPlayerFootworkState->current.totalFrames +
+                    cPlayerFootworkState->current.recoveryFrames;
 
-                if (cFootworkState->frame > cFootworkState->current.totalFrames &&
-                    cFootworkState->frame < recoveryEnd) {
+                if (cPlayerFootworkState->frame > cPlayerFootworkState->current.totalFrames &&
+                    cPlayerFootworkState->frame < recoveryEnd) {
 
                     float r =
-                        float(cFootworkState->frame -
-                            cFootworkState->current.totalFrames) /
-                        float(cFootworkState->current.recoveryFrames);
+                        float(cPlayerFootworkState->frame -
+                            cPlayerFootworkState->current.totalFrames) /
+                        float(cPlayerFootworkState->current.recoveryFrames);
 
                     ImGui::Text("Recovery");
                     ImGui::ProgressBar(r, ImVec2(-1, 0));
@@ -294,9 +310,9 @@ void GameImGuiSystem::drawDeveloperPanel(GameContext* context) {
     // ================= RENDER LAYERS =================
     if (ImGui::CollapsingHeader("Render Layers")) {
         for (auto e : context->registry.getEntitiesWith<CRenderLayer>()) {
-            auto* layer = context->registry.getComponent<CRenderLayer>(e);
-            if (layer)
-                ImGui::Text("%s : %d", e.name.c_str(), layer->layer);
+            auto* cRenderLayer = context->registry.getComponent<CRenderLayer>(e);
+            if (cRenderLayer)
+                ImGui::Text("%s : %d", e.name.c_str(), cRenderLayer->layer);
         }
     }
 
@@ -310,51 +326,85 @@ void GameImGuiSystem::drawDeveloperPanel(GameContext* context) {
     ImGui::End();
 }
 void GameImGuiSystem::drawRacketDebug(GameContext* context) {
-    ImGui::Begin("Racket Debug##Game", nullptr,
-        ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse);
+    ImGui::Begin("Racket Debug##Game");
 
-    Entity* player = context->registry.getEntity("player");
-    if (!player) {
-        ImGui::TextDisabled("No player entity");
-        ImGui::End();
-        return;
+    auto* ePlayer = context->registry.getEntity("player");
+    if (ePlayer) {
+        auto [cPlayerSwing, cPlayerHandle, cPlayerState] = context->registry.getComponents<CRacketSwing, CRacketHandle, CState>(*ePlayer);
+
+        if (cPlayerSwing && cPlayerHandle && cPlayerState) {
+            ImGui::Text("Swing State");
+            ImGui::Text("Entity State: %s", cPlayerState->state.c_str());
+            ImGui::Text("Is Charging: %s", cPlayerSwing->isCharging ? "YES" : "NO");
+            ImGui::Text("Swing Triggered: %s", cPlayerSwing->swingTriggered ? "YES" : "NO");
+
+            ImGui::Text("Offsets");
+            ImGui::Value("Swing Z Offset", cPlayerHandle->swingOffset_m.z);
+            ImGui::Value("Stroke Weight", cPlayerHandle->strokeWeight);
+
+            ImGui::Text("Input Raw");
+            ImGui::Text("LT JustPressed: %s", context->rawInput.isAxisJustPressed("LT") ? "TRUE" : "FALSE");
+            ImGui::Text("LT Released: %s", context->rawInput.isAxisReleased("LT") ? "TRUE" : "FALSE");
+        }
     }
-
-    auto* handle = context->registry.getComponent<CRacketHandle>(*player);
-    if (!handle) {
-        ImGui::TextDisabled("No racket handle");
-        ImGui::End();
-        return;
-    }
-
-    Entity racket = handle->racketEntity;
-    auto* phys = context->registry.getComponent<CRacketPhysical>(racket);
-    auto* pos = context->registry.getComponent<CTransform3D>(racket);
-
-    if (phys && pos) {
-        Vec3 p = pos->pos_m;
-        if (ImGui::DragFloat3("Position", &p.x, 0.01f))
-            pos->pos_m = p;
-
-        Vec3 n = phys->normal;
-        if (ImGui::DragFloat3("Normal", &n.x, 0.01f))
-            phys->normal = n.normalized();
-
-        ImGui::SliderFloat("Friction",
-            &phys->friction, 0.f, 1.2f);
-        ImGui::SliderFloat("Restitution",
-            &phys->restitution, 0.6f, 1.1f);
-    }
-
     ImGui::End();
 }
 void GameImGuiSystem::drawControllerDebug(GameContext* context) {
     ImGui::Begin("Controller Debug##Game", nullptr,
         ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse);
 
-    bool connected = sf::Joystick::isConnected(0);
-    ImGui::Text("Connected: %s", connected ? "Yes" : "No");
+    unsigned int id = 0; // Checking first controller slot
+    if (sf::Joystick::isConnected(id)) {
+        sf::Joystick::Identification info = sf::Joystick::getIdentification(id);
+        ImGui::Text("Device: %s", info.name.toAnsiString().c_str());
+        ImGui::Separator();
 
+        // --- DIGITAL BUTTONS SECTION ---
+        ImGui::Text("Buttons:");
+        ImGui::BeginGroup();
+        int count = 0;
+        for (const auto& [name, index] : context->rawInput.buttonMap) {
+            bool pressed = sf::Joystick::isButtonPressed(id, index);
+
+            // This creates a highlight effect when the button is held
+            ImGui::Selectable(name.c_str(), pressed, 0, ImVec2(50, 0));
+
+            // Wrap to a new line every 4 buttons
+            if (++count % 4 != 0) ImGui::SameLine();
+        }
+        ImGui::EndGroup();
+
+        ImGui::Separator();
+
+        // --- ANALOG AXES SECTION ---
+        auto drawAxis = [&](const char* label, sf::Joystick::Axis axis) {
+            float val = sf::Joystick::getAxisPosition(id, axis);
+            // Convert -100...100 range to 0.0...1.0 for the progress bar
+            float visualVal = (val + 100.f) / 200.f;
+
+            ImGui::Text("%-10s", label); ImGui::SameLine();
+            ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.2f, 0.7f, 0.2f, 1.0f));
+            ImGui::ProgressBar(visualVal, ImVec2(150, 0), std::to_string((int)val).c_str());
+            ImGui::PopStyleColor();
+            };
+
+        ImGui::Text("Analog Sticks & Triggers:");
+        drawAxis("L-Stick X", sf::Joystick::X);
+        drawAxis("L-Stick Y", sf::Joystick::Y);
+        drawAxis("R-Stick X", sf::Joystick::U);
+        drawAxis("R-Stick Y", sf::Joystick::V);
+        drawAxis("LT (Z)", sf::Joystick::Z);
+        drawAxis("RT (R)", sf::Joystick::R);
+
+        // --- D-PAD (POV) SECTION ---
+        float povX = sf::Joystick::getAxisPosition(id, sf::Joystick::PovX);
+        float povY = sf::Joystick::getAxisPosition(id, sf::Joystick::PovY);
+        ImGui::Text("D-Pad: X: %.0f, Y: %.0f", povX, povY);
+
+    }
+    else {
+        ImGui::TextColored(ImVec4(1, 0.4f, 0.4f, 1), "No Controller Detected on ID 0");
+    }
 
     ImGui::End();
 }
@@ -377,69 +427,7 @@ void GameImGuiSystem::drawSystemExecution(GameContext* context) {
     ImGui::End();
 }
 
-void GameImGuiSystem::spawnDebugBall(GameContext* context) {
-    auto* player = context->registry.getEntity("player");
-    if (!player) return;
 
-    auto* handle = context->registry.getComponent<CRacketHandle>(*player);
-    if (!handle) return;
-
-    Entity racket = handle->racketEntity;
-
-    auto* phys = context->registry.getComponent<CRacketPhysical>(racket);
-    auto* cPos = context->registry.getComponent<CTransform3D>(racket);
-
-    if (!phys || !cPos) return;
-
-    auto& debug = context->ballSpawnDebug;
-    const float speed = debug.feedSpeed;
-    // Mode 1 — Toward Racket
-    if (debug.mode == BallSpawnMode::TowardRacket) {
-        Vec3 spawnPos = cPos->pos_m + phys->normal * 0.20f;
-        Vec3 vel = -phys->normal * speed;
-
-        context->entityFactory.createBall(spawnPos, vel);
-        return;
-    }
-
-    // Mode 2 — Fixed Position
-    if (debug.mode == BallSpawnMode::FixedPosition) {
-        Vec3 spawnPos(
-            debug.fixedPosLeft.x,
-            context->physicsDebug.debugBallHeight,
-            debug.fixedPosLeft.z
-        );
-
-        context->entityFactory.createBall(
-            spawnPos,
-            context->physicsDebug.debugBallVelocity,
-            context->physicsDebug.debugBallSpin
-        );
-        return;
-    }
-
-    // Mode 3 — Alternate L / R
-    if (debug.mode == BallSpawnMode::AlternateLeftRight) {
-        debug.spawnLeftLast = !debug.spawnLeftLast;
-
-        const Vec3& src = debug.spawnLeftLast
-            ? debug.fixedPosLeft
-            : debug.fixedPosRight;
-
-        Vec3 spawnPos(
-            src.x,
-            context->physicsDebug.debugBallHeight,
-            src.z
-        );
-
-        context->entityFactory.createBall(
-            spawnPos,
-            context->physicsDebug.debugBallVelocity,
-            context->physicsDebug.debugBallSpin
-        );
-        return;
-    }
-}
 
 void GameImGuiSystem::drawSystemNodeRecursive(const SystemNode& node, int depth) {
     ImGui::Indent(depth * 14.0f);

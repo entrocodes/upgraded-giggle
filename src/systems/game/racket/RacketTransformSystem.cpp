@@ -3,10 +3,9 @@
 #include "game/utils/GameContext.hpp"
 SystemExec RacketTransformSystem::update(GameContext* context) {
 
-    for (auto racket : context->registry.getEntitiesWith<CRacketPhysical, CTransform, CTransform3D>()) {
-        auto [cBoundingBox3D, cTransform, cTransform3D] = context->registry.getComponents<CBoundingBox3D, CTransform, CTransform3D>(racket);
-        cTransform->pos = context->camera.homography.worldToImage(cTransform3D->pos_m);
-        cBoundingBox3D->setBoundingBox(cTransform3D->pos_m);
+    for (auto eRacket : context->registry.getEntitiesWith<CRacketPhysical, CTransform, CTransform3D>()) {
+        auto [cRacketBoundingBox3D, cRacketTransform, cRacketTransform3D] = context->registry.getComponents<CBoundingBox3D, CTransform, CTransform3D>(eRacket);
+        cRacketBoundingBox3D->setBoundingBox(cRacketTransform3D->pos_m);
     }
     return { SystemExecResult::Ran };
 }

@@ -19,34 +19,34 @@
 
 
 SystemExec TextButtonSystem::update(GameContext* context) {
-    for (Entity textButtonEntity : context->registry.getEntitiesWith<CText, CTextButton, CBoundingBox, CTransform>()) {
-        auto [cText, cTextButton, cBoundingBox, cTransform] = context->registry.getComponents<CText, CTextButton, CBoundingBox, CTransform>(textButtonEntity);
+    for (Entity eTextButton : context->registry.getEntitiesWith<CText, CTextButton, CBoundingBox, CTransform>()) {
+        auto [cTextText, cTextTextButton, cTextBoundingBox, cTextTransform] = context->registry.getComponents<CText, CTextButton, CBoundingBox, CTransform>(eTextButton);
 
         // --- Bounding Box Setup (D) & (C) ---
         // 1. Check if the text was modified (DirtyTextSystem ran)
-        if (cText->wasDirty || cBoundingBox->box.width == 0) {
-            sf::FloatRect textBounds = cText->drawable.getLocalBounds();
+        if (cTextText->wasDirty || cTextBoundingBox->box.width == 0) {
+            sf::FloatRect textDrawableBounds = cTextText->drawable.getLocalBounds();
 
             // Use renderPos so the "hitbox" matches where the user actually SEES the text
-            cBoundingBox->box = sf::FloatRect(
-                cTransform->renderPos.x - (textBounds.width / 2.0f),
-                cTransform->renderPos.y - (textBounds.height / 2.0f),
-                textBounds.width,
-                textBounds.height
+            cTextBoundingBox->box = sf::FloatRect(
+                cTextTransform->renderPos.x - (textDrawableBounds.width / 2.0f),
+                cTextTransform->renderPos.y - (textDrawableBounds.height / 2.0f),
+                textDrawableBounds.width,
+                textDrawableBounds.height
             );
         }
-        if (cTextButton->isHovered) {
+        if (cTextTextButton->isHovered) {
             // Apply hover color if currently hovered
-            cText->drawable.setFillColor(cTextButton->hoverColor);
+            cTextText->drawable.setFillColor(cTextTextButton->hoverColor);
         }
         else {
-            cText->drawable.setFillColor(cText->defaultColor);
+            cTextText->drawable.setFillColor(cTextText->defaultColor);
         }
 
 
-        if (cTextButton->isSelected) {
-            cTextButton->isSelected = false;
-            TextButtonSystem::runFunctionFromString(context, cTextButton->command);
+        if (cTextTextButton->isSelected) {
+            cTextTextButton->isSelected = false;
+            TextButtonSystem::runFunctionFromString(context, cTextTextButton->command);
         }
     }
     return { SystemExecResult::Ran };

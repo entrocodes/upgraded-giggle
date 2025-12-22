@@ -70,8 +70,8 @@ struct MainMenuIntent {
 };
 struct PhysicsDebugSettings {
     Vec3 debugBallSpin = { 0.0f, 0.0f, 0.0f };
-    float debugBallHeight = 0.0f;
-    Vec3 debugBallVelocity = { 0.0f,0.0f,0.0f };
+    float debugBallHeight = 1.0f;
+    Vec3 debugBallVelocity = { 0.0f,0.0f,-1.5f };
     float debugKMagnus = 0.00035f;
     bool debugRemoveAllBalls = false;
     bool debugSpinEnabled = true;
@@ -81,9 +81,11 @@ struct PhysicsDebugSettings {
     bool clickForMousePos = false;
     bool debugRacketAttach = true;
     bool drawGrid = false;
-    bool autoSpawnBalls = false;
+    bool autoSpawnBalls = true;
     float autoSpawnInterval = 0.25f;   // seconds between spawns
     float autoSpawnTimer = 0.f;
+    int debugIntKeepXBalls = 5;
+    bool debugBoolKeepXBalls = true;
 };
 struct MetaInputState {
     bool quit = false;
@@ -110,7 +112,7 @@ struct RenderSettings {
 
     int currentResolutionIndex = 0;
     bool updateResolution = false;
-    
+    bool hideImGui = true;
 
 };
 
@@ -128,6 +130,7 @@ struct FrameStats {
 struct ControllerParameters {
     float joyUVDeadZone = .15;
     float joyXYDeadZone = .15;
+    float joyZDeadZone = .05;
     float sensitivity = 1;
 };
 struct GameContext {

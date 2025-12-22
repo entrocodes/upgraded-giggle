@@ -6,5 +6,5 @@ class NetCollisionSystem : public ISystem{
 public:
     SystemExec update(GameContext* context);
 private:
-    void resolveNetContact(GameContext* context, Entity ballEntity);
+    void resolveNetContact(GameContext* context, Entity eBall);
 };

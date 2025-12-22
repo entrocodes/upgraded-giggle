@@ -5,78 +5,79 @@
 #include <cmath>
 
 SystemExec FootworkMovementSystem::update(GameContext* context) {
-	Entity* player = context->registry.getEntity("player");
-	auto [cFootworkIntent, cFootworkState, cVelocity3D] = context->registry.getComponents<CFootworkIntent, CFootworkState, CVelocity3D>(*player);
-	if (!cVelocity3D || !cFootworkState) return { SystemExecResult::EarlyExit, "Missing one or more components in player" };
-	if (cFootworkIntent) {
+	Entity* ePlayer = context->registry.getEntity("player");
+	auto [cPlayerFootworkIntent, cPlayerFootworkState, cPlayerVelocity3D] = context->registry.getComponents<CFootworkIntent, CFootworkState, CVelocity3D>(*ePlayer);
+	if (!cPlayerVelocity3D || !cPlayerFootworkState) return { SystemExecResult::EarlyExit, "Missing one or more components in player" };
+	if (cPlayerFootworkIntent) {
 		StepRaw rawStep{};
-		if (cFootworkIntent->heldFrames < context->playerMovement.footworkMovement.tapFrameLimit) {
+		if (cPlayerFootworkIntent->heldFrames < context->playerMovement.footworkMovement.tapFrameLimit) {
 			rawStep.kind = StepKind::Tap;
 			rawStep.strength = context->playerMovement.footworkMovement.tapStrength;
 		}
-		else if (cFootworkIntent->heldFrames < context->playerMovement.footworkMovement.hopFrameLimit) { //change to double tap later
+		else if (cPlayerFootworkIntent->heldFrames < context->playerMovement.footworkMovement.hopFrameLimit) { //change to double tap later
 			rawStep.kind = StepKind::Hop;
-			rawStep.strength = (cFootworkIntent->heldFrames / context->playerMovement.footworkMovement.hopFrameFactor) * context->playerMovement.footworkMovement.hopStrength;
+			rawStep.strength = (cPlayerFootworkIntent->heldFrames / context->playerMovement.footworkMovement.hopFrameFactor) * context->playerMovement.footworkMovement.hopStrength;
 		}
 		else {
 			rawStep.kind = StepKind::Leap;
-			rawStep.strength = (std::min(context->playerMovement.footworkMovement.maxLeapStrength, cFootworkIntent->heldFrames / context->playerMovement.footworkMovement.leapFrameFactor)) * context->playerMovement.footworkMovement.leapStrength;
+			rawStep.strength = (std::min(context->playerMovement.footworkMovement.maxLeapStrength, cPlayerFootworkIntent->heldFrames / context->playerMovement.footworkMovement.leapFrameFactor)) * context->playerMovement.footworkMovement.leapStrength;
 		}
+		rawStep.strength *= cPlayerFootworkIntent->directionalStrength;
 		StepProfile step = convertStepFromRaw(rawStep);
-		if (!cFootworkState->active) {
-			cFootworkState->active = true;
-			cFootworkState->frame = 0;
-			cFootworkState->current = step;
-			cFootworkState->direction = cFootworkIntent->direction;
+		if (!cPlayerFootworkState->active) {
+			cPlayerFootworkState->active = true;
+			cPlayerFootworkState->frame = 0;
+			cPlayerFootworkState->current = step;
+			cPlayerFootworkState->direction = cPlayerFootworkIntent->direction;
 
 
 		}
 		else {
 			// buffer one step only
-			cFootworkState->buffered = true;
-			cFootworkState->bufferedStep = rawStep;
-			cFootworkState->bufferedDirection = cFootworkIntent->direction;
+			cPlayerFootworkState->buffered = true;
+			cPlayerFootworkState->bufferedStep = rawStep;
+			cPlayerFootworkState->bufferedDirection = cPlayerFootworkIntent->direction;
 		}
-		context->registry.removeComponent<CFootworkIntent>(*player);
+		context->registry.removeComponent<CFootworkIntent>(*ePlayer);
 	}
-	if (cFootworkState->active) {
-		if (cFootworkState->frame < cFootworkState->current.totalFrames) {
+	if (cPlayerFootworkState->active) {
+		if (cPlayerFootworkState->frame < cPlayerFootworkState->current.totalFrames) {
 
-			float t = float(cFootworkState->frame) /
-				float(cFootworkState->current.totalFrames);
+			float t = float(cPlayerFootworkState->frame) /
+				float(cPlayerFootworkState->current.totalFrames);
 
 			float speed =
-				cFootworkState->current.maxSpeed_mps *
+				cPlayerFootworkState->current.maxSpeed_mps *
 				std::sin(t * PI);
 
-			cVelocity3D->vel_mps =
-				cFootworkState->direction * speed;
+			cPlayerVelocity3D->vel_mps =
+				cPlayerFootworkState->direction * speed;
 		}
 		else {
 			// recovery frames → no movement
-			cVelocity3D->vel_mps = { 0.f, 0.f, 0.f };
+			cPlayerVelocity3D->vel_mps = { 0.f, 0.f, 0.f };
 		}
 
-		cFootworkState->frame++;
+		cPlayerFootworkState->frame++;
 
-		if (cFootworkState->frame >=
-			cFootworkState->current.totalFrames +
-			cFootworkState->current.recoveryFrames) {
+		if (cPlayerFootworkState->frame >=
+			cPlayerFootworkState->current.totalFrames +
+			cPlayerFootworkState->current.recoveryFrames) {
 
-			if (cFootworkState->buffered) {
-				cFootworkState->current =
-					convertStepFromRaw(cFootworkState->bufferedStep);
-				cFootworkState->direction = cFootworkState->bufferedDirection;
-				cFootworkState->frame = 0;
-				cFootworkState->buffered = false;
+			if (cPlayerFootworkState->buffered) {
+				cPlayerFootworkState->current =
+					convertStepFromRaw(cPlayerFootworkState->bufferedStep);
+				cPlayerFootworkState->direction = cPlayerFootworkState->bufferedDirection;
+				cPlayerFootworkState->frame = 0;
+				cPlayerFootworkState->buffered = false;
 			}
 			else {
-				cFootworkState->active = false;
+				cPlayerFootworkState->active = false;
 			}
 		}
 	}
 	else {
-		cVelocity3D->vel_mps = { 0.f, 0.f, 0.f };
+		cPlayerVelocity3D->vel_mps = { 0.f, 0.f, 0.f };
 	}
 
 	return { SystemExecResult::Ran };

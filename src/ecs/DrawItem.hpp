@@ -7,8 +7,10 @@ enum class DrawType { Sprite, Logo, Text };
 struct DrawItem {
     int layer;
     DrawType type;
-    CTransform* transform;
-    CAnimation* animation; // only for Sprite
-    CBall* ball;           // only for Logo
-    CText* text;
+    CTransform3D* cTransform3D;
+    CTransform* cTransform;
+    CAnimation* cAnimation; // only for Sprite
+    CBall* cBall;           // only for Logo
+    CText* cText;
+    bool isShadow;
 };

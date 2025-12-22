@@ -14,13 +14,13 @@ SystemExec BallIntegrateSystem::update(GameContext* context) {
 
     bool didWork = false;
 
-    for (auto ball : context->registry.getEntitiesWith<CBall, CTransform>()) {
-        auto [cBallTransform, cBall, boundingBox3D, cBallTransform3D, cBallVelocity3D] =
+    for (auto eBall : context->registry.getEntitiesWith<CBall>()) {
+        auto [cBallBall, cBallBoundingBox3D, cBallTransform3D, cBallVelocity3D] =
             context->registry.getComponents<
-            CTransform, CBall, CBoundingBox3D, CTransform3D, CVelocity3D
-            >(ball);
+            CBall, CBoundingBox3D, CTransform3D, CVelocity3D
+            >(eBall);
 
-        if (!cBallTransform || !cBall || !boundingBox3D ||
+        if (!cBallBall || !cBallBoundingBox3D ||
             !cBallTransform3D || !cBallVelocity3D)
             continue;
 
@@ -31,62 +31,48 @@ SystemExec BallIntegrateSystem::update(GameContext* context) {
 
         // --- INTEGRATE POSITION ---
         cBallVelocity3D->vel_mps +=
-            cBall->bForces.acceleration * context->frameStats.dt;
+            cBallBall->bForces.acceleration * context->frameStats.dt;
 
         cBallTransform3D->pos_m +=
             cBallVelocity3D->vel_mps * context->frameStats.dt;
 
         Vec3 p = cBallTransform3D->pos_m;
 
-        cBall->contactingTable = (p.y <= context->tableParameters.tableY);
-        cBall->onFloor = (p.y <= context->tableParameters.floorY);
+        cBallBall->contactingTable = (p.y <= context->tableParameters.tableY);
+        cBallBall->onFloor = (p.y <= context->tableParameters.floorY);
 
-        if (cBall->contactingTable && !cBall->offTable && !cBall->hasFallen) {
-            handleTableContact(context, ball);
+        if (cBallBall->contactingTable && !cBallBall->offTable && !cBallBall->hasFallen) {
+            handleTableContact(context, eBall);
         }
-        else if (cBall->onFloor && cBall->offTable) {
-            handleFloorContact(context, ball);
-        }
-
-        if (!cBall->hasFallen && cBall->offTable && p.y < 0.f) {
-            cBall->hasFallen = true;
+        else if (cBallBall->onFloor && cBallBall->offTable) {
+            handleFloorContact(context, eBall);
         }
 
-        boundingBox3D->box =
-            Bounds3D(p - cBall->ballRadius, p + cBall->ballRadius);
+        if (!cBallBall->hasFallen && cBallBall->offTable && p.y < 0.f) {
+            cBallBall->hasFallen = true;
+        }
 
-        cBallTransform->pos =
-            context->camera.homography.worldToImage(p);
+        cBallBoundingBox3D->box =
+            Bounds3D(p - cBallBall->ballRadius, p + cBallBall->ballRadius);
 
         // --- SHADOW ---
-        Entity shadowEntity = cBall->ballShadow;
-        auto [shadowTransform, shadowTransform3D] =
-            context->registry.getComponents<CTransform, CTransform3D>(shadowEntity);
+        Entity eBallShadow = cBallBall->ballShadow;
+        auto [cBallShadowTransform, cBallShadowTransform3D] =
+            context->registry.getComponents<CTransform, CTransform3D>(eBallShadow);
 
-        if (!shadowTransform || !shadowTransform3D)
-            continue;
+        if (cBallShadowTransform && cBallShadowTransform3D) {
+            // IMPORTANT: Store the last position for interpolation!
+            cBallShadowTransform3D->lastPos_m = cBallShadowTransform3D->pos_m;
+            cBallShadowTransform3D->lastScale_m = cBallShadowTransform3D->scale_m;
+            float shadowY = cBallBall->offTable ? context->tableParameters.floorY : context->tableParameters.tableY;
 
-        float scale = 1.0f;
+            // Update current position
+            cBallShadowTransform3D->pos_m = Vec3(p.x, shadowY, p.z);
 
-        if (!cBall->offTable) {
-            shadowTransform3D->pos_m =
-                Vec3(p.x, context->tableParameters.tableY, p.z);
-            scale = std::max(0.5f, 1.5f - 0.2f * p.y);
-        }
-        else {
-            shadowTransform3D->pos_m =
-                Vec3(p.x, context->tableParameters.floorY, p.z);
-            scale = std::max(0.5f,
-                1.5f - 0.2f * (p.y - context->tableParameters.floorY));
-        }
-        shadowTransform->scale = { scale, scale };
-
-        if (context->physicsDebug.debugSpinArrows) {
-            Debug::queueArrow3D(
-                p,
-                p + cBallVelocity3D->vel_mps.normalized() * 0.15f,
-                sf::Color::Blue
-            );
+            // Update scale logic
+            float heightAboveSurface = p.y - shadowY;
+            float scale = std::max(0.5f, 1.5f - 0.2f * heightAboveSurface);
+            cBallShadowTransform3D->scale_m = { scale, 1, scale };
         }
     }
 

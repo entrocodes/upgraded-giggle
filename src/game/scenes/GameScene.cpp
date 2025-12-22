@@ -17,6 +17,7 @@
 #include "systems/groups/RacketMovementSystemGroup.hpp"
 #include "systems/FrameStatsSystem.hpp"
 #include "systems/game/imgui/GameImGuiSystem.hpp"
+#include "systems/game/debug/BallSpawnDebugSystem.hpp"
 #include <imgui.h>
 #include "ecs/system/TickPhase.hpp"
 GameScene::GameScene(GameContext* context)
@@ -27,6 +28,7 @@ GameScene::GameScene(GameContext* context)
 
     // --- System wiring ---
     systemGraph.add<FrameStatsSystem>(m_factory, 0, TickPhase::Fixed, NotPausable);
+    systemGraph.add <BallSpawnDebugSystem>(m_factory, 5, TickPhase::Fixed, NotPausable);
     systemGraph.add<InputSystem>(m_factory, 10, TickPhase::Fixed, NotPausable);
     systemGraph.add<GlobalIntentSystem>(m_factory, 12, TickPhase::Fixed, NotPausable);
     systemGraph.add<DebugIntentSystem>(m_factory, 14, TickPhase::Fixed, NotPausable);

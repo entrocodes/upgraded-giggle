@@ -14,15 +14,15 @@ public:
         if (!debugDisplay3DBoundingBoxes) return;
 
         for (auto e : context->registry.getEntitiesWith<CBoundingBox3D>()) {
-            auto box3D = context->registry.getComponent<CBoundingBox3D>(e);
-            if (!box3D) continue;
+            auto cBoundingBox3D = context->registry.getComponent<CBoundingBox3D>(e);
+            if (!cBoundingBox3D) continue;
 
             // Convert 3D corners to screen-space (ignore Y)
-            Vec2 screenMin = context->camera.homography.worldToImage(box3D->box.min);
+            Vec2 screenMin = context->camera.homography.worldToImage(cBoundingBox3D->box.min);
 
-            Vec2 screenMax = context->camera.homography.worldToImage(box3D->box.max);
+            Vec2 screenMax = context->camera.homography.worldToImage(cBoundingBox3D->box.max);
 
-            Rectangle debugRect(screenMin, screenMax, box3D->color);
+            Rectangle debugRect(screenMin, screenMax, cBoundingBox3D->color);
             context->window.draw(debugRect.shape());
         }
     }

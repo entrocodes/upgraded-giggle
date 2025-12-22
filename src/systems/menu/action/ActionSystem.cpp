@@ -10,7 +10,7 @@ constexpr int SCROLL_RATE_FRAMES = 6;
 // ---------------------------------
 
 SystemExec ActionSystem::update(GameContext* context) {
-    auto& intent = context->mainMenuIntent;
+    auto& ctxMainMenuIntent = context->mainMenuIntent;
 
     // --- Static Menu State Tracking ---
     static int currentSelectedOrder = 1;
@@ -19,8 +19,8 @@ SystemExec ActionSystem::update(GameContext* context) {
     // 1. Collect all buttons
     std::map<int, Entity> orderedButtons;
     for (Entity eText : context->registry.getEntitiesWith<CTextButton>()) {
-        auto cTextButton = context->registry.getComponent<CTextButton>(eText);
-        orderedButtons[cTextButton->order] = eText;
+        auto cTextTextButton = context->registry.getComponent<CTextButton>(eText);
+        orderedButtons[cTextTextButton->order] = eText;
     }
 
     if (orderedButtons.empty()) {
@@ -28,7 +28,7 @@ SystemExec ActionSystem::update(GameContext* context) {
     }
 
     // --- Navigation Input Check ---
-    bool isNavigating = (intent.menuSelectionInput != MenuDirection::None);
+    bool isNavigating = (ctxMainMenuIntent.menuSelectionInput != MenuDirection::None);
 
     // --- SCROLL LOGIC (Rate Limiting) ---
     bool shouldScroll = false;
@@ -55,17 +55,17 @@ SystemExec ActionSystem::update(GameContext* context) {
         int minOrder = orderedButtons.begin()->first;
         int maxOrder = orderedButtons.rbegin()->first;
 
-        if (intent.menuSelectionInput == MenuDirection::Up) { // FIXED: Use enum
+        if (ctxMainMenuIntent.menuSelectionInput == MenuDirection::Up) { // FIXED: Use enum
             currentSelectedOrder = std::max(minOrder, currentSelectedOrder - 1);
         }
-        else if (intent.menuSelectionInput == MenuDirection::Down) { // FIXED: Use enum
+        else if (ctxMainMenuIntent.menuSelectionInput == MenuDirection::Down) { // FIXED: Use enum
             currentSelectedOrder = std::min(maxOrder, currentSelectedOrder + 1);
         }
     }
 
     // --- 3. Mouse Override Logic ---
-    if (intent.mouseOverriddenJoystick) {
-        currentSelectedOrder = intent.mouseHoverOrder;
+    if (ctxMainMenuIntent.mouseOverriddenJoystick) {
+        currentSelectedOrder = ctxMainMenuIntent.mouseHoverOrder;
         scrollTimer = 0;
     }
 
@@ -80,7 +80,7 @@ SystemExec ActionSystem::update(GameContext* context) {
     }
 
     // --- 5. Execute Selection ---
-    if (intent.menuSelectRequested) {
+    if (ctxMainMenuIntent.menuSelectRequested) {
         if (orderedButtons.count(currentSelectedOrder)) {
             Entity selectedEntity = orderedButtons.at(currentSelectedOrder);
             auto cTextButton = context->registry.getComponent<CTextButton>(selectedEntity);

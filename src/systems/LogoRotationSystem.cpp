@@ -1,12 +1,7 @@
 ﻿#include "LogoRotationSystem.hpp"
 #include <cmath>
 #include "debug/Debug.hpp"
-
-namespace {
-    constexpr float DEG2RAD = 3.1415926535f / 180.f;
-}
-
-static constexpr float PI = 3.1415926535f;
+#include "math/Constants.hpp"
 
 static inline float degToRad(float d) { return d * (PI / 180.f); }
 static inline float radToDeg(float r) { return r * (180.f / PI); }
@@ -17,14 +12,14 @@ static constexpr float PITCH_SPIN_SCALE = 200.f;  // how strongly topspin affect
 
 SystemExec LogoRotationSystem::update(GameContext* context) {
 
-    for (auto ball : context->registry.getEntitiesWith<CBall, CTransform3D>()) {
+    for (auto eBall : context->registry.getEntitiesWith<CBall, CTransform3D>()) {
 
-        auto [cBall, transform3D] =
-            context->registry.getComponents<CBall, CTransform3D>(ball);
-        if (!cBall || !transform3D) continue;
+        auto [cBallBall, cBallTransform3D] =
+            context->registry.getComponents<CBall, CTransform3D>(eBall);
+        if (!cBallBall || !cBallTransform3D) continue;
 
-        auto& logo = cBall->logo;
-        Vec3  spin = cBall->spin;
+        auto& logo = cBallBall->logo;
+        Vec3  spin = cBallBall->spin;
 
         // 1) Integrate orientation from spin
         //    y = sidespin → rotates around vertical axis (yaw)

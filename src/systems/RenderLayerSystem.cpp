@@ -4,32 +4,32 @@
 #include "debug/Debug.hpp"
 
 SystemExec RenderLayerSystem::update(GameContext* context) {
-    Entity* net = context->registry.getEntity("net");
-    if (!net) {
+    Entity* eNet = context->registry.getEntity("net");
+    if (!eNet) {
         return { SystemExecResult::EarlyExit, "Net entity not found!" };
     }
 
-    auto* netTransform3D = context->registry.getComponent<CTransform3D>(*net);
-    if (!netTransform3D) {
+    auto* cNetTransform3D = context->registry.getComponent<CTransform3D>(*eNet);
+    if (!cNetTransform3D) {
         return { SystemExecResult::EarlyExit, "Net missing CTransform3D!" };
     }
 
-    float netZ = netTransform3D->pos_m.z;
+    float netZ = cNetTransform3D->pos_m.z;
 
-    for (auto e : context->registry.getEntitiesWith<CRenderLayer, CBall, CTransform3D>()) {
-        auto [cBall, cLayer, cTransform3D] = context->registry.getComponents<CBall, CRenderLayer, CTransform3D>(e);
-        auto shadowEntity = cBall->ballShadow;
-        auto cShadowLayer = context->registry.getComponent<CRenderLayer>(shadowEntity);
-        cLayer->layer = 8;
+    for (auto eBall : context->registry.getEntitiesWith<CRenderLayer, CBall, CTransform3D>()) {
+        auto [cBallBall, cBallRenderLayer, cBallTransform3D] = context->registry.getComponents<CBall, CRenderLayer, CTransform3D>(eBall);
+        auto eBallShadow = cBallBall->ballShadow;
+        auto cBallShadowRenderLayer = context->registry.getComponent<CRenderLayer>(eBallShadow);
+        cBallRenderLayer->layer = 80;
         //if ball is above net on Z axis, render the net after the ball
-        if (cTransform3D->pos_m.z > netZ) {
-            cLayer->layer = 5;
+        if (cBallTransform3D->pos_m.z > netZ) {
+            cBallRenderLayer->layer = 50;
         }
         //if ball is off the table (towards the opponent) render it after the table.
-        if (cTransform3D->pos_m.z > context->tableParameters.tableLength) {
-            cLayer->layer = 2;
+        if (cBallTransform3D->pos_m.z > context->tableParameters.tableLength) {
+            cBallRenderLayer->layer = 20;
         }
-        cShadowLayer->layer = cLayer->layer - 1;
+        cBallShadowRenderLayer->layer = cBallRenderLayer->layer - 1;
     }
     return { SystemExecResult::Ran };
 }

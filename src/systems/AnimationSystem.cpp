@@ -8,39 +8,39 @@ SystemExec AnimationSystem::update(GameContext* context) {
 }
 
 SystemExec AnimationSystem::updatePlayer(GameContext* context) {
-    Entity* player = context->registry.getEntity("player");
-    if (!player) {
+    Entity* ePlayer = context->registry.getEntity("player");
+    if (!ePlayer) {
         Debug::debugPrint("AnimationSystem: no player entity");
         return {SystemExecResult::EarlyExit};
     }
 
-    auto [animComp, stateComp] =
-        context->registry.getComponents<CAnimation, CState>(*player);
+    auto [cPlayerAnimation, cPlayerState] =
+        context->registry.getComponents<CAnimation, CState>(*ePlayer);
 
-    if (!animComp || !stateComp)
+    if (!cPlayerAnimation || !cPlayerState)
         return {SystemExecResult::EarlyExit};
 
-    const std::string& currentState = stateComp->state;
-    const std::string& currentAnim = animComp->animation.getName();
+    const std::string& currentState = cPlayerState->state;
+    const std::string& currentAnim = cPlayerAnimation->animation.getName();
 
-    if (currentState == "backswing" && currentAnim != "Backswing") {
-        animComp->animation = context->assets.getAnimation("Backswing");
+    /*if (currentState == "backswing" && currentAnim != "Backswing") {
+        cPlayerAnimation->animation = context->assets.getAnimation("Backswing");
     }
     else if (currentState == "stand" && currentAnim != "Stand") {
-        animComp->animation = context->assets.getAnimation("Stand");
-    }
+        cPlayerAnimation->animation = context->assets.getAnimation("Stand");
+    }*/
 
-    sf::Sprite& s = animComp->animation.getSprite();
+    sf::Sprite& s = cPlayerAnimation->animation.getSprite();
     s.setOrigin(
         s.getLocalBounds().width / 2.f,
         s.getLocalBounds().height / 2.f
     );
 
-    if (!context->registry.hasComponent<CBoundingBox>(*player)) {
-        context->registry.addComponent<CBoundingBox>(*player, s.getLocalBounds());
+    if (!context->registry.hasComponent<CBoundingBox>(*ePlayer)) {
+        context->registry.addComponent<CBoundingBox>(*ePlayer, s.getLocalBounds());
     }
     else {
-        auto* bb = context->registry.getComponent<CBoundingBox>(*player);
+        auto* bb = context->registry.getComponent<CBoundingBox>(*ePlayer);
         bb->box = s.getLocalBounds();
     }
 

@@ -5,66 +5,77 @@
 #include "math/MathHelpers.hpp"
 #include "ecs/DrawItem.hpp"
 #include <cmath>
-SystemExec RenderSystem::update(GameContext* context) {
+#include <algorithm>
 
+SystemExec RenderSystem::update(GameContext* context) {
     std::vector<DrawItem> drawList;
+
     // Sprites
     for (auto e : context->registry.getEntitiesWith<CTransform, CAnimation, CRenderLayer>()) {
-        auto [t, a, rl] = context->registry.getComponents<CTransform, CAnimation, CRenderLayer>(e);
-        if (!t || !a || !rl) continue;
+        auto [cTransform, cAnimation, cRenderLayer] = context->registry.getComponents<CTransform, CAnimation, CRenderLayer>(e);
+        if (!cTransform || !cAnimation || !cRenderLayer) continue;
 
-        drawList.push_back({ rl->layer, DrawType::Sprite, t, a, nullptr, nullptr });
+        CTransform3D* cTransform3D = context->registry.getComponent<CTransform3D>(e);
+        bool isShadow = context->registry.hasComponent<CBallShadow>(e);
+
+        drawList.push_back({ cRenderLayer->layer, DrawType::Sprite, cTransform3D, cTransform, cAnimation, nullptr, nullptr, isShadow });
     }
 
     // Logos — drawn on ball
-    for (auto e : context->registry.getEntitiesWith<CBall, CTransform, CRenderLayer>()) {
-        auto [cBall, t, rl] = context->registry.getComponents<CBall, CTransform, CRenderLayer>(e);
-        if (!cBall || !t || !rl) continue;
-        if (!cBall->logo.visible || cBall->logo.opacity <= 0.f) continue;
+    for (auto eBall : context->registry.getEntitiesWith<CBall, CTransform3D, CTransform, CRenderLayer>()) {
+        auto [cBallBall, cBallTransform3D, cBallTransform, cBallRenderLayer] = context->registry.getComponents<CBall, CTransform3D, CTransform, CRenderLayer>(eBall);
+        if (!cBallBall || !cBallTransform3D || !cBallTransform || !cBallRenderLayer) continue;
+        if (!cBallBall->logo.visible || cBallBall->logo.opacity <= 0.f) continue;
 
-        drawList.push_back({ rl->layer, DrawType::Logo, t, nullptr, cBall, nullptr });
+        drawList.push_back({ cBallRenderLayer->layer, DrawType::Logo, cBallTransform3D, cBallTransform, nullptr, cBallBall, nullptr, false });
     }
+
     // Text
-    for (auto e : context->registry.getEntitiesWith<CText, CTransform, CRenderLayer>()) {
-        auto [text, t, rl] = context->registry.getComponents<CText, CTransform, CRenderLayer>(e);
-        if (!text || !t || !rl) continue;
-        if (!text->visible) continue;
+    for (auto eText : context->registry.getEntitiesWith<CText, CTransform, CRenderLayer>()) {
+        auto [eTextText, eTextTransform, eTextRenderLayer] = context->registry.getComponents<CText, CTransform, CRenderLayer>(eText);
+        if (!eTextText || !eTextTransform || !eTextRenderLayer) continue;
+        if (!eTextText->visible) continue;
 
-        drawList.push_back({ rl->layer, DrawType::Text, t, nullptr, nullptr, text });
+        drawList.push_back({ eTextRenderLayer->layer, DrawType::Text, nullptr, eTextTransform, nullptr, nullptr, eTextText, false });
     }
+
     std::sort(drawList.begin(), drawList.end(),
         [](const DrawItem& a, const DrawItem& b) {
             return a.layer < b.layer;
         });
 
-    // Main draw pass
     for (auto& item : drawList) {
         if (item.type == DrawType::Sprite) {
-            auto& anim = item.animation->animation;
-            anim.update();
-            sf::Sprite& sprite = anim.getSprite();
+            auto& aAnimation = item.cAnimation->animation;
+            aAnimation.update();
+            sf::Sprite& sprite = aAnimation.getSprite();
 
-            // === Interpolated position ===
-            float alpha = context->frameAlpha;
-            item.transform->renderPos =
-                item.transform->lastPos * (1.f - alpha) +
-                item.transform->pos * alpha;
+            if (item.cTransform3D) {
+                sync3Dto2D(context, item.cTransform, item.cTransform3D, item.isShadow);
+            }
+            else {
+                float alpha = context->frameAlpha;
+                item.cTransform->renderPos = item.cTransform->lastPos * (1.f - alpha) + item.cTransform->pos * alpha;
+            }
 
-            // Use renderPos instead of pos
-            const auto& renderPos = item.transform->renderPos;
+            const auto& renderPos = item.cTransform->renderPos;
             sprite.setPosition(renderPos.x, renderPos.y);
-            sprite.setRotation(item.transform->rotation);
-            sprite.setScale(item.transform->scale.x, item.transform->scale.y);
+            sprite.setRotation(item.cTransform->rotation);
+            sprite.setScale(item.cTransform->scale.x, item.cTransform->scale.y);
 
             context->window.draw(sprite);
         }
         else if (item.type == DrawType::Logo) {
-            drawBallLogo(context, item.ball, item.transform);
+            drawBallLogo(context, item.cBall, item.cTransform, item.cTransform3D);
         }
         else if (item.type == DrawType::Text) {
-            context->window.draw(item.text->drawable);
+            float alpha = context->frameAlpha;
+            Vec2 renderPos = item.cTransform->lastPos * (1.f - alpha) + item.cTransform->pos * alpha;
+            item.cText->drawable.setPosition(renderPos.x, renderPos.y);
+            context->window.draw(item.cText->drawable);
         }
     }
+
     if (context->camera.homography.drawGrid) {
         context->camera.homography.drawDebugGrid(context->window, 10, 5);
     }
@@ -79,85 +90,54 @@ SystemExec RenderSystem::update(GameContext* context) {
     }
     return { SystemExecResult::Ran };
 }
-void RenderSystem::drawBallLogo(GameContext* context, CBall* cBall, CTransform* transform)
-{
-    // how finely we split the logo (higher = smoother edge, more CPU)
-    constexpr int GRID = 14;
 
+void RenderSystem::drawBallLogo(GameContext* context, CBall* cBall, CTransform* cBallTransform, CTransform3D* cBallTransform3D)
+{
+    constexpr int GRID = 8;
     auto& logo = cBall->logo;
     if (!logo.visible || logo.opacity <= 0.f) return;
 
-    // 1) Fetch texture
-    sf::Texture& tex = context->assets.getTexture("TexBallLogo");
-
-    sf::Vector2f texSize(
-        static_cast<float>(tex.getSize().x),
-        static_cast<float>(tex.getSize().y)
-    );
+    sf::Texture& assetTexture = context->assets.getTexture("TexBallLogo");
+    sf::Vector2f assetTextureSize(static_cast<float>(assetTexture.getSize().x), static_cast<float>(assetTexture.getSize().y));
 
     float alpha = context->frameAlpha;
-    Vec2 renderPos =
-        transform->lastPos * (1.f - alpha) +
-        transform->pos * alpha;
+    Vec3 interp3D = cBallTransform3D->lastPos_m * (1.f - alpha) + cBallTransform3D->pos_m * alpha;
+    cBallTransform->renderPos = context->camera.homography.worldToImage(interp3D);
 
-    transform->renderPos = renderPos;
+    sf::Vector2f ballCenter(cBallTransform->renderPos.x, cBallTransform->renderPos.y);
+    float ballRadiusPx = context->tableParameters.pixelsPerMeter * cBall->ballRadius + 3.5f;
 
-    sf::Vector2f ballCenter(renderPos.x, renderPos.y);
-
-    // If you have a known pixel radius, use that instead:
-    float ballRadiusPx = context->tableParameters.pixelsPerMeter * cBall->ballRadius + 3.5;
-
-
-    // 4) Tangent basis around the logo normal
-    //    Pick an "up" vector and build an orthonormal frame
     Vec3 n = logo.normal;
-    Vec3 up = { 0.f, -1.f, 0.f }; // screen up (negative Y)
-
-    // Replace up if it's almost parallel to n
+    Vec3 up = { 0.f, -1.f, 0.f };
     if (std::fabs(up.x * n.x + up.y * n.y + up.z * n.z) > 0.9f) {
         up = { 1.f, 0.f, 0.f };
     }
 
     auto cross = [](const Vec3& a, const Vec3& b) {
-        return Vec3{
-            a.y * b.z - a.z * b.y,
-            a.z * b.x - a.x * b.z,
-            a.x * b.y - a.y * b.x
-        };
+        return Vec3{ a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x };
         };
     auto normalize = [](const Vec3& v) {
         float len = std::sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
-        if (len == 0.f) return Vec3{ 0.f, 0.f, 0.f };
-        return Vec3{ v.x / len, v.y / len, v.z / len };
+        return len == 0.f ? Vec3{ 0,0,0 } : Vec3{ v.x / len, v.y / len, v.z / len };
         };
 
-    Vec3 tangent = normalize(cross(up, n));   // left-right on ball
-    Vec3 bitan = cross(n, tangent);         // up-down on ball
-
-    // Logo patch radius (smaller than ball)
+    Vec3 tangent = normalize(cross(up, n));
+    Vec3 bitan = cross(n, tangent);
     float logoRadiusPx = ballRadiusPx * context->logoDebug.radiusFactor;
 
-    // 5) Build a grid of small quads and clip by ball circle + hemisphere
     sf::RenderStates states;
-    states.texture = &tex;
-
-    sf::Color tint(255, 255, 255,
-        static_cast<sf::Uint8>(logo.opacity * 255.f));
+    states.texture = &assetTexture;
+    sf::Color tint(255, 255, 255, static_cast<sf::Uint8>(logo.opacity * 255.f));
 
     for (int iy = 0; iy < GRID; ++iy) {
         for (int ix = 0; ix < GRID; ++ix) {
-
-            // local UV in [-1,1]
             float u0 = -1.f + 2.f * (float(ix) / GRID);
             float v0 = -1.f + 2.f * (float(iy) / GRID);
             float u1 = -1.f + 2.f * (float(ix + 1) / GRID);
             float v1 = -1.f + 2.f * (float(iy + 1) / GRID);
 
-            // apply squash & shear
             auto distort = [&](float u, float v) {
-                // shear in horizontal
                 u += logo.shear * v;
-                // squash vertically
                 v *= logo.squash;
                 return std::pair<float, float>(u, v);
                 };
@@ -165,42 +145,24 @@ void RenderSystem::drawBallLogo(GameContext* context, CBall* cBall, CTransform* 
             auto [du0, dv0] = distort(u0, v0);
             auto [du1, dv1] = distort(u1, v1);
 
-            // corner points in 3D around logo normal
             auto pointOnSphere = [&](float du, float dv) -> Vec3 {
-                // local offset in 3D
                 Vec3 offset = {
-                    tangent.x * du * logoRadiusPx +
-                    bitan.x * dv * logoRadiusPx,
-                    tangent.y * du * logoRadiusPx +
-                    bitan.y * dv * logoRadiusPx,
-                    tangent.z * du * logoRadiusPx +
-                    bitan.z * dv * logoRadiusPx
+                    tangent.x * du * logoRadiusPx + bitan.x * dv * logoRadiusPx,
+                    tangent.y * du * logoRadiusPx + bitan.y * dv * logoRadiusPx,
+                    tangent.z * du * logoRadiusPx + bitan.z * dv * logoRadiusPx
                 };
-                // normal * radius + offset
-                return Vec3{
-                    n.x * ballRadiusPx + offset.x,
-                    n.y * ballRadiusPx + offset.y,
-                    n.z * ballRadiusPx + offset.z
+                return Vec3{ n.x * ballRadiusPx + offset.x, n.y * ballRadiusPx + offset.y, n.z * ballRadiusPx + offset.z };
                 };
-            };
 
             Vec3 p00 = pointOnSphere(du0, dv0);
             Vec3 p10 = pointOnSphere(du1, dv0);
             Vec3 p11 = pointOnSphere(du1, dv1);
             Vec3 p01 = pointOnSphere(du0, dv1);
 
-            // Hemisphere clip (hard cutoff): if all 4 behind, skip
-            if (p00.z <= 0.f && p10.z <= 0.f &&
-                p11.z <= 0.f && p01.z <= 0.f) {
-                continue;
-            }
+            if (p00.z <= 0.f && p10.z <= 0.f && p11.z <= 0.f && p01.z <= 0.f) continue;
 
-            // Screen positions
             auto proj = [&](const Vec3& p) -> sf::Vector2f {
-                return sf::Vector2f(
-                    ballCenter.x + p.x,
-                    ballCenter.y - p.y
-                );
+                return sf::Vector2f(ballCenter.x + p.x, ballCenter.y - p.y);
                 };
 
             sf::VertexArray quad(sf::Quads, 4);
@@ -209,37 +171,48 @@ void RenderSystem::drawBallLogo(GameContext* context, CBall* cBall, CTransform* 
             quad[2].position = proj(p11);
             quad[3].position = proj(p01);
 
-            // Circle clip: if the whole cell is outside the ball radius, skip
             auto insideBall = [&](const sf::Vector2f& pos) {
                 float dx = pos.x - ballCenter.x;
                 float dy = pos.y - ballCenter.y;
                 return (dx * dx + dy * dy) <= (ballRadiusPx * ballRadiusPx);
                 };
 
-            if (!insideBall(quad[0].position) &&
-                !insideBall(quad[1].position) &&
-                !insideBall(quad[2].position) &&
-                !insideBall(quad[3].position)) {
-                continue;
-            }
+            if (!insideBall(quad[0].position) && !insideBall(quad[1].position) &&
+                !insideBall(quad[2].position) && !insideBall(quad[3].position)) continue;
 
-            // Texture coords for this cell
-            float tu0 = (float(ix) / GRID) * texSize.x;
-            float tv0 = (float(iy) / GRID) * texSize.y;
-            float tu1 = (float(ix + 1) / GRID) * texSize.x;
-            float tv1 = (float(iy + 1) / GRID) * texSize.y;
+            float tu0 = (float(ix) / GRID) * assetTextureSize.x;
+            float tv0 = (float(iy) / GRID) * assetTextureSize.y;
+            float tu1 = (float(ix + 1) / GRID) * assetTextureSize.x;
+            float tv1 = (float(iy + 1) / GRID) * assetTextureSize.y;
 
             quad[0].texCoords = { tu0, tv0 };
             quad[1].texCoords = { tu1, tv0 };
             quad[2].texCoords = { tu1, tv1 };
             quad[3].texCoords = { tu0, tv1 };
 
-            quad[0].color = tint;
-            quad[1].color = tint;
-            quad[2].color = tint;
-            quad[3].color = tint;
-
+            for (int i = 0; i < 4; ++i) quad[i].color = tint;
             context->window.draw(quad, states);
         }
     }
+}
+
+void RenderSystem::sync3Dto2D(GameContext* context, CTransform* cTransform, CTransform3D* cTransform3D, bool isShadow) {
+    float alpha = context->frameAlpha;
+
+    // 1. Interpolate Position
+    Vec3 interpPos3D = cTransform3D->lastPos_m * (1.f - alpha) + cTransform3D->pos_m * alpha;
+
+    // 2. Interpolate Scale (Vec3 version)
+    // We lerp the 3D vectors to get the current frame's 3D scale
+    Vec3 interpScale3D = cTransform3D->lastScale_m * (1.f - alpha) + cTransform3D->scale_m * alpha;
+
+    // 3. Apply to 2D Transform
+    // Since 2D sprites usually use a 2D scale (X and Y), we map them accordingly
+    cTransform->scale = { interpScale3D.x, interpScale3D.y };
+
+    if (isShadow) {
+        interpPos3D.y = cTransform3D->pos_m.y;
+    }
+
+    cTransform->renderPos = context->camera.homography.worldToImage(interpPos3D);
 }

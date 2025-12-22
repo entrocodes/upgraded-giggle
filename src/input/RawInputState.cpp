@@ -71,28 +71,66 @@ int RawInputState::gamePadHeldFor(GameContext* context, const std::string& btn) 
     if (it == framePadPressed.end()) return 0;
     return context->frameStats.tickIndex - it->second;
 }
+bool RawInputState::isAxisDown(const std::string& name) const {
+    if (axisMap.find(name) == axisMap.end()) return false;
+    auto& target = axisMap.at(name);
+    float val = sf::Joystick::getAxisPosition(0, target.axis);
 
+    // If threshold is positive (LT), check if val > threshold
+    // If threshold is negative (RT), check if val < threshold
+    return (target.threshold > 0) ? (val > target.threshold) : (val < target.threshold);
+}
+
+bool RawInputState::isAxisJustPressed(const std::string& name) const {
+    bool prev = prevAxisActiveStates.count(name) ? prevAxisActiveStates.at(name) : false;
+    bool curr = isAxisDown(name);
+    return !prev && curr;
+}
+bool RawInputState::isAxisReleased(const std::string& name) const {
+    // Was it down last frame?
+    bool prev = prevAxisActiveStates.count(name) ? prevAxisActiveStates.at(name) : false;
+    // Is it down now?
+    bool curr = isAxisDown(name);
+
+    return prev && !curr;
+}
+
+int RawInputState::axisHeldFor(GameContext* context, const std::string& name) const {
+    auto it = frameAxisActivated.find(name);
+    if (it == frameAxisActivated.end()) return 0;
+    return context->frameStats.tickIndex - it->second;
+}
+void RawInputState::updateAxisStates(GameContext* context) {
+    for (auto const& [name, target] : axisMap) {
+        bool currentlyActive = isAxisDown(name);
+
+        // If it just started being held, record the tick
+        if (currentlyActive && !axisActiveStates[name]) {
+            frameAxisActivated[name] = context->frameStats.tickIndex;
+        }
+
+        axisActiveStates[name] = currentlyActive;
+    }
+}
 // --- Cycle ---
 void RawInputState::nextFrame() {
     prevKeyStates = keyStates;
     prevPadStates = padStates;
+    prevAxisActiveStates = axisActiveStates;
 
-    // Clean up frame tracking ONLY if the button is currently up 
-    // AND it was up in the previous frame (meaning we are done with the release logic)
-    for (auto it = framePadPressed.begin(); it != framePadPressed.end(); ) {
-        if (!padStates[it->first]) {
-            it = framePadPressed.erase(it);
-        }
-        else {
-            ++it;
-        }
+    // Cleanup axis
+    for (auto it = frameAxisActivated.begin(); it != frameAxisActivated.end(); ) {
+        if (!isAxisDown(it->first)) it = frameAxisActivated.erase(it);
+        else ++it;
     }
+    // Cleanup Buttons
+    for (auto it = framePadPressed.begin(); it != framePadPressed.end(); ) {
+        if (!padStates[it->first]) it = framePadPressed.erase(it);
+        else ++it;
+    }
+    // Cleanup Keys
     for (auto it = frameKeyPressed.begin(); it != frameKeyPressed.end(); ) {
-        if (!keyStates[it->first]) {
-            it = frameKeyPressed.erase(it);
-        }
-        else {
-            ++it;
-        }
+        if (!keyStates[it->first]) it = frameKeyPressed.erase(it);
+        else ++it;
     }
 }

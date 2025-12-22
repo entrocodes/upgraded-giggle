@@ -4,7 +4,7 @@
 struct CRacketSwing : public Component {
     float backswingTime = 0.f;
     float maxBackswing = 0.35f;  // ~350ms max power
-
+    bool nowDown = false;
     float swingSpeed = 0.f;
     bool isCharging = false;
     bool swingTriggered = false;

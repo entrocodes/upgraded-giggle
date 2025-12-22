@@ -43,7 +43,7 @@ void GameEngine::run() {
 
         context.frameStats.dt = realDt;
 
-        context.rawInput.nextFrame();
+        
 
         sf::Event event;
         while (context.window.pollEvent(event)) {
@@ -120,12 +120,13 @@ void GameEngine::run() {
             context.frameStats.dt = FIXED_DT;
             context.frameStats.fixedDt = FIXED_DT;
             context.frameStats.tickIndex++;
+            context.rawInput.updateAxisStates(&context);
             context.sceneManager.update();
             accumulator -= FIXED_DT;
         }
         if (context.metaInputState.returnToMainMenu) {
             context.metaInputState.returnToMainMenu = false ;
-            context.sceneManager.requestSwitch("menu"); //THIS WILL BE IMPROVED UPON SOON, WITH A SCENEREQUEST SYSTEM
+            context.sceneManager.requestSwitch("menu");
             // RESET IMGUI INTERNAL STATE
             ImGui::GetIO().ClearInputCharacters();
             ImGui::GetIO().ClearInputKeys();
@@ -143,7 +144,7 @@ void GameEngine::run() {
         ImGui::SFML::Render(context.window);
         context.window.display();
 
-
+        context.rawInput.nextFrame();
         
         context.sceneManager.applyPendingSwitch();
 

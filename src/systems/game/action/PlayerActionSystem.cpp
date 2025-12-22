@@ -6,27 +6,42 @@
 #include <algorithm>
 
 SystemExec PlayerActionSystem::update(GameContext* context) {
-    Entity* player = context->registry.getEntity("player");
-    if (!player) {
+    Entity* ePlayer = context->registry.getEntity("player");
+    if (!ePlayer) {
         Debug::debugPrint("Player Entity not found.");
         return { SystemExecResult::EarlyExit };
     }
 
-    auto [input, transform3D, state] = context->registry.getComponents<CInput, CTransform3D, CState>(*player);
+    auto [cPlayerInput, cPlayerTransform3D, cPlayerState] = context->registry.getComponents<CInput, CTransform3D, CState>(*ePlayer);
 
-    if (input->actions["AttackDown"])  state->state = "backswing";
-    if (input->actions["ReleaseAttack"]) state->state = "stand";
-    if (input->actions["MoveLeft"]) {
-        auto& cFootworkIntent = context->registry.addComponent<CFootworkIntent>(*player);
+    if (cPlayerInput->actions["StartAttack"])  cPlayerState->state = "backswing";
+    if (cPlayerInput->actions["ReleaseAttack"]) cPlayerState->state = "stand";
+    if (cPlayerInput->actions["MoveLeft"]) {
+        auto& cFootworkIntent = context->registry.addComponent<CFootworkIntent>(*ePlayer);
         cFootworkIntent.direction = { -1, 0, 0 };
         context->playerMovement.moveTriggered = true;
-        cFootworkIntent.heldFrames = input->holdTime["MoveLeft"];
+        cFootworkIntent.heldFrames = cPlayerInput->holdTime["MoveLeft"];
     }
-    if (input->actions["MoveRight"]) {
-        auto& cFootworkIntent = context->registry.addComponent<CFootworkIntent>(*player);
+    if (cPlayerInput->actions["MoveRight"]) {
+        auto& cFootworkIntent = context->registry.addComponent<CFootworkIntent>(*ePlayer);
         cFootworkIntent.direction = { 1, 0, 0 };
         context->playerMovement.moveTriggered = true;
-        cFootworkIntent.heldFrames = input->holdTime["MoveRight"];
+        cFootworkIntent.heldFrames = cPlayerInput->holdTime["MoveRight"];
+
+    }
+    if (cPlayerInput->actions["MoveForward"]) {
+        auto& cFootworkIntent = context->registry.addComponent<CFootworkIntent>(*ePlayer);
+        cFootworkIntent.direction = { 0, 0, 1 };
+        cFootworkIntent.directionalStrength = .25;
+        context->playerMovement.moveTriggered = true;
+        cFootworkIntent.heldFrames = cPlayerInput->holdTime["MoveForward"];
+    }
+    if (cPlayerInput->actions["MoveBackward"]) {
+        auto& cFootworkIntent = context->registry.addComponent<CFootworkIntent>(*ePlayer);
+        cFootworkIntent.direction = { 0, 0, -1 };
+        cFootworkIntent.directionalStrength = .25;
+        context->playerMovement.moveTriggered = true;
+        cFootworkIntent.heldFrames = cPlayerInput->holdTime["MoveBackward"];
 
     }
     return { SystemExecResult::Ran };

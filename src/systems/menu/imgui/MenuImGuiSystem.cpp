@@ -6,6 +6,10 @@
 #include "helpers/JoystickUtils.hpp"
 #include "ecs/system/ISystemGroup.hpp"
 SystemExec MenuImGuiSystem::update(GameContext* context) {
+    if (context->renderSettings.hideImGui) {
+        context->inputBlocked = false;
+        return { SystemExecResult::EarlyExit, "UI Hidden" };
+    }
     ImGuiIO& io = ImGui::GetIO();
     io.DisplaySize = ImVec2(
         context->display.windowSize.x,
@@ -204,29 +208,29 @@ void MenuImGuiSystem::drawTextDebug(GameContext* context) {
             ImGui::TableSetupColumn("Is Selected");
             ImGui::TableHeadersRow();
 
-            for (auto textEntity : context->registry.getEntitiesWith<CText>()) {
-                auto* cText = context->registry.getComponent<CText>(textEntity);
+            for (auto eText : context->registry.getEntitiesWith<CText>()) {
+                auto* cTextText = context->registry.getComponent<CText>(eText);
 
                 ImGui::TableNextRow();
 
                 // --- Column 0: The sString ---
                 ImGui::TableNextColumn();
-                if (cText && !cText->sString.empty()) {
-                    ImGui::Text("%s", cText->sString.c_str()); // Ensure .c_str() for safety
+                if (cTextText && !cTextText->sString.empty()) {
+                    ImGui::Text("%s", cTextText->sString.c_str()); // Ensure .c_str() for safety
                 }
                 else {
                     ImGui::TextDisabled("[Empty]");
                 }
 
                 ImGui::TableNextColumn();
-                ImGui::Text("%s", cText->isDirty ? "Dirty" : "Clean");
+                ImGui::Text("%s", cTextText->isDirty ? "Dirty" : "Clean");
 
                 ImGui::TableNextColumn();
-                ImGui::Text("%s", cText->wasDirty ? "Was Dirty" : "Was Clean");
+                ImGui::Text("%s", cTextText->wasDirty ? "Was Dirty" : "Was Clean");
 
                 ImGui::TableNextColumn();
-                if (context->registry.hasComponent<CTextButton>(textEntity)) {
-                    auto* cTextButton = context->registry.getComponent<CTextButton>(textEntity);
+                if (context->registry.hasComponent<CTextButton>(eText)) {
+                    auto* cTextButton = context->registry.getComponent<CTextButton>(eText);
                     ImGui::Text("%s", cTextButton->isHovered ? "Hovered" : "Idle");
                 }
                 else {
@@ -234,8 +238,8 @@ void MenuImGuiSystem::drawTextDebug(GameContext* context) {
                 }
 
                 ImGui::TableNextColumn();
-                if (context->registry.hasComponent<CTextButton>(textEntity)) {
-                    auto* cTextButton = context->registry.getComponent<CTextButton>(textEntity);
+                if (context->registry.hasComponent<CTextButton>(eText)) {
+                    auto* cTextButton = context->registry.getComponent<CTextButton>(eText);
                     ImGui::Text("%s", cTextButton->isSelected ? "Selected" : "Idle");
                 }
                 else {
@@ -246,31 +250,31 @@ void MenuImGuiSystem::drawTextDebug(GameContext* context) {
         }
     }
     if (ImGui::CollapsingHeader("Menu Intent State")) {
-        auto& intent = context->mainMenuIntent;
-        auto& raw = context->rawInput;
+        auto& ctxMainMenuIntent = context->mainMenuIntent;
+        auto& ctxRawInput = context->rawInput;
         // Use a local pointer for the string to ensure it's a valid C-string
         const char* dirStr = "NONE";
-        if (intent.menuSelectionInput == MenuDirection::Up) dirStr = "UP";
-        else if (intent.menuSelectionInput == MenuDirection::Down) dirStr = "DOWN";
+        if (ctxMainMenuIntent.menuSelectionInput == MenuDirection::Up) dirStr = "UP";
+        else if (ctxMainMenuIntent.menuSelectionInput == MenuDirection::Down) dirStr = "DOWN";
 
         ImGui::Text("Direction: %s", dirStr);
 
-        bool upPressed = raw.isKeyJustPressed(sf::Keyboard::W) || raw.isKeyJustPressed(sf::Keyboard::Up);
-        bool downPressed = raw.isKeyJustPressed(sf::Keyboard::S) || raw.isKeyJustPressed(sf::Keyboard::Down);
+        bool upPressed = ctxRawInput.isKeyJustPressed(sf::Keyboard::W) || ctxRawInput.isKeyJustPressed(sf::Keyboard::Up);
+        bool downPressed = ctxRawInput.isKeyJustPressed(sf::Keyboard::S) || ctxRawInput.isKeyJustPressed(sf::Keyboard::Down);
 
         // Using %s correctly to prevent crashes
         ImGui::Text("Raw Input: Keyboard Up:   %s", upPressed ? "YES" : "NO");
         ImGui::Text("Raw Input: Keyboard Down: %s", downPressed ? "YES" : "NO");
 
         // Joystick checks (ensure JoystickUtils is safe to call here)
-        ImGui::Text("Raw Input: Joystick Up:   %s", JoystickUtils::isAxisJustMoved(raw, sf::Joystick::Y, true) ? "YES" : "NO");
-        ImGui::Text("Raw Input: Joystick Down: %s", JoystickUtils::isAxisJustMoved(raw, sf::Joystick::Y, false) ? "YES" : "NO");
+        ImGui::Text("Raw Input: Joystick Up:   %s", JoystickUtils::isAxisJustMoved(ctxRawInput, sf::Joystick::Y, true) ? "YES" : "NO");
+        ImGui::Text("Raw Input: Joystick Down: %s", JoystickUtils::isAxisJustMoved(ctxRawInput, sf::Joystick::Y, false) ? "YES" : "NO");
         // Explicitly use booleans for the %s formatter
-        ImGui::Text("Select Requested: %s", intent.menuSelectRequested ? "TRUE" : "FALSE");
-        ImGui::Text("Mouse Override: %s", intent.mouseOverriddenJoystick ? "YES" : "NO");
+        ImGui::Text("Select Requested: %s", ctxMainMenuIntent.menuSelectRequested ? "TRUE" : "FALSE");
+        ImGui::Text("Mouse Override: %s", ctxMainMenuIntent.mouseOverriddenJoystick ? "YES" : "NO");
 
         // Use Text with an explicit cast to int to be safe
-        ImGui::Text("Hover Order: %d", (int)intent.mouseHoverOrder);
+        ImGui::Text("Hover Order: %d", (int)ctxMainMenuIntent.mouseHoverOrder);
     }
 
     ImGui::End();

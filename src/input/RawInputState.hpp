@@ -10,6 +10,22 @@
 struct GameContext;
 
 struct RawInputState {
+    // Add to RawInputState.hpp
+    struct AxisDirection {
+        sf::Joystick::Axis axis;
+        float threshold; // e.g., 15.0f for LT, -15.0f for RT
+    };
+
+    // Map virtual names like "LT" to their axis and direction
+    static inline std::unordered_map<std::string, AxisDirection> axisMap = {
+        {"LT", {sf::Joystick::Z, 15.0f}},
+        {"RT", {sf::Joystick::Z, -15.0f}}
+    };
+
+    // Add to your class members
+    std::unordered_map<std::string, bool> axisActiveStates;
+    std::unordered_map<std::string, bool> prevAxisActiveStates;
+    std::unordered_map<std::string, int> frameAxisActivated;
     // --- State Members ---
     std::unordered_map<sf::Keyboard::Key, bool> keyStates;
     std::unordered_map<sf::Keyboard::Key, bool> prevKeyStates;
@@ -30,7 +46,8 @@ struct RawInputState {
     static inline std::unordered_map<std::string, unsigned int> buttonMap = {
         {"A", 0}, {"B", 1}, {"X", 2}, {"Y", 3},
         {"LB", 4}, {"RB", 5},
-        {"Select", 6}, {"Start", 7}
+        {"Select", 6}, {"Start", 7},
+        {"LSB", 8}, {"RSB", 9}, // Usually the stick clicks (L3/R3)
     };
 
     // --- Keyboard helpers ---
@@ -46,6 +63,11 @@ struct RawInputState {
     bool isGamepadJustPressed(const std::string& btn) const;
     bool isGamepadReleased(const std::string& btn) const;
     int gamePadHeldFor(GameContext* context, const std::string& btn) const;
+    bool isAxisDown(const std::string& name) const;
+    bool isAxisJustPressed(const std::string& name) const;
+    bool isAxisReleased(const std::string& name) const;
+    int axisHeldFor(GameContext* context, const std::string& name) const;
+    void updateAxisStates(GameContext* context);
     void nextFrame();
 
 };

@@ -13,8 +13,8 @@ Entity EntityFactory::createBackground() {
 
     auto& cBackgroundTransform = m_registry.addComponent<CTransform>(eBackground);
 
-    const Animation& roomAnim = m_assets.getAnimation("OrangeRoom");
-    auto& cBackgroundAnimation = m_registry.addComponent<CAnimation>(eBackground, roomAnim, false);
+    const Animation& aRoom = m_assets.getAnimation("OrangeRoom");
+    auto& cBackgroundAnimation = m_registry.addComponent<CAnimation>(eBackground, aRoom, false);
     m_registry.addComponent<CRenderLayer>(eBackground, 0);
     // Ensure sprite origin is set and bounding box uses the animation sprite
     sf::Sprite& s = cBackgroundAnimation.animation.getSprite();
@@ -28,7 +28,7 @@ Entity EntityFactory::createBackground() {
 
     // Apply scale to cBackgroundTransform, not directly to sprite
     cBackgroundTransform.scale = { uniformScale, uniformScale };
-
+    
     // Center in camera space
     cBackgroundTransform.pos = { m_display.logicalSize.x / 2.f, m_display.logicalSize.y / 2.f }; //center of screen
     return eBackground;
@@ -39,9 +39,9 @@ Entity EntityFactory::createTable() {
 
     auto& cTableTransform = m_registry.addComponent<CTransform>(eTable);
 
-    const Animation& tableAnim = m_assets.getAnimation("Table");
-    auto& cTableAnimation = m_registry.addComponent<CAnimation>(eTable, tableAnim, false);
-    m_registry.addComponent<CRenderLayer>(eTable, 3);
+    const Animation& aTable = m_assets.getAnimation("Table");
+    auto& cTableAnimation = m_registry.addComponent<CAnimation>(eTable, aTable, false);
+    m_registry.addComponent<CRenderLayer>(eTable, 30);
     // Ensure sprite origin is set and bounding box uses the animation sprite
     sf::Sprite& s = cTableAnimation.animation.getSprite();
     s.setOrigin(s.getLocalBounds().width / 2.f, s.getLocalBounds().height / 2.f);
@@ -60,11 +60,11 @@ Entity EntityFactory::createNet() {
     const Vec3 netSize_m = { (1.525 + .15), .1525f, .0001f }; //net should be made to be a little longer than the table later
 
     auto& cNetTransform = m_registry.addComponent<CTransform>(eNet);
-    const Animation& netAnim = m_assets.getAnimation("Net");
-    auto& cNetAnimation = m_registry.addComponent<CAnimation>(eNet, netAnim, false);
+    const Animation& aNet = m_assets.getAnimation("Net");
+    auto& cNetAnimation = m_registry.addComponent<CAnimation>(eNet, aNet, false);
     auto& cNetTransform3D = m_registry.addComponent<CTransform3D>(eNet, netPos_m);
     auto& cBoundingBox3D = m_registry.addComponent<CBoundingBox3D>(eNet, Bounds3D(netPos_m - netSize_m / 2, netPos_m + netSize_m / 2));
-    m_registry.addComponent<CRenderLayer>(eNet, 6);
+    m_registry.addComponent<CRenderLayer>(eNet, 60);
     // Ensure sprite origin is set and bounding box uses the animation sprite
     sf::Sprite& s = cNetAnimation.animation.getSprite();
     s.setOrigin(s.getLocalBounds().width / 2.f, s.getLocalBounds().height / 2.f);
@@ -92,11 +92,11 @@ Entity EntityFactory::createPlayer() {
     m_registry.addComponent<CTransform>(ePlayer);
 
     // --- Render ---
-    m_registry.addComponent<CRenderLayer>(ePlayer, 9);
+    m_registry.addComponent<CRenderLayer>(ePlayer, 90);
 
     // --- Animation ---
-    const Animation& standAnim = m_assets.getAnimation("Stand");
-    auto& cPlayerAnimation = m_registry.addComponent<CAnimation>(ePlayer, standAnim, false);
+    const Animation& aStand = m_assets.getAnimation("Stand");
+    auto& cPlayerAnimation = m_registry.addComponent<CAnimation>(ePlayer, aStand, false);
 
     sf::Sprite& s = cPlayerAnimation.animation.getSprite();
     Vec2 spriteBounds = {
@@ -163,7 +163,11 @@ Entity EntityFactory::createPlayerRacket() {
     // Bounding volume from center
     const Vec3 halfSize = { 0.076f, 0.095f, 0.005f }; // bad place for this
     m_registry.addComponent<CBoundingBox3D>(eRacket, startPos, halfSize);
-
+    const Animation& aRacket = m_assets.getAnimation("Racket");
+    auto& cBallAnimation = m_registry.addComponent<CAnimation>(eRacket, aRacket, true);
+    m_registry.addComponent<CRenderLayer>(eRacket, 85);
+    sf::Sprite& s = cBallAnimation.animation.getSprite();
+    s.setOrigin(s.getLocalBounds().width / 2.f, s.getLocalBounds().height / 2.f);
     return eRacket;
 }
 
@@ -176,13 +180,13 @@ Entity EntityFactory::createBall(const Vec3& pos_m, const Vec3& vel_mps, const V
 
 
     Entity eBall = m_registry.createEntity("ball");
-    Vec2 ballScale = { 0.12f, 0.12f };
+    float ballScale = 0.12f;
     //Vec2 ballScale = { 3.00f, 3.00f };
     auto& cBallBall = m_registry.addComponent<CBall>(eBall, eBallShadow, spin);
-    auto& cBallTransform = m_registry.addComponent<CTransform>(eBall, ballScreenPos, ballScale, 0.f);
+    auto& cBallTransform = m_registry.addComponent<CTransform>(eBall, ballScreenPos, Vec2(1.0, 1.0), 0.f);
     cBallTransform.lastPos = ballScreenPos; // <--- ADD THIS
     Vec3 size_m = { cBallBall.ballRadius * 2,cBallBall.ballRadius * 2,cBallBall.ballRadius * 2 }; //set ball size to a cube (even though its a circle)
-    m_registry.addComponent<CTransform3D>(eBall, pos_m); //cTransform3D is initialized with the actual position of the ball in meters.
+    m_registry.addComponent<CTransform3D>(eBall, pos_m, Vec3(ballScale, ballScale, ballScale)); //cTransform3D is initialized with the actual position of the ball in meters.
     m_registry.addComponent<CVelocity3D>(eBall, vel_mps);
     Bounds3D ballBox3D = Bounds3D(pos_m - cBallBall.ballRadius, pos_m + cBallBall.ballRadius);
     m_registry.addComponent<CBoundingBox3D>(eBall, ballBox3D);
@@ -191,7 +195,7 @@ Entity EntityFactory::createBall(const Vec3& pos_m, const Vec3& vel_mps, const V
     // animation
     const Animation& aBall = m_assets.getAnimation("Ball");
     auto& cBallAnimation = m_registry.addComponent<CAnimation>(eBall, aBall, true);
-    m_registry.addComponent<CRenderLayer>(eBall, 4);
+    m_registry.addComponent<CRenderLayer>(eBall, 40);
     sf::Sprite& s = cBallAnimation.animation.getSprite();
     s.setOrigin(s.getLocalBounds().width / 2.f, s.getLocalBounds().height / 2.f);
 
@@ -204,9 +208,9 @@ Entity EntityFactory::createBallShadow(const Vec3& shadowPos_m) {
     auto& cBallShadowTransform = m_registry.addComponent<CTransform>(eBallShadow, shadowScreenPos, Vec2(2.0f,2.0f)); //this is setting the ballShadow to the same screen coordinates as the ball.
 
     // animation
-    const Animation& animShadow = m_assets.getAnimation("BallShadow");
-    auto& cBallShadowAnimation = m_registry.addComponent<CAnimation>(eBallShadow, animShadow, false);
-    m_registry.addComponent<CRenderLayer>(eBallShadow, 3);
+    const Animation& aShadow = m_assets.getAnimation("BallShadow");
+    auto& cBallShadowAnimation = m_registry.addComponent<CAnimation>(eBallShadow, aShadow, false);
+    m_registry.addComponent<CRenderLayer>(eBallShadow, 30);
     m_registry.addComponent<CTransform3D>(eBallShadow, shadowPos_m);
     sf::Sprite& s = cBallShadowAnimation.animation.getSprite();
     s.setOrigin(s.getLocalBounds().width / 2.f, s.getLocalBounds().height / 2.f);

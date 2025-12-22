@@ -4,7 +4,7 @@
 #include <SFML/Window/Joystick.hpp>
 
 SystemExec InputSystem::update(GameContext* context) {
-    RawInputState& raw = context->rawInput;
+    RawInputState& ctxRawInput = context->rawInput;
 
     // 1. nextFrame() stays here to cycle curr -> prev
 
@@ -12,7 +12,7 @@ SystemExec InputSystem::update(GameContext* context) {
     // 2. ONLY Poll things that don't have discrete events or need high precision
 
     // Mouse Position (Needs to be fresh every frame)
-    raw.mousePosition = Vec2(
+    ctxRawInput.mousePosition = Vec2(
         static_cast<float>(sf::Mouse::getPosition(context->window).x),
         static_cast<float>(sf::Mouse::getPosition(context->window).y)
     );
@@ -30,19 +30,19 @@ SystemExec InputSystem::update(GameContext* context) {
                 float pos = sf::Joystick::getAxisPosition(0, axis);
                 // Apply a small deadzone so the character doesn't drift
                 if (std::abs(pos) > 5.0f) {
-                    raw.joyAxisPositions[axis] = pos;
+                    ctxRawInput.joyAxisPositions[axis] = pos;
                 }
                 else {
-                    raw.joyAxisPositions.erase(axis);
+                    ctxRawInput.joyAxisPositions.erase(axis);
                 }
             }
         }
     }
     else {
-        raw.joyAxisPositions.clear();
+        ctxRawInput.joyAxisPositions.clear();
     }
 
-    // NOTE: keyStates and padStates are now handled EXCLUSIVELY 
+    // NOTE: keyStates and padStates are handled EXCLUSIVELY 
     // by the Event Loop in GameEngine.cpp. 
     // Do NOT poll them here or you will break the 'JustPressed' logic.
 
