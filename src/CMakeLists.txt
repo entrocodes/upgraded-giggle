@@ -1,4 +1,5 @@
-add_executable(PixelPong
+# 1. Setup Project Sources
+set(PIXEL_PONG_SOURCES
     main.cpp
     debug/Debug.cpp
     game/GameEngine.cpp
@@ -31,7 +32,7 @@ add_executable(PixelPong
     systems/game/racket/RacketCollisionSystem.cpp
     systems/game/racket/RacketSwingSystem.cpp
     systems/game/racket/RacketHandleSystem.cpp
-    systems/game/racket/RacketTransformSystem.cpp
+    systems/game/racket/RacketBoundingBoxSystem.cpp
     systems/game/racket/RacketArmSystem.cpp
     systems/BallIntegrateSystem.cpp
     systems/LogoRotationSystem.cpp
@@ -40,29 +41,38 @@ add_executable(PixelPong
     ecs/system/SystemGraph.cpp
     game/scenes/Scene.cpp
     helpers/FileUtils.cpp
-    helpers/JoystickUtils.cpp
     game/utils/JsonEntityLoader.cpp
     input/RawInputState.cpp
     systems/movement/player/footwork/FootworkMovementSystem.cpp
     systems/movement/player/VelocityIntegrationSystem.cpp
- "systems/movement/player/footwork/FootworkMovementSystem.cpp" "systems/game/debug/BallSpawnDebugSystem.cpp")
-# This solves the "GameContext.hpp" not found error
-target_include_directories(PixelPong PRIVATE 
-    "${CMAKE_CURRENT_SOURCE_DIR}" 
+    systems/ProceduralAnimationSystem.cpp
 )
 
 
+
+# 3. Create Executable
+add_executable(PixelPong ${PIXEL_PONG_SOURCES})
+
+# 4. Include Paths
+target_include_directories(PixelPong PRIVATE 
+    "${CMAKE_CURRENT_SOURCE_DIR}"
+    ${SDL2_INCLUDE_DIRS}
+)
+
+# 5. Linking (Dynamic/Shared)
+# Note: Using the standard targets provided by the packages
 target_link_libraries(PixelPong 
     PRIVATE 
         sfml-graphics
         sfml-window
         sfml-system
+        SDL2-static      # Standard dynamic target
         Eigen3::Eigen
         nlohmann_json::nlohmann_json
-        ImGui-SFML::ImGui-SFML  # Move this to PRIVATE
+        ImGui-SFML::ImGui-SFML
 )
 
-# This copies your assets into the build folder
+# 6. Asset Management
 add_custom_command(TARGET PixelPong POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory
     "${CMAKE_SOURCE_DIR}/bin" "$<TARGET_FILE_DIR:PixelPong>/bin"

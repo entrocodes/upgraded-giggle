@@ -18,6 +18,7 @@
 #include "systems/FrameStatsSystem.hpp"
 #include "systems/game/imgui/GameImGuiSystem.hpp"
 #include "systems/game/debug/BallSpawnDebugSystem.hpp"
+#include "systems/ProceduralAnimationSystem.hpp"
 #include <imgui.h>
 #include "ecs/system/TickPhase.hpp"
 GameScene::GameScene(GameContext* context)
@@ -41,6 +42,7 @@ GameScene::GameScene(GameContext* context)
     systemGraph.add<BallRemovalSystem>(m_factory, 200, TickPhase::Fixed);
     systemGraph.add<AnimationSystem>(m_factory, 300, TickPhase::Fixed);
     systemGraph.add<LogoRotationSystem>(m_factory, 400, TickPhase::Fixed);
+    systemGraph.add <ProceduralAnimationSystem>(m_factory, 500, TickPhase::Fixed, NotPausable);
     systemGraph.add<RenderLayerSystem>(m_factory, 900, TickPhase::Render, NotPausable);
     systemGraph.add<RenderSystem>(m_factory, 1000, TickPhase::Render, NotPausable);
     systemGraph.add<GameImGuiSystem>(m_factory, 1200, TickPhase::Render, NotPausable);

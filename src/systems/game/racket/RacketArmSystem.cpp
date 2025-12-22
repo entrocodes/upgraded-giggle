@@ -1,69 +1,70 @@
 #include "RacketArmSystem.hpp"
 #include "components/Components.hpp"
-#include "game/utils/GameContext.hpp"
-
+#include "debug/Debug.hpp"
 SystemExec RacketArmSystem::update(GameContext* context) {
-    if (context->frameStats.dt <= 0.f) return { SystemExecResult::EarlyExit };
-
     auto* ePlayer = context->registry.getEntity("player");
-    if (!ePlayer) return { SystemExecResult::EarlyExit, "player entity not found" };
+    auto [cPlayerInput, cPlayerArm, cPlayerHandle, cPlayerPos, cPlayerSwing] =
+        context->registry.getComponents<CInput, CArm, CRacketHandle, CTransform3D, CRacketSwing>(*ePlayer);
 
-    auto [cPlayerInput, cPlayerArm, cPlayerRacketHandle, cPlayerPos] =
-        context->registry.getComponents<CInput, CArm, CRacketHandle, CTransform3D>(*ePlayer);
-    if (!cPlayerInput || !cPlayerArm || !cPlayerRacketHandle || !cPlayerPos) return { SystemExecResult::EarlyExit, "player entity missing a component" };
+    auto eRacket = cPlayerHandle->racketEntity;
+    auto [cRacketTransform3D, cRacketVelocity3D] = context->registry.getComponents<CTransform3D, CVelocity3D>(eRacket);
 
-    Entity eRacket = cPlayerRacketHandle->racketEntity;
-    auto [cRacketTransform3D, cRacketVelocity3D] =
-        context->registry.getComponents<CTransform3D, CVelocity3D>(eRacket);
-    if (!cRacketTransform3D || !cRacketVelocity3D) return { SystemExecResult::EarlyExit, "racket entity missing components" };
-
+    float dt = context->frameStats.dt;
     Vec3 lastPos = cRacketTransform3D->pos_m;
 
-    // --------------------------------------------------
-    // 1) Shoulder follows player (THIS WAS THE MISSING LINK)
-    // --------------------------------------------------
-    cPlayerArm->shoulderPos_m =
-        cPlayerPos->pos_m + Vec3(0.f, 0.45f, 0.f); // tune later
+    // 1. Shoulder follows player + Waist Rotation (RT)
+    // As RT increases, shoulder pulls back and slightly right
+    float twist = cPlayerSwing->torsoLoad * 0.7f; // ~40 degrees
+    Vec3 localShoulderOffset(std::cos(twist) * 0.2f, 0.45f, -std::sin(twist) * 0.2f);
+    cPlayerArm->shoulderPos_m = cPlayerPos->pos_m + localShoulderOffset;
 
-    // --------------------------------------------------
-    // 2) Free racket placement (ONLY when not swinging)
-    // --------------------------------------------------
-    if (cPlayerRacketHandle->strokeWeight < 0.01f) {
-        float aimX = cPlayerInput->axes["AimX"];
-        float aimY = cPlayerInput->axes["AimY"];
-
-        Vec3 delta(aimX, aimY, 0.f);
-        cPlayerRacketHandle->freeOffset_m += delta * FreeMoveSpeed * context->frameStats.dt;
+    // 2. Free Move (J1)
+    if (cPlayerHandle->strokeWeight < 0.99f) {
+        // SDL: J1Y is negative when pushing stick UP. 
+        Vec3 delta(cPlayerInput->axes["J1X"], -cPlayerInput->axes["J1Y"], 0.f);
+        cPlayerHandle->freeOffset_m += delta * 3.0f * dt;
     }
 
-    // --------------------------------------------------
-    // 3) Arm reach constraint (relative to shoulder)
-    // --------------------------------------------------
-    Vec3 toTarget = cPlayerRacketHandle->freeOffset_m;
-    float len = toTarget.length();
-    if (len > cPlayerArm->maxReach_m) {
-        toTarget *= cPlayerArm->maxReach_m / len;
-        cPlayerRacketHandle->freeOffset_m = toTarget; // keep it clamped
+    // 3. Reach Constraint
+    if (cPlayerHandle->freeOffset_m.length() > cPlayerArm->maxReach_m) {
+        cPlayerHandle->freeOffset_m = cPlayerHandle->freeOffset_m.normalized() * cPlayerArm->maxReach_m;
     }
 
-    Vec3 placementPos =
-        cPlayerArm->shoulderPos_m + toTarget;
+    // 4. Refined Stroke Blending
+    // We blend the POSITION, but add the swing offset on top
+    Vec3 anchorPos = cPlayerArm->shoulderPos_m + cPlayerHandle->freeOffset_m;
 
-    // --------------------------------------------------
-    // 4) Stroke blending
-    // --------------------------------------------------
-    Vec3 strokePos = placementPos + cPlayerRacketHandle->swingOffset_m;
+    // finalPos starts at the anchor, then follows the swingOffset arc
+    Vec3 finalPos = anchorPos + (cPlayerHandle->swingOffset_m * cPlayerHandle->strokeWeight);
 
-    Vec3 finalPos =
-        placementPos * (1.f - cPlayerRacketHandle->strokeWeight) +
-        strokePos * cPlayerRacketHandle->strokeWeight;
-
-    // --------------------------------------------------
-    // 5) Commit transform + velocity
-    // --------------------------------------------------
-    // 5) Commit transform + velocity
+    // 5. Physics Commit
     cRacketTransform3D->lastPos_m = lastPos;
-    cRacketVelocity3D->vel_mps = (finalPos - lastPos) / context->frameStats.dt;
     cRacketTransform3D->pos_m = finalPos;
+    // Inside RacketArmSystem.cpp - Step 5
+    Vec3 instantVel = (finalPos - lastPos) / dt;
+    // Blend 40% new velocity, 60% old velocity to smooth out input noise
+    cRacketVelocity3D->vel_mps = (instantVel * 0.4f) + (cRacketVelocity3D->vel_mps * 0.6f);
+    
+    // --- DEBUG VISUALIZATION SYNC ---
+    if (context->renderSettings.debugDrawArmLine) {
+        Debug::queueLine3D(cPlayerArm->shoulderPos_m, cRacketTransform3D->pos_m, sf::Color::White);
+    }
+
+    if (context->renderSettings.debugDrawBladeNormal) {
+        auto* cRacketPhys = context->registry.getComponent<CRacketPhysical>(eRacket);
+        if (cRacketPhys) {
+            Debug::queueArrow3D(cRacketTransform3D->pos_m,
+                cRacketTransform3D->pos_m + cRacketPhys->normal * 0.3f,
+                sf::Color::Yellow);
+        }
+    }
+
+    if (context->renderSettings.debugDrawTorsoIndicator) {
+        if (cPlayerSwing->torsoLoad > 0.01f) {
+            sf::Color loadColor = sf::Color(255, 255 - (uint8_t)(cPlayerSwing->torsoLoad * 255), 0);
+            Debug::queueSphere3D(cPlayerPos->pos_m + Vec3(0, 1.0f, 0),
+                cPlayerSwing->torsoLoad * 0.15f, loadColor);
+        }
+    }
     return { SystemExecResult::Ran };
 }

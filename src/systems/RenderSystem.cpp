@@ -18,7 +18,7 @@ SystemExec RenderSystem::update(GameContext* context) {
         CTransform3D* cTransform3D = context->registry.getComponent<CTransform3D>(e);
         bool isShadow = context->registry.hasComponent<CBallShadow>(e);
 
-        drawList.push_back({ cRenderLayer->layer, DrawType::Sprite, cTransform3D, cTransform, cAnimation, nullptr, nullptr, isShadow });
+        drawList.push_back({ cRenderLayer->layer, e, DrawType::Sprite, cTransform3D, cTransform, cAnimation, nullptr, nullptr, isShadow });
     }
 
     // Logos — drawn on ball
@@ -27,16 +27,16 @@ SystemExec RenderSystem::update(GameContext* context) {
         if (!cBallBall || !cBallTransform3D || !cBallTransform || !cBallRenderLayer) continue;
         if (!cBallBall->logo.visible || cBallBall->logo.opacity <= 0.f) continue;
 
-        drawList.push_back({ cBallRenderLayer->layer, DrawType::Logo, cBallTransform3D, cBallTransform, nullptr, cBallBall, nullptr, false });
+        drawList.push_back({ cBallRenderLayer->layer, eBall, DrawType::Logo, cBallTransform3D, cBallTransform, nullptr, cBallBall, nullptr, false });
     }
 
     // Text
     for (auto eText : context->registry.getEntitiesWith<CText, CTransform, CRenderLayer>()) {
-        auto [eTextText, eTextTransform, eTextRenderLayer] = context->registry.getComponents<CText, CTransform, CRenderLayer>(eText);
-        if (!eTextText || !eTextTransform || !eTextRenderLayer) continue;
-        if (!eTextText->visible) continue;
+        auto [cTextText, cTextTransform, cTextRenderLayer] = context->registry.getComponents<CText, CTransform, CRenderLayer>(eText);
+        if (!cTextText || !cTextTransform || !cTextRenderLayer) continue;
+        if (!cTextText->visible) continue;
 
-        drawList.push_back({ eTextRenderLayer->layer, DrawType::Text, nullptr, eTextTransform, nullptr, nullptr, eTextText, false });
+        drawList.push_back({ cTextRenderLayer->layer, eText, DrawType::Text, nullptr, cTextTransform, nullptr, nullptr, cTextText, false });
     }
 
     std::sort(drawList.begin(), drawList.end(),
@@ -51,7 +51,7 @@ SystemExec RenderSystem::update(GameContext* context) {
             sf::Sprite& sprite = aAnimation.getSprite();
 
             if (item.cTransform3D) {
-                sync3Dto2D(context, item.cTransform, item.cTransform3D, item.isShadow);
+                sync3Dto2D(context, item.entity, item.cTransform, item.cTransform3D, item.isShadow);
             }
             else {
                 float alpha = context->frameAlpha;
@@ -196,21 +196,43 @@ void RenderSystem::drawBallLogo(GameContext* context, CBall* cBall, CTransform* 
     }
 }
 
-void RenderSystem::sync3Dto2D(GameContext* context, CTransform* cTransform, CTransform3D* cTransform3D, bool isShadow) {
+void RenderSystem::sync3Dto2D(GameContext* context, Entity e, CTransform* cTransform, CTransform3D* cTransform3D, bool isShadow) {
     float alpha = context->frameAlpha;
 
     // 1. Interpolate Position
     Vec3 interpPos3D = cTransform3D->lastPos_m * (1.f - alpha) + cTransform3D->pos_m * alpha;
 
-    // 2. Interpolate Scale (Vec3 version)
-    // We lerp the 3D vectors to get the current frame's 3D scale
+    // 2. Interpolate Base Scale
     Vec3 interpScale3D = cTransform3D->lastScale_m * (1.f - alpha) + cTransform3D->scale_m * alpha;
 
-    // 3. Apply to 2D Transform
-    // Since 2D sprites usually use a 2D scale (X and Y), we map them accordingly
-    cTransform->scale = { interpScale3D.x, interpScale3D.y };
+    // 3. Apply Procedural Visual Effects from CRotation3D
+    // Use the specific entity 'e' passed into the function
+    auto* cRotation3D = context->registry.getComponent<CRotation3D>(e);
+    float visualScaleX = 1.0f;
+    float visualScaleY = 1.0f;
+
+    if (cRotation3D && !isShadow) {
+        float pitchRad = cRotation3D->euler_deg.x * (3.14159f / 180.f);
+        float yawRad = cRotation3D->euler_deg.y * (3.14159f / 180.f);
+
+        if (e.name == "player") {
+            // Player thins out as they twist (RT)
+            visualScaleX = std::abs(std::cos(yawRad));
+        }
+        else if (e.name == "racket") { // Be specific so balls don't rotate like rackets
+            // Racket flattens as it tilts (J2 Pitch)
+            visualScaleY = std::abs(std::cos(pitchRad));
+            // Racket rotates based on J2 Yaw
+            cTransform->rotation = cRotation3D->euler_deg.y;
+        }
+    }
+
+    // 4. Combine Base Scale with Visual Multipliers
+    cTransform->scale.x = interpScale3D.x * visualScaleX;
+    cTransform->scale.y = interpScale3D.y * visualScaleY;
 
     if (isShadow) {
+        // Shadows shouldn't jump in height during interpolation
         interpPos3D.y = cTransform3D->pos_m.y;
     }
 

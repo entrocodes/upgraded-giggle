@@ -22,3 +22,4 @@
 #include "CTextButton.hpp"
 #include "CFootworkIntent.hpp"
 #include "CFootworkState.hpp"
+#include "CRotation3D.hpp"

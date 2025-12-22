@@ -81,6 +81,7 @@ Entity EntityFactory::createNet() {
 Entity EntityFactory::createPlayer() {
     Entity ePlayer = m_registry.createEntity("player");
 
+    m_registry.addComponent<CRotation3D>(ePlayer);
     m_registry.addComponent<Player>(ePlayer);
     m_registry.addComponent<CInput>(ePlayer);
     m_registry.addComponent<CState>(ePlayer, "stand");
@@ -168,6 +169,7 @@ Entity EntityFactory::createPlayerRacket() {
     m_registry.addComponent<CRenderLayer>(eRacket, 85);
     sf::Sprite& s = cBallAnimation.animation.getSprite();
     s.setOrigin(s.getLocalBounds().width / 2.f, s.getLocalBounds().height / 2.f);
+    m_registry.addComponent<CRotation3D>(eRacket);
     return eRacket;
 }
 
@@ -180,13 +182,11 @@ Entity EntityFactory::createBall(const Vec3& pos_m, const Vec3& vel_mps, const V
 
 
     Entity eBall = m_registry.createEntity("ball");
-    float ballScale = 0.12f;
-    //Vec2 ballScale = { 3.00f, 3.00f };
     auto& cBallBall = m_registry.addComponent<CBall>(eBall, eBallShadow, spin);
     auto& cBallTransform = m_registry.addComponent<CTransform>(eBall, ballScreenPos, Vec2(1.0, 1.0), 0.f);
     cBallTransform.lastPos = ballScreenPos; // <--- ADD THIS
     Vec3 size_m = { cBallBall.ballRadius * 2,cBallBall.ballRadius * 2,cBallBall.ballRadius * 2 }; //set ball size to a cube (even though its a circle)
-    m_registry.addComponent<CTransform3D>(eBall, pos_m, Vec3(ballScale, ballScale, ballScale)); //cTransform3D is initialized with the actual position of the ball in meters.
+    m_registry.addComponent<CTransform3D>(eBall, pos_m); //cTransform3D is initialized with the actual position of the ball in meters.
     m_registry.addComponent<CVelocity3D>(eBall, vel_mps);
     Bounds3D ballBox3D = Bounds3D(pos_m - cBallBall.ballRadius, pos_m + cBallBall.ballRadius);
     m_registry.addComponent<CBoundingBox3D>(eBall, ballBox3D);

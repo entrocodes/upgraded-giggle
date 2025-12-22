@@ -3,7 +3,6 @@
 #include <imgui-SFML.h>   
 #include "ecs/system/SystemGraph.hpp"
 #include "components/Components.hpp"
-#include "helpers/JoystickUtils.hpp"
 #include "ecs/system/ISystemGroup.hpp"
 SystemExec MenuImGuiSystem::update(GameContext* context) {
     if (context->renderSettings.hideImGui) {
@@ -266,9 +265,6 @@ void MenuImGuiSystem::drawTextDebug(GameContext* context) {
         ImGui::Text("Raw Input: Keyboard Up:   %s", upPressed ? "YES" : "NO");
         ImGui::Text("Raw Input: Keyboard Down: %s", downPressed ? "YES" : "NO");
 
-        // Joystick checks (ensure JoystickUtils is safe to call here)
-        ImGui::Text("Raw Input: Joystick Up:   %s", JoystickUtils::isAxisJustMoved(ctxRawInput, sf::Joystick::Y, true) ? "YES" : "NO");
-        ImGui::Text("Raw Input: Joystick Down: %s", JoystickUtils::isAxisJustMoved(ctxRawInput, sf::Joystick::Y, false) ? "YES" : "NO");
         // Explicitly use booleans for the %s formatter
         ImGui::Text("Select Requested: %s", ctxMainMenuIntent.menuSelectRequested ? "TRUE" : "FALSE");
         ImGui::Text("Mouse Override: %s", ctxMainMenuIntent.mouseOverriddenJoystick ? "YES" : "NO");

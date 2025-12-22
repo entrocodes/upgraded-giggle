@@ -5,8 +5,21 @@
 #include "scenes/MenuScene.hpp"
 #include "systems/game/imgui/GameImGuiSystem.hpp"
 #include "display/DisplayUtils.hpp"
-
+#include "debug/Debug.hpp"
 GameEngine::GameEngine() {
+    // SDL_INIT_GAMECONTROLLER includes SDL_INIT_JOYSTICK
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER) < 0) {
+        // Log error: SDL_GetError()
+    }
+
+    // Set a hint to treat all joysticks as game controllers if possible
+    SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1");
+    int mappings = SDL_GameControllerAddMappingsFromFile("bin/gamecontrollerdb.txt");
+    // Force SDL to use XInput for better Windows compatibility
+    SDL_SetHint(SDL_HINT_XINPUT_ENABLED, "1");
+    if (mappings < 0) {
+        Debug::debugPrint("Warning: Could not find gamecontrollerdb.txt at bin");
+    }
     context.window.create(
         sf::VideoMode(context.display.windowSize.x, context.display.windowSize.y),
         "PixelPong"
@@ -81,22 +94,6 @@ void GameEngine::run() {
                     static_cast<float>(event.mouseMove.y)
                 };
                 break;
-            case sf::Event::JoystickButtonPressed: {
-                unsigned int id = event.joystickButton.joystickId;
-                unsigned int button = event.joystickButton.button;
-                // Joystick 0 Button 5 becomes 5, Joystick 1 Button 5 becomes 105
-                unsigned int key = (id * 100) + button;
-                context.rawInput.padStates[key] = true;
-                if (context.rawInput.framePadPressed.find(key) == context.rawInput.framePadPressed.end()) {
-                    context.rawInput.framePadPressed[key] = context.frameStats.tickIndex;
-                }
-                break;
-            }
-            case sf::Event::JoystickButtonReleased: {
-                unsigned int key = (event.joystickButton.joystickId * 100) + event.joystickButton.button;
-                context.rawInput.padStates[key] = false;
-                break;
-            }
             case sf::Event::LostFocus:
                 context.rawInput.keyStates.clear();
                 context.rawInput.padStates.clear();
@@ -120,7 +117,6 @@ void GameEngine::run() {
             context.frameStats.dt = FIXED_DT;
             context.frameStats.fixedDt = FIXED_DT;
             context.frameStats.tickIndex++;
-            context.rawInput.updateAxisStates(&context);
             context.sceneManager.update();
             accumulator -= FIXED_DT;
         }

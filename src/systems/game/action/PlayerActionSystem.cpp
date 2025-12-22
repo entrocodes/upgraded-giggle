@@ -7,43 +7,36 @@
 
 SystemExec PlayerActionSystem::update(GameContext* context) {
     Entity* ePlayer = context->registry.getEntity("player");
-    if (!ePlayer) {
-        Debug::debugPrint("Player Entity not found.");
-        return { SystemExecResult::EarlyExit };
-    }
+    if (!ePlayer) return { SystemExecResult::EarlyExit };
 
-    auto [cPlayerInput, cPlayerTransform3D, cPlayerState] = context->registry.getComponents<CInput, CTransform3D, CState>(*ePlayer);
+    RawInputState& raw = context->rawInput;
 
-    if (cPlayerInput->actions["StartAttack"])  cPlayerState->state = "backswing";
-    if (cPlayerInput->actions["ReleaseAttack"]) cPlayerState->state = "stand";
-    if (cPlayerInput->actions["MoveLeft"]) {
-        auto& cFootworkIntent = context->registry.addComponent<CFootworkIntent>(*ePlayer);
-        cFootworkIntent.direction = { -1, 0, 0 };
-        context->playerMovement.moveTriggered = true;
-        cFootworkIntent.heldFrames = cPlayerInput->holdTime["MoveLeft"];
-    }
-    if (cPlayerInput->actions["MoveRight"]) {
-        auto& cFootworkIntent = context->registry.addComponent<CFootworkIntent>(*ePlayer);
-        cFootworkIntent.direction = { 1, 0, 0 };
-        context->playerMovement.moveTriggered = true;
-        cFootworkIntent.heldFrames = cPlayerInput->holdTime["MoveRight"];
+    // Helper for Shoulder Button Movement
+    auto handleMove = [&](SDL_GameControllerButton btn, Vec3 dir) {
+        if (raw.isButtonJustReleased(btn)) { // Trigger on let-go
+            int btnIdx = static_cast<int>(btn);
+            int held = 0;
 
-    }
-    if (cPlayerInput->actions["MoveForward"]) {
-        auto& cFootworkIntent = context->registry.addComponent<CFootworkIntent>(*ePlayer);
-        cFootworkIntent.direction = { 0, 0, 1 };
-        cFootworkIntent.directionalStrength = .25;
-        context->playerMovement.moveTriggered = true;
-        cFootworkIntent.heldFrames = cPlayerInput->holdTime["MoveForward"];
-    }
-    if (cPlayerInput->actions["MoveBackward"]) {
-        auto& cFootworkIntent = context->registry.addComponent<CFootworkIntent>(*ePlayer);
-        cFootworkIntent.direction = { 0, 0, -1 };
-        cFootworkIntent.directionalStrength = .25;
-        context->playerMovement.moveTriggered = true;
-        cFootworkIntent.heldFrames = cPlayerInput->holdTime["MoveBackward"];
+            if (raw.framePadPressed.count(btnIdx)) {
+                held = context->frameStats.tickIndex - raw.framePadPressed[btnIdx];
+            }
 
-    }
+            auto& cPlayerFootworkIntent = context->registry.addComponent<CFootworkIntent>(*ePlayer);
+            cPlayerFootworkIntent.direction = dir;
+            cPlayerFootworkIntent.heldFrames = held; // This now correctly passes 5, 20, or 60+ frames
+            if (btn == SDL_CONTROLLER_BUTTON_A || btn == SDL_CONTROLLER_BUTTON_Y) {
+                cPlayerFootworkIntent.directionalStrength = .3f;
+            }
+            cPlayerFootworkIntent.directionalStrength = 1.0f;
+            context->playerMovement.moveTriggered = true;
+        }
+        };
+
+    // Map LB to Left and RB to Right
+    handleMove(SDL_CONTROLLER_BUTTON_LEFTSHOULDER, { -1, 0, 0 });
+    handleMove(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER, { 1, 0, 0 });
+    handleMove(SDL_CONTROLLER_BUTTON_Y, { 0, 1, 0 });
+    handleMove(SDL_CONTROLLER_BUTTON_A, { 0, -1, 0 });
+
     return { SystemExecResult::Ran };
-
-};
+}

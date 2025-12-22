@@ -6,88 +6,62 @@
 
 SystemExec RacketCollisionSystem::update(GameContext* context)
 {
-    // Iterate over all rackets with physical properties
-    for (auto eRacket : context->registry.getEntitiesWith<CRacketPhysical>()) {
-        auto [cRacketRacketPhysical, cRacketTransform3D, cRacketBoundingBox3D, cRacketVelocity3D] =
-            context->registry.getComponents<
-            CRacketPhysical,
-            CTransform3D,
-            CBoundingBox3D,
-            CVelocity3D
-            >(eRacket);
+    for (auto ePlayer : context->registry.getEntitiesWith<Player>()) {
+        auto [cPlayerRacketHandle, cPlayerRacketSwing] = context->registry.getComponents<CRacketHandle, CRacketSwing>(ePlayer);
+        auto eRacket = cPlayerRacketHandle->racketEntity;
+        auto [cRacketPhysical, cRacketTransform3D, cRacketBoundingBox3D, cRacketVelocity3D] =
+            context->registry.getComponents<CRacketPhysical, CTransform3D, CBoundingBox3D, CVelocity3D>(eRacket);
 
-        if (!cRacketRacketPhysical || !cRacketTransform3D || !cRacketBoundingBox3D || !cRacketVelocity3D)
-            return { SystemExecResult::EarlyExit, "One or more rackets missing key components" }; // skip this racket, don't bail the whole system
+        if (!cRacketPhysical || !cRacketTransform3D || !cRacketBoundingBox3D || !cRacketVelocity3D)
+            continue;
 
-        // Reset color after some frames without a hit
-        cRacketBoundingBox3D->iter_color++;
-        if (cRacketBoundingBox3D->iter_color >= 50) {
-            cRacketBoundingBox3D->color = sf::Color::Green;
-        }
+        for (auto eBall : context->registry.getEntitiesWith<CBall, CTransform3D, CVelocity3D>()) {
+            auto [cBallBall, cBallTransform3D, cBallVelocity3D] =
+                context->registry.getComponents<CBall, CTransform3D, CVelocity3D>(eBall);
 
-        // Sweep for balls
-        for (auto eBall : context->registry.getEntitiesWith<CBall, CTransform3D, CBoundingBox3D, CVelocity3D>()) {
+            // 1. DISTANCE CHECK (Optimization)
+            Vec3 toBall = cBallTransform3D->pos_m - cRacketTransform3D->pos_m;
+            float distSq = toBall.lengthSq();
+            float combinedRadius = 0.25f; // Approx racket size + ball radius
+            if (distSq > combinedRadius * combinedRadius) continue;
 
-            auto [cBallBall, cBallTransform3D, cBallBoundingBox3D, cBallVelocity3D] =
-                context->registry.getComponents<
-                CBall,
-                CTransform3D,
-                CBoundingBox3D,
-                CVelocity3D
-                >(eBall);
+            // 2. PLANE DISTANCE
+            // Project ball vector onto racket normal to see how far "above/below" the face it is
+            float distFromPlane = toBall.dot(cRacketPhysical->normal);
 
-            if (!cBallBall || !cBallTransform3D || !cBallBoundingBox3D || !cBallVelocity3D)
-                continue;
+            // If ball is further away than its radius, it's not touching the face
+            if (std::abs(distFromPlane) > cBallBall->radius_m) continue;
 
-            // Broad-phase intersection: ball AABB vs racket AABB
-            if (!BallObjectIntersection::intersects(cBallBoundingBox3D->box,
-                cRacketBoundingBox3D->box))
-                continue;
+            // 3. RADIAL CHECK
+            // Find the point on the racket plane closest to the ball
+            Vec3 pointOnPlane = toBall - (cRacketPhysical->normal * distFromPlane);
+            if (pointOnPlane.lengthSq() > 0.0225f) continue; // 0.15m racket radius squared
 
-            // Relative motion (ball vs racket)
+            // 4. RELATIVE VELOCITY (Existing logic, now much more accurate)
             Vec3 relativeVelocity3D = cBallVelocity3D->vel_mps - cRacketVelocity3D->vel_mps;
+            float velocityNormal = relativeVelocity3D.dot(cRacketPhysical->normal);
 
-            // Velocity along racket normal
-            float racketVelocityNormal = relativeVelocity3D.dot(cRacketRacketPhysical->normal);
+            // Ball must be moving TOWARD the face (relative to the normal)
+            if (velocityNormal >= 0.f) continue;
 
-            // If ball moving away from the racket, skip
-            if (racketVelocityNormal >= 0.f)
-                continue;
-
-            // Decompose relative velocity
-            Vec3 vNormal = cRacketRacketPhysical->normal * racketVelocityNormal;
+            // --- RESOLUTION ---
+            // (Your existing bounce and spin code remains, but it's now triggered by the tilt)
+            Vec3 vNormal = cRacketPhysical->normal * velocityNormal;
             Vec3 vTang = relativeVelocity3D - vNormal;
 
-            // Bounce: reflect + scale normal, keep tangential
-            Vec3 newVNormal = -vNormal * cRacketRacketPhysical->restitution;
-            Vec3 newVel = newVNormal + vTang;
+            float impactOomph = 1.0f + (cPlayerRacketSwing->swingSpeed * 0.1f);
+            Vec3 newVNormal = -vNormal * (cRacketPhysical->restitution * impactOomph);
+            cBallVelocity3D->vel_mps = newVNormal + vTang + cRacketVelocity3D->vel_mps;
 
-            // Add racket's own motion back
-            cBallVelocity3D->vel_mps = newVel + cRacketVelocity3D->vel_mps;
+            // Apply spin based on friction
+            cBallBall->spin += cRacketPhysical->normal.cross(vTang) * (cRacketPhysical->friction * 0.5f);
 
-            // Spin generation from tangential contact
-            Vec3 spinDelta = cRacketRacketPhysical->normal.cross(vTang) *
-                (cRacketRacketPhysical->friction * 0.5f);
-            cBallBall->spin += spinDelta;
+            // Push out to avoid sticking
+            cBallTransform3D->pos_m += cRacketPhysical->normal * (cBallBall->radius_m - distFromPlane);
 
-            // Push ball outside racket volume along normal (simple separation)
-            float pushOutDist = cBallBall->radius_m;
-            cBallTransform3D->pos_m += cRacketRacketPhysical->normal * pushOutDist;
-
-            // Visual feedback on racket hitbox
+            // Trigger visual hit
             cRacketBoundingBox3D->color = sf::Color::Red;
             cRacketBoundingBox3D->iter_color = 0;
-
-            Debug::debugPrint("Racket Hit", "vN: " + std::to_string(racketVelocityNormal));
-
-            // Optional debug draws
-            if (context->physicsDebug.debugSpinArrows) {
-                Debug::queueArrow3D(
-                    cBallTransform3D->pos_m,
-                    cBallTransform3D->pos_m + cBallVelocity3D->vel_mps.normalized() * 0.2f,
-                    sf::Color::Yellow
-                );
-            }
         }
     }
     return { SystemExecResult::Ran };

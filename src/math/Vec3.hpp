@@ -33,6 +33,11 @@ struct Vec3 {
     float dot(const Vec3& other) const {
         return x * other.x + y * other.y + z * other.z;
     }
+    // Returns the squared magnitude of the vector: x^2 + y^2 + z^2
+    float lengthSq() const {
+        return x * x + y * y + z * z;
+    }
+
     Vec3 cross(const Vec3& other) {
         return {
             y * other.z - z * other.y,

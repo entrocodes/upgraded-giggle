@@ -36,7 +36,12 @@ void GameImGuiSystem::drawDeveloperPanel(GameContext* context) {
 
     ImGui::Begin("Developer Panel##Game", nullptr,
         ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse);
-
+    // ================= NEW VISUAL DEBUG TOGGLES =================
+    if (ImGui::CollapsingHeader("Physics Visualizers")) {
+        ImGui::Checkbox("Draw Shoulder-to-Racket Line", &context->renderSettings.debugDrawArmLine);
+        ImGui::Checkbox("Draw Blade Normal Arrow", &context->renderSettings.debugDrawBladeNormal);
+        ImGui::Checkbox("Draw Torso Load Sphere", &context->renderSettings.debugDrawTorsoIndicator);
+    }
     // ================= DISPLAY =================
     if (ImGui::CollapsingHeader("Display", ImGuiTreeNodeFlags_DefaultOpen)) {
         ImGui::Text("Resolution: %.0fx%.0f",
@@ -328,23 +333,55 @@ void GameImGuiSystem::drawDeveloperPanel(GameContext* context) {
 void GameImGuiSystem::drawRacketDebug(GameContext* context) {
     ImGui::Begin("Racket Debug##Game");
 
-    auto* ePlayer = context->registry.getEntity("player");
+    Entity* ePlayer = context->registry.getEntity("player");
     if (ePlayer) {
-        auto [cPlayerSwing, cPlayerHandle, cPlayerState] = context->registry.getComponents<CRacketSwing, CRacketHandle, CState>(*ePlayer);
+        auto [cPlayerSwing, cPlayerHandle, cPlayerState, cPlayerInput, cPlayerArm] =
+            context->registry.getComponents<CRacketSwing, CRacketHandle, CState, CInput, CArm>(*ePlayer);
 
         if (cPlayerSwing && cPlayerHandle && cPlayerState) {
-            ImGui::Text("Swing State");
-            ImGui::Text("Entity State: %s", cPlayerState->state.c_str());
-            ImGui::Text("Is Charging: %s", cPlayerSwing->isCharging ? "YES" : "NO");
-            ImGui::Text("Swing Triggered: %s", cPlayerSwing->swingTriggered ? "YES" : "NO");
+            // --- SWIFT & POWER ---
+            if (ImGui::CollapsingHeader("Kinetics & Power", ImGuiTreeNodeFlags_DefaultOpen)) {
+                ImGui::Text("State: %s", cPlayerState->state.c_str());
 
-            ImGui::Text("Offsets");
-            ImGui::Value("Swing Z Offset", cPlayerHandle->swingOffset_m.z);
-            ImGui::Value("Stroke Weight", cPlayerHandle->strokeWeight);
+                // Visualize Torso Load (RT)
+                ImGui::Text("Torso Load (RT):");
+                ImGui::SameLine();
+                ImVec4 loadCol = ImVec4(cPlayerSwing->torsoLoad, 1.0f - cPlayerSwing->torsoLoad, 0.0f, 1.0f);
+                ImGui::TextColored(loadCol, "%.2f", cPlayerSwing->torsoLoad);
+                ImGui::ProgressBar(cPlayerSwing->torsoLoad, ImVec2(-1, 0), "Torso Wind-up");
 
-            ImGui::Text("Input Raw");
-            ImGui::Text("LT JustPressed: %s", context->rawInput.isAxisJustPressed("LT") ? "TRUE" : "FALSE");
-            ImGui::Text("LT Released: %s", context->rawInput.isAxisReleased("LT") ? "TRUE" : "FALSE");
+                ImGui::Value("Backswing Time", cPlayerSwing->backswingTime);
+                ImGui::Value("Release Velocity", cPlayerSwing->swingSpeed);
+
+                if (cPlayerSwing->isCharging) ImGui::TextColored(ImVec4(1, 1, 0, 1), "CHARGING...");
+                if (cPlayerSwing->swingTriggered) ImGui::TextColored(ImVec4(0, 1, 0, 1), "SWINGING!");
+            }
+
+            // --- ORIENTATION (J2) ---
+            Entity eRacket = cPlayerHandle->racketEntity;
+            auto [cRacketRot, cRacketPhys] = context->registry.getComponents<CRotation3D, CRacketPhysical>(eRacket);
+
+            if (cRacketRot && cRacketPhys) {
+                if (ImGui::CollapsingHeader("Blade Orientation (J2)", ImGuiTreeNodeFlags_DefaultOpen)) {
+                    ImGui::SliderFloat("Visual Pitch", &cRacketRot->euler_deg.x, -90.f, 90.f);
+                    ImGui::SliderFloat("Visual Yaw", &cRacketRot->euler_deg.y, -90.f, 90.f);
+
+                    ImGui::Separator();
+                    ImGui::Text("Physical Normal:");
+                    ImGui::Text("X: %.3f | Y: %.3f | Z: %.3f",
+                        cRacketPhys->normal.x, cRacketPhys->normal.y, cRacketPhys->normal.z);
+                }
+            }
+
+            // --- POSITIONING ---
+            if (ImGui::CollapsingHeader("Arm & Reach")) {
+                ImGui::Value("Stroke Weight", cPlayerHandle->strokeWeight);
+                ImGui::Text("Shoulder Pos: %.2f, %.2f, %.2f",
+                    cPlayerArm->shoulderPos_m.x, cPlayerArm->shoulderPos_m.y, cPlayerArm->shoulderPos_m.z);
+
+                ImGui::DragFloat3("Free Offset (J1)", &cPlayerHandle->freeOffset_m.x, 0.01f);
+                ImGui::DragFloat3("Swing Offset", &cPlayerHandle->swingOffset_m.x, 0.01f);
+            }
         }
     }
     ImGui::End();
@@ -353,57 +390,72 @@ void GameImGuiSystem::drawControllerDebug(GameContext* context) {
     ImGui::Begin("Controller Debug##Game", nullptr,
         ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse);
 
-    unsigned int id = 0; // Checking first controller slot
-    if (sf::Joystick::isConnected(id)) {
-        sf::Joystick::Identification info = sf::Joystick::getIdentification(id);
-        ImGui::Text("Device: %s", info.name.toAnsiString().c_str());
+    RawInputState& raw = context->rawInput;
+
+    if (raw.controllerHandle && SDL_GameControllerGetAttached(raw.controllerHandle)) {
+        const char* name = SDL_GameControllerName(raw.controllerHandle);
+        ImGui::Text("Device (SDL): %s", name ? name : "Unknown");
         ImGui::Separator();
 
         // --- DIGITAL BUTTONS SECTION ---
+        // We now use SDL_GameControllerButton enums
         ImGui::Text("Buttons:");
         ImGui::BeginGroup();
-        int count = 0;
-        for (const auto& [name, index] : context->rawInput.buttonMap) {
-            bool pressed = sf::Joystick::isButtonPressed(id, index);
 
-            // This creates a highlight effect when the button is held
-            ImGui::Selectable(name.c_str(), pressed, 0, ImVec2(50, 0));
+        // Define buttons we want to see (standard Xbox layout)
+        static const struct { SDL_GameControllerButton btn; const char* label; } debugButtons[] = {
+            { SDL_CONTROLLER_BUTTON_A, "A" }, { SDL_CONTROLLER_BUTTON_B, "B" },
+            { SDL_CONTROLLER_BUTTON_X, "X" }, { SDL_CONTROLLER_BUTTON_Y, "Y" },
+            { SDL_CONTROLLER_BUTTON_LEFTSHOULDER, "LB" }, { SDL_CONTROLLER_BUTTON_RIGHTSHOULDER, "RB" },
+            { SDL_CONTROLLER_BUTTON_BACK, "Back" }, { SDL_CONTROLLER_BUTTON_START, "Start" },
+            { SDL_CONTROLLER_BUTTON_LEFTSTICK, "LSB" }, { SDL_CONTROLLER_BUTTON_RIGHTSTICK, "RSB" }
+        };
 
-            // Wrap to a new line every 4 buttons
-            if (++count % 4 != 0) ImGui::SameLine();
+        for (int i = 0; i < 10; i++) {
+            bool pressed = raw.isButtonDown(debugButtons[i].btn);
+            ImGui::Selectable(debugButtons[i].label, pressed, 0, ImVec2(45, 0));
+            if ((i + 1) % 5 != 0) ImGui::SameLine();
         }
         ImGui::EndGroup();
 
         ImGui::Separator();
 
         // --- ANALOG AXES SECTION ---
-        auto drawAxis = [&](const char* label, sf::Joystick::Axis axis) {
-            float val = sf::Joystick::getAxisPosition(id, axis);
-            // Convert -100...100 range to 0.0...1.0 for the progress bar
-            float visualVal = (val + 100.f) / 200.f;
+        auto drawRawAxis = [&](const char* label, const std::string& key, bool isTrigger) {
+            float val = raw.getAxis(key);
+            // Triggers are 0 to 1, Sticks are -1 to 1. Normalize for progress bar (0 to 1)
+            float visualVal = isTrigger ? val : (val + 1.0f) / 2.0f;
 
             ImGui::Text("%-10s", label); ImGui::SameLine();
             ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.2f, 0.7f, 0.2f, 1.0f));
-            ImGui::ProgressBar(visualVal, ImVec2(150, 0), std::to_string((int)val).c_str());
+            ImGui::ProgressBar(visualVal, ImVec2(150, 0), std::to_string(val).c_str());
             ImGui::PopStyleColor();
             };
 
-        ImGui::Text("Analog Sticks & Triggers:");
-        drawAxis("L-Stick X", sf::Joystick::X);
-        drawAxis("L-Stick Y", sf::Joystick::Y);
-        drawAxis("R-Stick X", sf::Joystick::U);
-        drawAxis("R-Stick Y", sf::Joystick::V);
-        drawAxis("LT (Z)", sf::Joystick::Z);
-        drawAxis("RT (R)", sf::Joystick::R);
+        ImGui::Text("SDL Axes (Normalized):");
+        drawRawAxis("L-Stick X", "J1X", false);
+        drawRawAxis("L-Stick Y", "J1Y", false);
+        drawRawAxis("R-Stick X", "J2X", false);
+        drawRawAxis("R-Stick Y", "J2Y", false);
 
-        // --- D-PAD (POV) SECTION ---
-        float povX = sf::Joystick::getAxisPosition(id, sf::Joystick::PovX);
-        float povY = sf::Joystick::getAxisPosition(id, sf::Joystick::PovY);
-        ImGui::Text("D-Pad: X: %.0f, Y: %.0f", povX, povY);
+        // These are now independent! You will see both bars move separately.
+        drawRawAxis("LT (Left)", "LT", true);
+        drawRawAxis("RT (Right)", "RT", true);
+
+        // --- D-PAD SECTION ---
+        ImGui::Separator();
+        bool up = raw.isButtonDown(SDL_CONTROLLER_BUTTON_DPAD_UP);
+        bool down = raw.isButtonDown(SDL_CONTROLLER_BUTTON_DPAD_DOWN);
+        bool left = raw.isButtonDown(SDL_CONTROLLER_BUTTON_DPAD_LEFT);
+        bool right = raw.isButtonDown(SDL_CONTROLLER_BUTTON_DPAD_RIGHT);
+        ImGui::Text("D-Pad: %s %s %s %s",
+            up ? "[U]" : " _ ", down ? "[D]" : " _ ",
+            left ? "[L]" : " _ ", right ? "[R]" : " _ ");
 
     }
     else {
-        ImGui::TextColored(ImVec4(1, 0.4f, 0.4f, 1), "No Controller Detected on ID 0");
+        ImGui::TextColored(ImVec4(1, 0.4f, 0.4f, 1), "No SDL Controller Detected");
+        ImGui::Text("Waiting for SDL_CONTROLLERDEVICEADDED...");
     }
 
     ImGui::End();

@@ -112,8 +112,11 @@ struct RenderSettings {
 
     int currentResolutionIndex = 0;
     bool updateResolution = false;
-    bool hideImGui = true;
+    bool hideImGui = false;
 
+    bool debugDrawArmLine = false;
+    bool debugDrawBladeNormal = false;
+    bool debugDrawTorsoIndicator = false;
 };
 
 

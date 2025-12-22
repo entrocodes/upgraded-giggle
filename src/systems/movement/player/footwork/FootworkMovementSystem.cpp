@@ -10,6 +10,7 @@ SystemExec FootworkMovementSystem::update(GameContext* context) {
 	if (!cPlayerVelocity3D || !cPlayerFootworkState) return { SystemExecResult::EarlyExit, "Missing one or more components in player" };
 	if (cPlayerFootworkIntent) {
 		StepRaw rawStep{};
+		float s = cPlayerFootworkIntent->directionalStrength;
 		if (cPlayerFootworkIntent->heldFrames < context->playerMovement.footworkMovement.tapFrameLimit) {
 			rawStep.kind = StepKind::Tap;
 			rawStep.strength = context->playerMovement.footworkMovement.tapStrength;

@@ -1,39 +1,30 @@
 ﻿#include "IntentSystem.hpp"
 #include "components/components.hpp"
 #include "game/utils/GameContext.hpp"
-#include "helpers/JoystickUtils.hpp"
-#include <SFML/Window/Joystick.hpp>
 
 SystemExec IntentSystem::update(GameContext* context) {
     auto& ctxMainMenuIntent = context->mainMenuIntent;
-    RawInputState& ctxRawInput = context->rawInput;
+    RawInputState& raw = context->rawInput;
 
-    ctxMainMenuIntent = {};
+    ctxMainMenuIntent = {}; // Clear previous frame intent
 
-    bool gamepadConnected = sf::Joystick::isConnected(0);
-    const float menuThreshold = 0.5f; // Stick must be pushed 50% to trigger a "tap"
+    const float menuThreshold = 0.5f;
 
-    // --- 1. Process Navigation Input ---
+    // --- 1. Navigation Input (Keyboard & Gamepad) ---
 
-    // Keyboard
-    if (ctxRawInput.isKeyJustPressed(sf::Keyboard::Up) || ctxRawInput.isKeyJustPressed(sf::Keyboard::W)) {
+    // UP Detection
+    if (raw.isKeyJustPressed(sf::Keyboard::Up) ||
+        raw.isKeyJustPressed(sf::Keyboard::W) ||
+        raw.isAxisJustPressed("J1Y_UP")) { // Using the mapped SDL axis
+
         ctxMainMenuIntent.menuSelectionInput = MenuDirection::Up;
     }
-    else if (ctxRawInput.isKeyJustPressed(sf::Keyboard::Down) || ctxRawInput.isKeyJustPressed(sf::Keyboard::S)) {
-        ctxMainMenuIntent.menuSelectionInput = MenuDirection::Down;
-    }
-    // Joystick (Corrected for SFML Y-Axis Inversion)
-    else if (gamepadConnected) {
-        // In SFML: Negative Y is UP, Positive Y is DOWN.
+    // DOWN Detection
+    else if (raw.isKeyJustPressed(sf::Keyboard::Down) ||
+        raw.isKeyJustPressed(sf::Keyboard::S) ||
+        raw.isAxisJustPressed("J1Y_DOWN")) {
 
-        // Check for UP (Negative Direction)
-        if (JoystickUtils::isAxisJustMoved(ctxRawInput, sf::Joystick::Y, false, menuThreshold)) {
-            ctxMainMenuIntent.menuSelectionInput = MenuDirection::Up;
-        }
-        // Check for DOWN (Positive Direction)
-        else if (JoystickUtils::isAxisJustMoved(ctxRawInput, sf::Joystick::Y, true, menuThreshold)) {
-            ctxMainMenuIntent.menuSelectionInput = MenuDirection::Down;
-        }
+        ctxMainMenuIntent.menuSelectionInput = MenuDirection::Down;
     }
 
     // --- 2. Mouse Logic (Hover & Detection) ---
@@ -44,26 +35,34 @@ SystemExec IntentSystem::update(GameContext* context) {
         auto [cBtn, cBox] = context->registry.getComponents<CTextButton, CBoundingBox>(e);
 
         cBtn->wasHovered = cBtn->isHovered;
-        cBtn->isHovered = false;
 
-        if (ctxRawInput.mousePosition.intersects(cBox->box)) {
+        // Simple AABB check using the mouse position from RawInputState
+        if (cBox->box.contains(raw.mousePosition.x, raw.mousePosition.y)) {
             cBtn->isHovered = true;
             mouseIsOverAnyButton = true;
             ctxMainMenuIntent.mouseOverriddenJoystick = true;
             ctxMainMenuIntent.mouseHoverOrder = cBtn->order;
         }
+        else {
+            cBtn->isHovered = false;
+        }
     }
 
     // --- 3. Selection Trigger ---
-    static bool leftWasDown = false;
-    bool leftIsDown = ctxRawInput.isMouseButtonDown(sf::Mouse::Left);
-    bool gamepadSelectPressed = gamepadConnected && ctxRawInput.isGamepadJustPressed("A");
 
-    // Selection is only valid if we click a button OR press the gamepad Select button
-    if (gamepadSelectPressed || ((leftIsDown && !leftWasDown) && mouseIsOverAnyButton)) {
+    // Gamepad: Use SDL_CONTROLLER_BUTTON_A (Standard "Confirm")
+    bool gamepadSelect = raw.isButtonJustPressed(SDL_CONTROLLER_BUTTON_A);
+
+    // Keyboard: Enter or Space
+    bool keyboardSelect = raw.isKeyJustPressed(sf::Keyboard::Enter) ||
+        raw.isKeyJustPressed(sf::Keyboard::Space);
+
+    // Mouse: Left Click (only if over a button)
+    bool mouseSelect = raw.isMouseButtonDown(sf::Mouse::Left) && mouseIsOverAnyButton;
+
+    if (gamepadSelect || keyboardSelect || mouseSelect) {
         ctxMainMenuIntent.menuSelectRequested = true;
     }
 
-    leftWasDown = leftIsDown;
     return { SystemExecResult::Ran };
 }

@@ -1,34 +1,28 @@
 #include "RacketHandleSystem.hpp"
 #include "components/Components.hpp"
-#include "debug/Debug.hpp"
-
+#include "math/Constants.hpp"
 SystemExec RacketHandleSystem::update(GameContext* context) {
     auto* ePlayer = context->registry.getEntity("player");
-    if (!ePlayer) return { SystemExecResult::EarlyExit, "player entity not found" };
+    auto [cPlayerInput, cPlayerHandle] = context->registry.getComponents<CInput, CRacketHandle>(*ePlayer);
 
-    auto [cPlayerTransform3D, cPlayerRacketHandle] =
-        context->registry.getComponents<
-        CTransform3D,
-        CRacketHandle
-        >(*ePlayer);
+    auto eRacket = cPlayerHandle->racketEntity;
+    auto [cRacketRacketPhysical, cRacketRacketRotation] = context->registry.getComponents<CRacketPhysical, CRotation3D>(eRacket);
 
-    if (!cPlayerTransform3D || !cPlayerRacketHandle) return { SystemExecResult::EarlyExit, "necessary player components not found" };
+    // Map J2 to Euler angles for high skill ceiling
+    float pitch = cPlayerInput->axes["J2Y"] * 70.f; // Tilt down/up
+    float yaw = cPlayerInput->axes["J2X"] * 50.f; // Angling cross-court
 
-    // --- Debug visualization only ---
-    if (context->physicsDebug.debugRacketAttach) {
-        auto eRacket = cPlayerRacketHandle->racketEntity;
-        auto* cRacketTransform3D =
-            context->registry.getComponent<CTransform3D>(eRacket);
+    cRacketRacketRotation->euler_deg = Vec3(pitch, yaw, 0.f);
 
-        if (cRacketTransform3D) {
-            Debug::queueArrow3D(
-                cPlayerTransform3D->pos_m,
-                cRacketTransform3D->pos_m,
-                sf::Color::Cyan
-            );
-        }
-    }
+    // Convert to Physical Normal for CollisionSystem
+    float p = pitch * DEG2RAD;
+    float y = yaw * DEG2RAD;
 
-    // Nothing else!
+    cRacketRacketPhysical->normal = Vec3(
+        std::sin(y) * std::cos(p),
+        -std::sin(p),
+        -std::cos(y) * std::cos(p)
+    ).normalized();
+
     return { SystemExecResult::Ran };
 }

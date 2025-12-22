@@ -5,7 +5,49 @@
 namespace Debug {
 
     std::vector<ArrowCommand> queuedArrows;
+    std::vector<LineCommand> queuedLines;
+    std::vector<SphereCommand> queuedSpheres;
 
+    void queueLine3D(const Vec3& from, const Vec3& to, const sf::Color& color) {
+        queuedLines.push_back({ from, to, color });
+    }
+
+    void queueSphere3D(const Vec3& center, float radius, const sf::Color& color) {
+        queuedSpheres.push_back({ center, radius, color });
+    }
+
+    void renderQueuedShapes(GameContext* context) {
+        // --- Render Lines ---
+        for (auto& l : queuedLines) {
+            Vec2 p1 = context->camera.homography.worldToImage(l.from);
+            Vec2 p2 = context->camera.homography.worldToImage(l.to);
+            sf::Vertex line[] = {
+                sf::Vertex(sf::Vector2f(p1.x, p1.y), l.color),
+                sf::Vertex(sf::Vector2f(p2.x, p2.y), l.color)
+            };
+            context->window.draw(line, 2, sf::Lines);
+        }
+
+        // --- Render Spheres (as Octagons for performance) ---
+        for (auto& s : queuedSpheres) {
+            Vec2 center = context->camera.homography.worldToImage(s.center);
+            // Rough screen-space radius calculation
+            Vec3 edgePoint = s.center + Vec3(s.radius, 0, 0);
+            Vec2 edge = context->camera.homography.worldToImage(edgePoint);
+            float screenRadius = std::abs(edge.x - center.x);
+
+            sf::CircleShape circle(screenRadius);
+            circle.setOrigin(screenRadius, screenRadius);
+            circle.setPosition(center.x, center.y);
+            circle.setOutlineColor(s.color);
+            circle.setOutlineThickness(1.5f);
+            circle.setFillColor(sf::Color::Transparent);
+            context->window.draw(circle);
+        }
+
+        queuedLines.clear();
+        queuedSpheres.clear();
+    }
     // ===== ARROW QUEUEING =====
 
     void queueArrow3D(const Vec3& from, const Vec3& to, const sf::Color& color) {

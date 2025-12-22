@@ -10,12 +10,20 @@ struct ArrowCommand {
     Vec3 to;
     sf::Color color;
 };
-
+struct LineCommand { Vec3 from; Vec3 to; sf::Color color; };
+struct SphereCommand { Vec3 center; float radius; sf::Color color; };
 namespace Debug {
 
     // Stored globally for end-of-frame rendering
     extern std::vector<ArrowCommand> queuedArrows;
+    extern std::vector<LineCommand> queuedLines;
+    extern std::vector<SphereCommand> queuedSpheres;
 
+    void queueLine3D(const Vec3& from, const Vec3& to, const sf::Color& color);
+    void queueSphere3D(const Vec3& center, float radius, const sf::Color& color);
+
+    // Call this in your render loop after renderQueuedArrows
+    void renderQueuedShapes(GameContext* context);
     // Queue an arrow to be rendered later
     void queueArrow3D(const Vec3& from, const Vec3& to, const sf::Color& color);
 
