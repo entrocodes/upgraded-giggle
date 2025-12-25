@@ -38,6 +38,10 @@ void GameImGuiSystem::drawDeveloperPanel(GameContext* context) {
         ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse);
     // ================= NEW VISUAL DEBUG TOGGLES =================
     if (ImGui::CollapsingHeader("Physics Visualizers")) {
+        // Inside drawDeveloperPanel -> Physics Visualizers
+        ImGui::Checkbox("Draw Reach Quality (Color change)", &context->renderSettings.debugDrawReachStiffness);
+        ImGui::Checkbox("Draw Intended Arc Path", &context->renderSettings.debugDrawArcPath);
+        ImGui::Checkbox("Draw Player Body (pos_m - blue, shoulder - green)", &context->renderSettings.debugDrawPlayerBody);
         ImGui::Checkbox("Draw Shoulder-to-Racket Line", &context->renderSettings.debugDrawArmLine);
         ImGui::Checkbox("Draw Blade Normal Arrow", &context->renderSettings.debugDrawBladeNormal);
         ImGui::Checkbox("Draw Torso Load Sphere", &context->renderSettings.debugDrawTorsoIndicator);
@@ -65,6 +69,9 @@ void GameImGuiSystem::drawDeveloperPanel(GameContext* context) {
             &context->renderSettings.draw3DBoundingBoxes);
         ImGui::Checkbox("Show Homography Grid",
             &context->camera.homography.drawGrid);
+        ImGui::Checkbox("Show Arrows",
+            &context->physicsDebug.debugArrows);
+
     }
     // ================= ENTITY TRANSFORM DEBUG =================
     if (ImGui::CollapsingHeader("3D Transform Inspector")) {
@@ -77,11 +84,7 @@ void GameImGuiSystem::drawDeveloperPanel(GameContext* context) {
                 std::string label = e.name.empty() ? "Entity " + std::to_string(e.id) : e.name;
 
                 if (ImGui::TreeNode(label.c_str())) {
-                    ImGui::Text("Scale M: %.3f, %.3f, %.3f", c3D->scale_m.x, c3D->scale_m.y, c3D->scale_m.z);
-                    ImGui::Text("Last Scale M: %.3f, %.3f, %.3f", c3D->lastScale_m.x, c3D->lastScale_m.y, c3D->lastScale_m.z);
-
-                    ImGui::Separator();
-                    ImGui::Text("Pos: %.2f, %.2f, %.2f", c3D->pos_m.x, c3D->pos_m.y, c3D->pos_m.z);
+                    ImGui::Text("Pos_m: %.2f, %.2f, %.2f", c3D->pos_m.x, c3D->pos_m.y, c3D->pos_m.z);
 
                     ImGui::TreePop();
                 }
@@ -97,8 +100,7 @@ void GameImGuiSystem::drawDeveloperPanel(GameContext* context) {
             &context->physicsDebug.debugBallVelocity.x, -2.f, 2.f);
         ImGui::SliderFloat3("Spin",
             &context->physicsDebug.debugBallSpin.x, -2.f, 2.f);
-
-        ImGui::Checkbox("Debug Spin Arrows",
+        ImGui::Checkbox("Show Spin Arrows",
             &context->physicsDebug.debugSpinArrows);
 
         if (ImGui::Button("Reset Spin & Velocity")) {
@@ -162,9 +164,7 @@ void GameImGuiSystem::drawDeveloperPanel(GameContext* context) {
             }
         }
     }
-    // =====================
 // Player Debug
-// =====================
     if (ImGui::CollapsingHeader("Player Debug", ImGuiTreeNodeFlags_DefaultOpen)) {
 
         Entity* ePlayer = context->registry.getEntity("player");
@@ -337,43 +337,81 @@ void GameImGuiSystem::drawRacketDebug(GameContext* context) {
     if (ePlayer) {
         auto [cPlayerSwing, cPlayerHandle, cPlayerState, cPlayerInput, cPlayerArm] =
             context->registry.getComponents<CRacketSwing, CRacketHandle, CState, CInput, CArm>(*ePlayer);
-
+        auto eRacket = cPlayerHandle->racketEntity;
+        auto [cRacketPhysical, cTransform3D] = context->registry.getComponents<CRacketPhysical, CTransform3D>(eRacket);
         if (cPlayerSwing && cPlayerHandle && cPlayerState) {
-            // --- SWIFT & POWER ---
-            if (ImGui::CollapsingHeader("Kinetics & Power", ImGuiTreeNodeFlags_DefaultOpen)) {
-                ImGui::Text("State: %s", cPlayerState->state.c_str());
-
-                // Visualize Torso Load (RT)
-                ImGui::Text("Torso Load (RT):");
-                ImGui::SameLine();
-                ImVec4 loadCol = ImVec4(cPlayerSwing->torsoLoad, 1.0f - cPlayerSwing->torsoLoad, 0.0f, 1.0f);
-                ImGui::TextColored(loadCol, "%.2f", cPlayerSwing->torsoLoad);
-                ImGui::ProgressBar(cPlayerSwing->torsoLoad, ImVec2(-1, 0), "Torso Wind-up");
-
-                ImGui::Value("Backswing Time", cPlayerSwing->backswingTime);
-                ImGui::Value("Release Velocity", cPlayerSwing->swingSpeed);
-
-                if (cPlayerSwing->isCharging) ImGui::TextColored(ImVec4(1, 1, 0, 1), "CHARGING...");
-                if (cPlayerSwing->swingTriggered) ImGui::TextColored(ImVec4(0, 1, 0, 1), "SWINGING!");
+            // ================= RACKET PHYSICAL PROPERTIES (NEW) =================
+            if (cRacketPhysical && ImGui::CollapsingHeader("Racket Overview", ImGuiTreeNodeFlags_DefaultOpen)) {
+                ImGui::Text("Racket Position: %.2f, %.2f, %.2f", cTransform3D->pos_m.x, cTransform3D->pos_m.y, cTransform3D->pos_m.z);
             }
+            if (cRacketPhysical && ImGui::CollapsingHeader("Surface Physics", ImGuiTreeNodeFlags_DefaultOpen)) {
+                ImGui::Text("Tweak these to change how the ball reacts to J2 and Swings.");
 
-            // --- ORIENTATION (J2) ---
-            Entity eRacket = cPlayerHandle->racketEntity;
-            auto [cRacketRot, cRacketPhys] = context->registry.getComponents<CRotation3D, CRacketPhysical>(eRacket);
+                // Friction: High = more spin/grab, Low = more reflection/slippery
+                ImGui::SliderFloat("Rubber Friction (Grab)", &cRacketPhysical->friction, 0.0f, 2.0f, "%.2f");
+                if (ImGui::IsItemHovered())
+                    ImGui::SetTooltip("Higher friction makes the ball 'follow' the racket swing and generate more spin.");
 
-            if (cRacketRot && cRacketPhys) {
-                if (ImGui::CollapsingHeader("Blade Orientation (J2)", ImGuiTreeNodeFlags_DefaultOpen)) {
-                    ImGui::SliderFloat("Visual Pitch", &cRacketRot->euler_deg.x, -90.f, 90.f);
-                    ImGui::SliderFloat("Visual Yaw", &cRacketRot->euler_deg.y, -90.f, 90.f);
+                // Restitution: High = more pop/speed, Low = dead paddle
+                ImGui::SliderFloat("Restitution (Bounciness)", &cRacketPhysical->restitution, 0.1f, 1.2f, "%.2f");
+                if (ImGui::IsItemHovered())
+                    ImGui::SetTooltip("0.1 = Dead ball, 1.0 = Perfect energy return.");
 
-                    ImGui::Separator();
-                    ImGui::Text("Physical Normal:");
-                    ImGui::Text("X: %.3f | Y: %.3f | Z: %.3f",
-                        cRacketPhys->normal.x, cRacketPhys->normal.y, cRacketPhys->normal.z);
+                if (ImGui::Button("Reset to Standard Paddle")) {
+                    cRacketPhysical->friction = 0.5f;
+                    cRacketPhysical->restitution = 0.8f;
                 }
             }
 
-            // --- POSITIONING ---
+            // ================= STROKE PHASE TELEMETRY =================
+            if (ImGui::CollapsingHeader("Stroke Lifecycle", ImGuiTreeNodeFlags_DefaultOpen)) {
+                float ms = cPlayerHandle->strokeTime_ms;
+
+                // Color the text based on which phase we are in
+                if (ms < 80.0f && cPlayerSwing->swingTriggered)
+                    ImGui::TextColored(ImVec4(0, 1, 1, 1), "PHASE: COMMIT WINDOW (Steering High)");
+                else if (ms < 180.0f && cPlayerSwing->swingTriggered)
+                    ImGui::TextColored(ImVec4(1, 0.5f, 0, 1), "PHASE: ACCELERATION (Steering Low)");
+                else if (cPlayerSwing->swingTriggered)
+                    ImGui::TextColored(ImVec4(1, 0, 0, 1), "PHASE: BALLISTIC / FOLLOW-THROUGH");
+                else
+                    ImGui::Text("PHASE: IDLE / PREP");
+
+                ImGui::ProgressBar(ms / 250.0f, ImVec2(-1, 0), std::to_string((int)ms).append(" ms").c_str());
+            }
+
+            // ================= REACH & QUALITY INTERPRETER =================
+            if (ImGui::CollapsingHeader("Ability & Reach Interpreter", ImGuiTreeNodeFlags_DefaultOpen)) {
+                float currentExt = cPlayerHandle->swingOffset_m.length();
+                float reachRatio = currentExt / cPlayerArm->maxReach_m;
+
+                // Display a bar that turns red as you lose "Stroke Quality"
+                ImVec4 qualityCol = ImVec4(1.0f - cPlayerHandle->currentStrokeQuality, cPlayerHandle->currentStrokeQuality, 0, 1);
+                ImGui::Text("Stroke Quality (Power Capability):");
+                ImGui::PushStyleColor(ImGuiCol_PlotHistogram, qualityCol);
+                ImGui::ProgressBar(cPlayerHandle->currentStrokeQuality, ImVec2(-1, 0));
+                ImGui::PopStyleColor();
+
+                ImGui::Text("Extension: %.2fm / %.2fm (%.1f%%)",
+                    currentExt, cPlayerArm->maxReach_m, reachRatio * 100.f);
+
+                if (reachRatio > 0.85f) {
+                    ImGui::TextColored(ImVec4(1, 0, 0, 1), "WARNING: ARM STIFFNESS ACTIVE");
+                }
+            }
+
+            // ================= GENERATIVE ARC DATA =================
+            if (ImGui::CollapsingHeader("Generative Arc Points")) {
+                ImGui::Text("Arc Start (Point 1): %.2f, %.2f, %.2f",
+                    cPlayerHandle->arcStartPoint.x,
+                    cPlayerHandle->arcStartPoint.y,
+                    cPlayerHandle->arcStartPoint.z);
+
+                // Show the J1 steer vector currently being applied
+                Vec3 currentJ1(cPlayerInput->axes["J1X"], -cPlayerInput->axes["J1Y"], 0.f);
+                ImGui::Text("Live J1 Steer: %.2f, %.2f", currentJ1.x, currentJ1.y);
+            }
+
             if (ImGui::CollapsingHeader("Arm & Reach")) {
                 ImGui::Value("Stroke Weight", cPlayerHandle->strokeWeight);
                 ImGui::Text("Shoulder Pos: %.2f, %.2f, %.2f",

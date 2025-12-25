@@ -47,6 +47,7 @@ namespace Debug {
 
         queuedLines.clear();
         queuedSpheres.clear();
+        renderQueuedArrows(context);
     }
     // ===== ARROW QUEUEING =====
 

@@ -126,8 +126,6 @@ Entity EntityFactory::createPlayer() {
 
     cPlayerArm.maxReach_m = 0.65f; // realistic adult reach
     
-    auto& cPlayerRacketHandle = m_registry.addComponent<CRacketHandle>(ePlayer);
-    cPlayerRacketHandle.freeOffset_m = Vec3(0.f, 0.2f, 0.25f); // neutral ready position
 
     return ePlayer;
 }
@@ -149,6 +147,7 @@ Entity EntityFactory::createPlayerRacket() {
     auto& cPlayerRacketHandle = m_registry.addComponent<CRacketHandle>(*ePlayer);
 
     cPlayerRacketHandle.racketEntity = eRacket;
+    cPlayerRacketHandle.freeOffset_m = Vec3(-.25f, -0.2f, 0.0f); // neutral ready position
 
     // TEMP: transform set to player; will update next frame
     auto cPlayerTransform3D = m_registry.getComponent<CTransform3D>(*ePlayer);

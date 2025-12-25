@@ -31,8 +31,8 @@ void BallSpawnDebugSystem::spawnDebugBall(GameContext* context) {
     const float speed = debug.feedSpeed;
     // Mode 1 — Toward Racket
     if (debug.mode == BallSpawnMode::TowardRacket) {
-        Vec3 spawnPos = cRacketTransform3D->pos_m + cRacketRacketPhysical->normal * 0.20f;
-        Vec3 vel = -cRacketRacketPhysical->normal * speed;
+        Vec3 spawnPos = cRacketTransform3D->pos_m - cRacketRacketPhysical->normal * 0.20f;
+        Vec3 vel = cRacketRacketPhysical->normal * speed;
 
         context->entityFactory.createBall(spawnPos, vel);
         return;

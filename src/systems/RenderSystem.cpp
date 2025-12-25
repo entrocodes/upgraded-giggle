@@ -85,8 +85,8 @@ SystemExec RenderSystem::update(GameContext* context) {
     else {
         context->camera.homography.printDebug = true;
     }
-    if (context->physicsDebug.debugSpinArrows) {
-        Debug::renderQueuedArrows(context);
+    if (context->physicsDebug.debugArrows) {
+        Debug::renderQueuedShapes(context);
     }
     return { SystemExecResult::Ran };
 }

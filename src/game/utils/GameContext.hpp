@@ -26,6 +26,11 @@ struct FootworkMovement {
     float leapFrameFactor = 25;
     float maxLeapStrength = 7.0f;
 };
+struct BodyMovement {
+    float twistFactor = .7f;
+    float leanIntensity = .4f;
+    float crouchIntensity = .5f;
+};
 struct PlayerMovement {
     float maxStrength = 1.0f;
     float speedFactor = .1f; 
@@ -36,7 +41,7 @@ struct PlayerMovement {
     float defaultScale = 1.0f;
 
     bool moveTriggered = false;
-
+    BodyMovement bodyMovement;
     FootworkMovement footworkMovement;
 };
 struct GlobalIntent {
@@ -76,6 +81,7 @@ struct PhysicsDebugSettings {
     bool debugRemoveAllBalls = false;
     bool debugSpinEnabled = true;
     bool debugSpinArrows = false;
+    bool debugArrows = false;
     bool enableConsoleDebugOutput = false;
     bool clickToSpawn = true;
     bool clickForMousePos = false;
@@ -86,6 +92,8 @@ struct PhysicsDebugSettings {
     float autoSpawnTimer = 0.f;
     int debugIntKeepXBalls = 5;
     bool debugBoolKeepXBalls = true;
+    float yAtPlaneContact = 0.0f;
+
 };
 struct MetaInputState {
     bool quit = false;
@@ -114,9 +122,12 @@ struct RenderSettings {
     bool updateResolution = false;
     bool hideImGui = false;
 
+    bool debugDrawPlayerBody = false;
     bool debugDrawArmLine = false;
     bool debugDrawBladeNormal = false;
     bool debugDrawTorsoIndicator = false;
+    bool debugDrawArcPath = false;
+    bool debugDrawReachStiffness = false;
 };
 
 

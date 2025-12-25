@@ -50,4 +50,19 @@ struct Vec3 {
         y = f;
         z = f;
     }
+    // Returns the Euclidean distance between this vector and another
+    float distance(const Vec3& other) const {
+        float dx = x - other.x;
+        float dy = y - other.y;
+        float dz = z - other.z;
+        return std::sqrt(dx * dx + dy * dy + dz * dz);
+    }
+
+    // Returns the squared distance (useful for performance optimizations)
+    float distanceSq(const Vec3& other) const {
+        float dx = x - other.x;
+        float dy = y - other.y;
+        float dz = z - other.z;
+        return dx * dx + dy * dy + dz * dz;
+    }
 };

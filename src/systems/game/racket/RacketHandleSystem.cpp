@@ -21,7 +21,7 @@ SystemExec RacketHandleSystem::update(GameContext* context) {
     cRacketRacketPhysical->normal = Vec3(
         std::sin(y) * std::cos(p),
         -std::sin(p),
-        -std::cos(y) * std::cos(p)
+        std::cos(y) * std::cos(p)
     ).normalized();
 
     return { SystemExecResult::Ran };
