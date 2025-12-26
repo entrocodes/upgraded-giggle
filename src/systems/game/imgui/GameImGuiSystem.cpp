@@ -7,14 +7,14 @@
 #include "systems/BallRemovalSystem.hpp"
 #include "ecs/system/ISystemGroup.hpp"
 #include "debug/Debug.hpp"
-
 #include <cmath>
+
 SystemExec GameImGuiSystem::update(GameContext* context) {
     if (context->renderSettings.hideImGui) {
         context->inputBlocked = false;
         return { SystemExecResult::EarlyExit, "UI Hidden" };
     }
-    
+
     ImGuiIO& io = ImGui::GetIO();
     io.DisplaySize = ImVec2(
         context->display.windowSize.x,
@@ -36,17 +36,15 @@ void GameImGuiSystem::drawDeveloperPanel(GameContext* context) {
 
     ImGui::Begin("Developer Panel##Game", nullptr,
         ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse);
-    // ================= NEW VISUAL DEBUG TOGGLES =================
+
     if (ImGui::CollapsingHeader("Physics Visualizers")) {
-        // Inside drawDeveloperPanel -> Physics Visualizers
-        ImGui::Checkbox("Draw Reach Quality (Color change)", &context->renderSettings.debugDrawReachStiffness);
+        ImGui::Checkbox("Draw Reach Quality", &context->renderSettings.debugDrawReachStiffness);
         ImGui::Checkbox("Draw Intended Arc Path", &context->renderSettings.debugDrawArcPath);
-        ImGui::Checkbox("Draw Player Body (pos_m - blue, shoulder - green)", &context->renderSettings.debugDrawPlayerBody);
+        ImGui::Checkbox("Draw Player Body", &context->renderSettings.debugDrawPlayerBody);
         ImGui::Checkbox("Draw Shoulder-to-Racket Line", &context->renderSettings.debugDrawArmLine);
         ImGui::Checkbox("Draw Blade Normal Arrow", &context->renderSettings.debugDrawBladeNormal);
-        ImGui::Checkbox("Draw Torso Load Sphere", &context->renderSettings.debugDrawTorsoIndicator);
     }
-    // ================= DISPLAY =================
+
     if (ImGui::CollapsingHeader("Display", ImGuiTreeNodeFlags_DefaultOpen)) {
         ImGui::Text("Resolution: %.0fx%.0f",
             context->display.windowSize.x,
@@ -56,7 +54,7 @@ void GameImGuiSystem::drawDeveloperPanel(GameContext* context) {
         int& idx = context->renderSettings.currentResolutionIndex;
 
         if (ImGui::BeginCombo("Resolution", resList[idx].first.c_str())) {
-            for (int i = 0; i < resList.size(); i++) {
+            for (int i = 0; i < (int)resList.size(); i++) {
                 if (ImGui::Selectable(resList[i].first.c_str(), i == idx)) {
                     idx = i;
                     context->renderSettings.updateResolution = true;
@@ -65,43 +63,31 @@ void GameImGuiSystem::drawDeveloperPanel(GameContext* context) {
             ImGui::EndCombo();
         }
 
-        ImGui::Checkbox("Show Bounding Boxes",
-            &context->renderSettings.draw3DBoundingBoxes);
-        ImGui::Checkbox("Show Homography Grid",
-            &context->camera.homography.drawGrid);
-        ImGui::Checkbox("Show Arrows",
-            &context->physicsDebug.debugArrows);
-
+        ImGui::Checkbox("Show Bounding Boxes", &context->renderSettings.draw3DBoundingBoxes);
+        ImGui::Checkbox("Show Homography Grid", &context->camera.homography.drawGrid);
+        ImGui::Checkbox("Show Arrows", &context->physicsDebug.debugArrows);
     }
-    // ================= ENTITY TRANSFORM DEBUG =================
+
     if (ImGui::CollapsingHeader("3D Transform Inspector")) {
         if (ImGui::BeginChild("TransformScroll", ImVec2(0, 200), true)) {
             for (auto e : context->registry.getEntitiesWith<CTransform3D>()) {
                 auto* c3D = context->registry.getComponent<CTransform3D>(e);
                 if (!c3D) continue;
-
-                // Use entity name or ID as a label
                 std::string label = e.name.empty() ? "Entity " + std::to_string(e.id) : e.name;
-
                 if (ImGui::TreeNode(label.c_str())) {
                     ImGui::Text("Pos_m: %.2f, %.2f, %.2f", c3D->pos_m.x, c3D->pos_m.y, c3D->pos_m.z);
-
                     ImGui::TreePop();
                 }
             }
         }
         ImGui::EndChild();
     }
-    // ================= BALL DEBUG =================
+
     if (ImGui::CollapsingHeader("Ball Debug")) {
-        ImGui::SliderFloat("Ball Height",
-            &context->physicsDebug.debugBallHeight, 0.f, 3.f);
-        ImGui::SliderFloat3("Velocity",
-            &context->physicsDebug.debugBallVelocity.x, -2.f, 2.f);
-        ImGui::SliderFloat3("Spin",
-            &context->physicsDebug.debugBallSpin.x, -2.f, 2.f);
-        ImGui::Checkbox("Show Spin Arrows",
-            &context->physicsDebug.debugSpinArrows);
+        ImGui::SliderFloat("Ball Height", &context->physicsDebug.debugBallHeight, 0.f, 3.f);
+        ImGui::SliderFloat3("Velocity", &context->physicsDebug.debugBallVelocity.x, -2.f, 2.f);
+        ImGui::SliderFloat3("Spin", &context->physicsDebug.debugBallSpin.x, -2.f, 2.f);
+        ImGui::Checkbox("Show Spin Arrows", &context->physicsDebug.debugSpinArrows);
 
         if (ImGui::Button("Reset Spin & Velocity")) {
             context->physicsDebug.debugBallSpin = {};
@@ -111,457 +97,312 @@ void GameImGuiSystem::drawDeveloperPanel(GameContext* context) {
         if (ImGui::Button("Remove All Balls")) {
             ballRemoval.removeAll(context);
         }
+
         if (ImGui::CollapsingHeader("Ball Limit Debug")) {
             ImGui::SliderInt("Max Balls to Keep", &context->physicsDebug.debugIntKeepXBalls, 1, 15);
-
-            if (ImGui::Checkbox("Enable Ball Limit", &context->physicsDebug.debugBoolKeepXBalls));
+            ImGui::Checkbox("Enable Ball Limit", &context->physicsDebug.debugBoolKeepXBalls);
         }
     }
-    // ================= BALL SPAWN DEBUG =================
+
     if (ImGui::CollapsingHeader("Ball Spawn Debug")) {
         auto& ctxBallSpawnDebug = context->ballSpawnDebug;
-
         ImGui::Checkbox("Auto Spawn", &ctxBallSpawnDebug.autoSpawn);
+        ImGui::SliderFloat("Spawn Interval (s)", &ctxBallSpawnDebug.interval, 0.05f, 3.0f);
+        ImGui::SliderFloat("Feed Speed", &ctxBallSpawnDebug.feedSpeed, 0.2f, 6.0f);
 
-        ImGui::SliderFloat(
-            "Spawn Interval (s)",
-            &ctxBallSpawnDebug.interval,
-            0.05f,
-            3.0f
-        );
-
-        ImGui::SliderFloat(
-            "Feed Speed",
-            &ctxBallSpawnDebug.feedSpeed,
-            0.2f,
-            6.0f
-        );
-
-        const char* modes[] = {
-            "Toward Racket",
-            "Fixed Position",
-            "Alternate L / R"
-        };
-
+        const char* modes[] = { "Toward Racket", "Fixed Position", "Alternate L / R" };
         int mode = static_cast<int>(ctxBallSpawnDebug.mode);
         if (ImGui::Combo("Spawn Mode", &mode, modes, IM_ARRAYSIZE(modes))) {
             ctxBallSpawnDebug.mode = static_cast<BallSpawnMode>(mode);
         }
 
         if (ctxBallSpawnDebug.mode != BallSpawnMode::TowardRacket) {
-            ImGui::DragFloat3(
-                "Left Spawn Pos",
-                &ctxBallSpawnDebug.fixedPosLeft.x,
-                0.01f
-            );
-
+            ImGui::DragFloat3("Left Spawn Pos", &ctxBallSpawnDebug.fixedPosLeft.x, 0.01f);
             if (ctxBallSpawnDebug.mode == BallSpawnMode::AlternateLeftRight) {
-                ImGui::DragFloat3(
-                    "Right Spawn Pos",
-                    &ctxBallSpawnDebug.fixedPosRight.x,
-                    0.01f
-                );
+                ImGui::DragFloat3("Right Spawn Pos", &ctxBallSpawnDebug.fixedPosRight.x, 0.01f);
             }
         }
     }
-// Player Debug
-    if (ImGui::CollapsingHeader("Player Debug", ImGuiTreeNodeFlags_DefaultOpen)) {
 
+    if (ImGui::CollapsingHeader("Player Debug", ImGuiTreeNodeFlags_DefaultOpen)) {
         Entity* ePlayer = context->registry.getEntity("player");
         if (!ePlayer) {
             ImGui::TextColored(ImVec4(1, 0, 0, 1), "PLAYER ENTITY NOT FOUND");
-            return;
         }
+        else {
+            auto [cPlayerTransform3D, cPlayerTransform, cPlayerState, cPlayerInput, cPlayerFootworkState, cPlayerAuthorization] =
+                context->registry.getComponents<CTransform3D, CTransform, CState, CInput, CFootworkState, CAuthorization>(*ePlayer);
 
-        auto [cPlayerTransform3D, cPlayerTransform, cPlayerState, cPlayerInput, cPlayerFootworkState] =
-            context->registry.getComponents<
-            CTransform3D,
-            CTransform,
-            CState,
-            CInput,
-            CFootworkState>(*ePlayer);
+            if (ImGui::CollapsingHeader("Player Position Stats")) {
+                if (cPlayerTransform3D)
+                    ImGui::Text("3D Pos: %.2f, %.2f, %.2f", cPlayerTransform3D->pos_m.x, cPlayerTransform3D->pos_m.y, cPlayerTransform3D->pos_m.z);
+                if (cPlayerTransform) {
+                    ImGui::Text("2D Pos: %.1f, %.1f", cPlayerTransform->pos.x, cPlayerTransform->pos.y);
+                }
+                if (cPlayerState)
+                    ImGui::Text("State: %s", cPlayerState->state.c_str());
 
-        // ---------------------
-        // Position / State
-        // ---------------------
-        if (ImGui::CollapsingHeader("Player Position Stats")) {
-            if (cPlayerTransform3D)
-                ImGui::Text("3D Pos: %.2f, %.2f, %.2f",
-                    cPlayerTransform3D->pos_m.x, cPlayerTransform3D->pos_m.y, cPlayerTransform3D->pos_m.z);
-
-            if (cPlayerTransform) {
-                ImGui::Text("2D Pos: %.1f, %.1f", cPlayerTransform->pos.x, cPlayerTransform->pos.y);
-                ImGui::Text("2D Render Pos: %.1f, %.1f",
-                    cPlayerTransform->renderPos.x, cPlayerTransform->renderPos.y);
-            }
-
-            ImGui::Text("Alpha: %.2f", context->frameAlpha);
-
-            if (cPlayerState)
-                ImGui::Text("State: %s", cPlayerState->state.c_str());
-
-            if (ImGui::Button("Reset Player Pos") && cPlayerTransform3D) {
-                cPlayerTransform3D->pos_m = { 0.f, -context->tableParameters.tableHeight, -0.5f };
-            }
-        }
-
-        // ---------------------
-        // Footwork Debug
-        // ---------------------
-        if (ImGui::CollapsingHeader("Footwork (Debug)", ImGuiTreeNodeFlags_DefaultOpen)) {
-
-            // --- Tuning (isolated) ---
-            if (ImGui::BeginChild("FootworkTuning", ImVec2(0, 160), true)) {
-                ImGui::Text("Tuning");
-                ImGui::Separator();
-
-                ImGui::SliderFloat("Tap Strength",
-                    &context->playerMovement.footworkMovement.tapStrength, 1.f, 25.f);
-                ImGui::SliderFloat("Hop Strength",
-                    &context->playerMovement.footworkMovement.hopStrength, 1.f, 25.f);
-                ImGui::SliderFloat("Leap Strength",
-                    &context->playerMovement.footworkMovement.leapStrength, 1.f, 25.f);
-
-                if (ImGui::Button("Reset Footwork Settings")) {
-                    context->playerMovement.scale =
-                        context->playerMovement.defaultScale;
-                    context->playerMovement.maxStrength =
-                        context->playerMovement.defaultMaxStrength;
-                    context->playerMovement.speedFactor =
-                        context->playerMovement.defaultSpeedFactor;
+                if (ImGui::Button("Reset Player Pos") && cPlayerTransform3D) {
+                    cPlayerTransform3D->pos_m = { 0.f, -context->tableParameters.tableHeight, -0.5f };
                 }
             }
-            ImGui::EndChild();
-
-            ImGui::Spacing();
-
-            // --- Input intent ---
             if (cPlayerInput) {
-                ImGui::Text("Input");
-                ImGui::Separator();
-                ImGui::Text("Move Held (L / R): %d / %d",
-                    cPlayerInput->holdTime["MoveLeft"],
-                    cPlayerInput->holdTime["MoveRight"]);
-            }
-
-            ImGui::Spacing();
-
-            // --- Footwork state ---
-            ImGui::Text("Resolved Footwork");
-            ImGui::Separator();
-
-            static float smoothedMaxSpeed = 0.f;
-
-            if (cPlayerFootworkState && cPlayerFootworkState->active) {
-
-                float t =
-                    float(cPlayerFootworkState->frame) /
-                    float(cPlayerFootworkState->current.totalFrames);
-
-                smoothedMaxSpeed +=
-                    (cPlayerFootworkState->current.maxSpeed_mps - smoothedMaxSpeed) * 0.1f;
-                const char* stepName =
-                    (cPlayerFootworkState->current.totalFrames == 5) ? "Tap" :
-                    (cPlayerFootworkState->current.totalFrames == 10) ? "Hop" :
-                    "Leap";
-
-                ImGui::Text("Status: ACTIVE");
-                ImGui::Text("Step Type: %s", stepName);
-
-                ImGui::ProgressBar(
-                    t,
-                    ImVec2(-1, 0),
-                    (std::string("Step ") +
-                        std::to_string(cPlayerFootworkState->frame) + "/" +
-                        std::to_string(cPlayerFootworkState->current.totalFrames)).c_str()
-                );
-
-                ImGui::Text("Max Speed (smoothed): %.2f m/s", smoothedMaxSpeed);
-            }
-            else if (cPlayerFootworkState) {
-
-                ImGui::Text("Status: IDLE");
-
-                // Recovery visualization (if applicable)
-                int recoveryEnd =
-                    cPlayerFootworkState->current.totalFrames +
-                    cPlayerFootworkState->current.recoveryFrames;
-
-                if (cPlayerFootworkState->frame > cPlayerFootworkState->current.totalFrames &&
-                    cPlayerFootworkState->frame < recoveryEnd) {
-
-                    float r =
-                        float(cPlayerFootworkState->frame -
-                            cPlayerFootworkState->current.totalFrames) /
-                        float(cPlayerFootworkState->current.recoveryFrames);
-
-                    ImGui::Text("Recovery");
-                    ImGui::ProgressBar(r, ImVec2(-1, 0));
+                if (ImGui::TreeNodeEx("Live Input Holds", ImGuiTreeNodeFlags_DefaultOpen)) {
+                    // Showing the actual hold timers for the movement keys
+                    ImGui::Text("Move L Hold: %d frames", cPlayerInput->holdTime["MoveLeft"]);
+                    ImGui::Text("Move R Hold: %d frames", cPlayerInput->holdTime["MoveRight"]);
+                    ImGui::Text("Torso L Load: %d frames", cPlayerInput->holdTime["TorsoLeft"]);
+                    ImGui::TreePop();
                 }
             }
+            if (cPlayerAuthorization) {
+                if (ImGui::TreeNodeEx("Live Input Authorizations", ImGuiTreeNodeFlags_DefaultOpen)) {
+                    // Showing the actual hold timers for the movement keys
+                    ImGui::Text("Move L Hold: %d frames", context->playerMovement.footworkMovement.debugFootworkIntent.leftHoldTime);
+                    ImGui::Text("Move R Hold: %d frames", context->playerMovement.footworkMovement.debugFootworkIntent.rightHoldTime);
+                    ImGui::TreePop();
+                }
+            }
+            if (cPlayerFootworkState) {
+                if (ImGui::TreeNodeEx("Footwork State", ImGuiTreeNodeFlags_DefaultOpen)) {
+                    ImGui::Text("Status: %s", cPlayerFootworkState->active ? "MOVING" : "IDLE");
+                    const char* names[] = { "None", "Tap", "Hop", "Leap" };
+                    // Cast the enum to int to index the names array
+                    int typeIdx = static_cast<int>(cPlayerFootworkState->current.kind);
+                    ImGui::TextColored(ImVec4(0, 1, 0, 1), "Type: %s", names[typeIdx]);
+                    ImGui::Text("Speed: %.2f m/s", cPlayerFootworkState->current.maxSpeed_mps);
+                    ImGui::Text("Progress: %d / %d", cPlayerFootworkState->frame, cPlayerFootworkState->current.totalFrames);
+                    ImGui::ProgressBar((float)cPlayerFootworkState->frame / (float)cPlayerFootworkState->current.totalFrames);
+
+                    if (cPlayerFootworkState->buffered) {
+                        ImGui::TextColored(ImVec4(1, 0.5f, 0, 1), "Step BUFFERED");
+                    }
+                    ImGui::TreePop();
+                }
+            }
+            if (ImGui::CollapsingHeader("Footwork (Debug)", ImGuiTreeNodeFlags_DefaultOpen)) {
+                if (ImGui::BeginChild("FootworkTuning", ImVec2(0, 160), true)) {
+                    ImGui::SliderFloat("Tap Strength", &context->playerMovement.footworkMovement.tapStrength, 1.f, 25.f);
+                    ImGui::SliderFloat("Hop Strength", &context->playerMovement.footworkMovement.hopStrength, 1.f, 25.f);
+                    ImGui::SliderFloat("Leap Strength", &context->playerMovement.footworkMovement.leapStrength, 1.f, 25.f);
+                    if (ImGui::Button("Reset Footwork Settings")) {
+                        context->playerMovement.footworkMovement.tapStrength = 8.0f; // Example defaults
+                    }
+                }
+                ImGui::EndChild();
+            }
         }
     }
 
-    // ================= LOGO DEBUG =================
     if (ImGui::CollapsingHeader("Logo Debug")) {
-        ImGui::SliderFloat("Shear",
-            &context->logoDebug.shearScale, 0.1f, 2.f);
-        ImGui::SliderFloat("Squash",
-            &context->logoDebug.squashScale, 0.1f, 2.f);
-        ImGui::SliderFloat("Min Squash",
-            &context->logoDebug.minSquash, 0.1f, 1.5f);
+        ImGui::SliderFloat("Shear", &context->logoDebug.shearScale, 0.1f, 2.f);
+        ImGui::SliderFloat("Squash", &context->logoDebug.squashScale, 0.1f, 2.f);
     }
 
-    // ================= RENDER LAYERS =================
-    if (ImGui::CollapsingHeader("Render Layers")) {
-        for (auto e : context->registry.getEntitiesWith<CRenderLayer>()) {
-            auto* cRenderLayer = context->registry.getComponent<CRenderLayer>(e);
-            if (cRenderLayer)
-                ImGui::Text("%s : %d", e.name.c_str(), cRenderLayer->layer);
-        }
-    }
-
-    // ================= STATS =================
     if (ImGui::CollapsingHeader("Stats")) {
         ImGui::Text("FPS: %.1f", context->frameStats.fps);
-        ImGui::Text("Entities: %d",
-            (int)context->registry.getEntityCount());
+        ImGui::Text("Entities: %d", (int)context->registry.getEntityCount());
     }
 
     ImGui::End();
 }
+
 void GameImGuiSystem::drawRacketDebug(GameContext* context) {
     ImGui::Begin("Racket Debug##Game");
 
     Entity* ePlayer = context->registry.getEntity("player");
-    if (ePlayer) {
-        auto [cPlayerSwing, cPlayerHandle, cPlayerState, cPlayerInput, cPlayerArm] =
-            context->registry.getComponents<CRacketSwing, CRacketHandle, CState, CInput, CArm>(*ePlayer);
+    if (!ePlayer) {
+        ImGui::Text("Player not found");
+        ImGui::End();
+        return;
+    }
+
+    auto [cPlayerSwing, cPlayerHandle, cPlayerState, cPlayerInput, cPlayerArm, cPlayerAuthorization] =
+        context->registry.getComponents<CRacketSwing, CRacketHandle, CState, CInput, CArm, CAuthorization>(*ePlayer);
+
+    if (cPlayerHandle) {
         auto eRacket = cPlayerHandle->racketEntity;
-        auto [cRacketPhysical, cTransform3D] = context->registry.getComponents<CRacketPhysical, CTransform3D>(eRacket);
-        if (cPlayerSwing && cPlayerHandle && cPlayerState) {
-            // ================= RACKET PHYSICAL PROPERTIES (NEW) =================
-            if (cRacketPhysical && ImGui::CollapsingHeader("Racket Overview", ImGuiTreeNodeFlags_DefaultOpen)) {
-                ImGui::Text("Racket Position: %.2f, %.2f, %.2f", cTransform3D->pos_m.x, cTransform3D->pos_m.y, cTransform3D->pos_m.z);
+        auto [cRacketPhysical, cRacketTransform3D, cRacketRotation3D] =
+            context->registry.getComponents<CRacketPhysical, CTransform3D, CRotation3D>(eRacket);
+        if (cPlayerAuthorization) {
+            if (ImGui::CollapsingHeader("Racket Position")) {
+                ImGui::Text("Racket Posisition: %.2f, %.2f, %.2f", cRacketTransform3D->pos_m.x, cRacketTransform3D->pos_m.y, cRacketTransform3D->pos_m.z);
+                ImGui::Text("Racket Movement: %.2f, %.2f, %.2f", cPlayerAuthorization->vec2Map["SteerIntent"].x, cPlayerAuthorization->vec2Map["SteerIntent"].y, cPlayerAuthorization->floatMap["ManualReachZ"]);
             }
-            if (cRacketPhysical && ImGui::CollapsingHeader("Surface Physics", ImGuiTreeNodeFlags_DefaultOpen)) {
-                ImGui::Text("Tweak these to change how the ball reacts to J2 and Swings.");
+        }
+        if (cRacketPhysical && cRacketRotation3D) {
+            // ================= ORIENTATION WIDGET =================
+            if (ImGui::CollapsingHeader("Live Orientation")) {
+                ImGui::Columns(2, "OrientationCols", false);
+                ImGui::SetColumnWidth(0, 120.0f);
 
-                // Friction: High = more spin/grab, Low = more reflection/slippery
+                drawRacketOrientationWidget(cRacketPhysical->normal);
+
+                ImGui::NextColumn();
+                ImGui::Text("Normal Vector:");
+                ImGui::Text("X: %.2f", cRacketPhysical->normal.x);
+                ImGui::Text("Y: %.2f", cRacketPhysical->normal.y);
+                ImGui::Text("Z: %.2f", cRacketPhysical->normal.z);
+
+                ImGui::Separator();
+                ImGui::Text("Euler (deg):");
+                ImGui::Text("P: %.1f", cRacketRotation3D->euler_deg.x);
+                ImGui::Text("Y: %.1f", cRacketRotation3D->euler_deg.y);
+                ImGui::Columns(1);
+            }
+
+            // ================= SURFACE PHYSICS =================
+            if (ImGui::CollapsingHeader("Surface Physics")) {
                 ImGui::SliderFloat("Rubber Friction (Grab)", &cRacketPhysical->friction, 0.0f, 2.0f, "%.2f");
-                if (ImGui::IsItemHovered())
-                    ImGui::SetTooltip("Higher friction makes the ball 'follow' the racket swing and generate more spin.");
-
-                // Restitution: High = more pop/speed, Low = dead paddle
                 ImGui::SliderFloat("Restitution (Bounciness)", &cRacketPhysical->restitution, 0.1f, 1.2f, "%.2f");
-                if (ImGui::IsItemHovered())
-                    ImGui::SetTooltip("0.1 = Dead ball, 1.0 = Perfect energy return.");
-
                 if (ImGui::Button("Reset to Standard Paddle")) {
                     cRacketPhysical->friction = 0.5f;
                     cRacketPhysical->restitution = 0.8f;
                 }
             }
+        }
 
-            // ================= STROKE PHASE TELEMETRY =================
-            if (ImGui::CollapsingHeader("Stroke Lifecycle", ImGuiTreeNodeFlags_DefaultOpen)) {
-                float ms = cPlayerHandle->strokeTime_ms;
+        if (cPlayerSwing && cPlayerState) {
+            if (ImGui::CollapsingHeader("Stroke Lifecycle")) {
+                // 1. Display the Current State Name
+                const char* stateNames[] = { "Idle", "Backswing", "Swing", "Swing Recovery", "Push", "Push Recovery", "Braked Backswing"};
+                int currentStateIdx = (int)cPlayerSwing->strokeState;
+                ImGui::Text("CURRENT STATE: %s", stateNames[currentStateIdx]);
+                ImGui::Text("Braking: %s", cPlayerSwing->isBraking ? "Yes" : "No");
+                // 2. Specialized Feedback per Phase
+                float ms = cPlayerSwing->strokeTime_ms;
 
-                // Color the text based on which phase we are in
-                if (ms < 80.0f && cPlayerSwing->swingTriggered)
-                    ImGui::TextColored(ImVec4(0, 1, 1, 1), "PHASE: COMMIT WINDOW (Steering High)");
-                else if (ms < 180.0f && cPlayerSwing->swingTriggered)
-                    ImGui::TextColored(ImVec4(1, 0.5f, 0, 1), "PHASE: ACCELERATION (Steering Low)");
-                else if (cPlayerSwing->swingTriggered)
-                    ImGui::TextColored(ImVec4(1, 0, 0, 1), "PHASE: BALLISTIC / FOLLOW-THROUGH");
-                else
-                    ImGui::Text("PHASE: IDLE / PREP");
+                if (cPlayerSwing->strokeState == StrokeState::Swing) {
+                    if (ms < 80.0f)
+                        ImGui::TextColored(ImVec4(0, 1, 1, 1), "PHASE: COMMIT WINDOW (Steer Enabled)");
+                    else if (ms < 180.0f)
+                        ImGui::TextColored(ImVec4(1, 0.5f, 0, 1), "PHASE: ACCELERATION");
+                    else
+                        ImGui::Text("PHASE: FOLLOW-THROUGH");
 
-                ImGui::ProgressBar(ms / 250.0f, ImVec2(-1, 0), std::to_string((int)ms).append(" ms").c_str());
-            }
-
-            // ================= REACH & QUALITY INTERPRETER =================
-            if (ImGui::CollapsingHeader("Ability & Reach Interpreter", ImGuiTreeNodeFlags_DefaultOpen)) {
-                float currentExt = cPlayerHandle->swingOffset_m.length();
-                float reachRatio = currentExt / cPlayerArm->maxReach_m;
-
-                // Display a bar that turns red as you lose "Stroke Quality"
-                ImVec4 qualityCol = ImVec4(1.0f - cPlayerHandle->currentStrokeQuality, cPlayerHandle->currentStrokeQuality, 0, 1);
-                ImGui::Text("Stroke Quality (Power Capability):");
-                ImGui::PushStyleColor(ImGuiCol_PlotHistogram, qualityCol);
-                ImGui::ProgressBar(cPlayerHandle->currentStrokeQuality, ImVec2(-1, 0));
-                ImGui::PopStyleColor();
-
-                ImGui::Text("Extension: %.2fm / %.2fm (%.1f%%)",
-                    currentExt, cPlayerArm->maxReach_m, reachRatio * 100.f);
-
-                if (reachRatio > 0.85f) {
-                    ImGui::TextColored(ImVec4(1, 0, 0, 1), "WARNING: ARM STIFFNESS ACTIVE");
+                    // Progress toward end of swing (300ms)
+                    ImGui::ProgressBar(ms / 300.0f, ImVec2(-1, 0), (std::to_string((int)ms) + " / 300 ms").c_str());
                 }
-            }
+                else if (cPlayerSwing->strokeState == StrokeState::Backswing) {
+                    float chargePct = cPlayerSwing->backswingTime / cPlayerSwing->maxBackswing;
+                    ImGui::ProgressBar(chargePct, ImVec2(-1, 0), "CHARGING BACKSWING");
+                }
+                else if (cPlayerSwing->strokeState == StrokeState::Push) {
+                    ImGui::TextColored(ImVec4(0.5f, 1.0f, 0.5f, 1.0f), "MANUAL PUSH ACTIVE");
+                }
+                else {
+                    ImGui::TextDisabled("System Ready...");
+                }
 
-            // ================= GENERATIVE ARC DATA =================
-            if (ImGui::CollapsingHeader("Generative Arc Points")) {
-                ImGui::Text("Arc Start (Point 1): %.2f, %.2f, %.2f",
-                    cPlayerHandle->arcStartPoint.x,
-                    cPlayerHandle->arcStartPoint.y,
-                    cPlayerHandle->arcStartPoint.z);
-
-                // Show the J1 steer vector currently being applied
-                Vec3 currentJ1(cPlayerInput->axes["J1X"], -cPlayerInput->axes["J1Y"], 0.f);
-                ImGui::Text("Live J1 Steer: %.2f, %.2f", currentJ1.x, currentJ1.y);
-            }
-
-            if (ImGui::CollapsingHeader("Arm & Reach")) {
+                // 3. Weight Monitoring (For Smoothing Debug)
+                ImGui::Separator();
                 ImGui::Value("Stroke Weight", cPlayerHandle->strokeWeight);
-                ImGui::Text("Shoulder Pos: %.2f, %.2f, %.2f",
-                    cPlayerArm->shoulderPos_m.x, cPlayerArm->shoulderPos_m.y, cPlayerArm->shoulderPos_m.z);
+            }
 
-                ImGui::DragFloat3("Free Offset (J1)", &cPlayerHandle->freeOffset_m.x, 0.01f);
-                ImGui::DragFloat3("Swing Offset", &cPlayerHandle->swingOffset_m.x, 0.01f);
+            if (ImGui::CollapsingHeader("Ability & Reach", ImGuiTreeNodeFlags_DefaultOpen)) {
+                float currentExt = cPlayerHandle->swingOffset_m.length();
+                float reachRatio = currentExt / (cPlayerArm ? cPlayerArm->maxReach_m : 1.0f);
+                ImGui::ProgressBar(cPlayerHandle->currentStrokeQuality, ImVec2(-1, 0), "Stroke Quality");
+                ImGui::Text("Extension: %.2fm", currentExt);
+            }
+        }
+        if (cRacketPhysical) {
+            if (ImGui::CollapsingHeader("Impact")) {
+                ImGui::InputFloat("Grip Factor", &context->physicsDebug.racketGripFactor, 0.0f, 5.0f, "%.3f");
+                // RESTORED: Y-Delta Intersect Debug
+                float yDelta = context->physicsDebug.yAtPlaneContact;
+
+                if (std::abs(yDelta) < 0.05f) {
+                    ImGui::TextColored(ImVec4(0, 1, 0, 1), "Last Impact Y-Delta: %.4f m (SWEET SPOT)", yDelta);
+                }
+                else {
+                    ImGui::Text("Last Impact Y-Delta: %.4f m", yDelta);
+                }
+
+                // Visual represention of the Y offset on the paddle
+                float barPos = std::clamp(yDelta * 10.0f, -1.0f, 1.0f); // Scale for visibility
+                ImGui::Text("Impact Height Map:");
+                ImGui::ProgressBar((barPos + 1.0f) / 2.0f, ImVec2(-1, 15), "Paddle Surface");
+
+                ImGui::Separator();
+                ImGui::Text("Contact Plane Z: %.3f", context->physicsDebug.debugBallVelocity.z);
             }
         }
     }
     ImGui::End();
 }
-void GameImGuiSystem::drawControllerDebug(GameContext* context) {
-    ImGui::Begin("Controller Debug##Game", nullptr,
-        ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse);
 
+void GameImGuiSystem::drawRacketOrientationWidget(const Vec3& normal) {
+    ImDrawList* drawList = ImGui::GetWindowDrawList();
+    ImVec2 p = ImGui::GetCursorScreenPos();
+    float size = 100.0f;
+    ImVec2 center = ImVec2(p.x + size / 2.0f, p.y + size / 2.0f);
+
+    drawList->AddCircleFilled(center, size / 2.0f, IM_COL32(50, 50, 50, 255));
+    drawList->AddCircle(center, size / 2.0f, IM_COL32(200, 200, 200, 255), 32, 2.0f);
+    drawList->AddLine(ImVec2(center.x - size / 2, center.y), ImVec2(center.x + size / 2, center.y), IM_COL32(100, 100, 100, 150));
+    drawList->AddLine(ImVec2(center.x, center.y - size / 2), ImVec2(center.x, center.y + size / 2), IM_COL32(100, 100, 100, 150));
+
+    float tipX = center.x + (normal.x * (size / 2.0f));
+    float tipY = center.y - (normal.y * (size / 2.0f));
+
+    drawList->AddLine(center, ImVec2(tipX, tipY), IM_COL32(255, 255, 0, 255), 3.0f);
+    drawList->AddCircleFilled(ImVec2(tipX, tipY), 5.0f, IM_COL32(255, 50, 50, 255));
+
+    ImGui::Dummy(ImVec2(size, size));
+}
+
+void GameImGuiSystem::drawControllerDebug(GameContext* context) {
+    ImGui::Begin("Controller Debug##Game", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
     RawInputState& raw = context->rawInput;
 
     if (raw.controllerHandle && SDL_GameControllerGetAttached(raw.controllerHandle)) {
-        const char* name = SDL_GameControllerName(raw.controllerHandle);
-        ImGui::Text("Device (SDL): %s", name ? name : "Unknown");
+        ImGui::Text("Device: %s", SDL_GameControllerName(raw.controllerHandle));
         ImGui::Separator();
 
-        // --- DIGITAL BUTTONS SECTION ---
-        // We now use SDL_GameControllerButton enums
-        ImGui::Text("Buttons:");
-        ImGui::BeginGroup();
-
-        // Define buttons we want to see (standard Xbox layout)
-        static const struct { SDL_GameControllerButton btn; const char* label; } debugButtons[] = {
-            { SDL_CONTROLLER_BUTTON_A, "A" }, { SDL_CONTROLLER_BUTTON_B, "B" },
-            { SDL_CONTROLLER_BUTTON_X, "X" }, { SDL_CONTROLLER_BUTTON_Y, "Y" },
-            { SDL_CONTROLLER_BUTTON_LEFTSHOULDER, "LB" }, { SDL_CONTROLLER_BUTTON_RIGHTSHOULDER, "RB" },
-            { SDL_CONTROLLER_BUTTON_BACK, "Back" }, { SDL_CONTROLLER_BUTTON_START, "Start" },
-            { SDL_CONTROLLER_BUTTON_LEFTSTICK, "LSB" }, { SDL_CONTROLLER_BUTTON_RIGHTSTICK, "RSB" }
-        };
-
-        for (int i = 0; i < 10; i++) {
-            bool pressed = raw.isButtonDown(debugButtons[i].btn);
-            ImGui::Selectable(debugButtons[i].label, pressed, 0, ImVec2(45, 0));
-            if ((i + 1) % 5 != 0) ImGui::SameLine();
-        }
-        ImGui::EndGroup();
-
-        ImGui::Separator();
-
-        // --- ANALOG AXES SECTION ---
-        auto drawRawAxis = [&](const char* label, const std::string& key, bool isTrigger) {
+        // Analog Visualization
+        auto drawAxis = [&](const char* label, const std::string& key) {
             float val = raw.getAxis(key);
-            // Triggers are 0 to 1, Sticks are -1 to 1. Normalize for progress bar (0 to 1)
-            float visualVal = isTrigger ? val : (val + 1.0f) / 2.0f;
-
-            ImGui::Text("%-10s", label); ImGui::SameLine();
-            ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImVec4(0.2f, 0.7f, 0.2f, 1.0f));
-            ImGui::ProgressBar(visualVal, ImVec2(150, 0), std::to_string(val).c_str());
-            ImGui::PopStyleColor();
+            ImGui::Text("%-10s: %.2f", label, val);
+            ImGui::ProgressBar((val + 1.0f) / 2.0f, ImVec2(150, 0));
             };
 
-        ImGui::Text("SDL Axes (Normalized):");
-        drawRawAxis("L-Stick X", "J1X", false);
-        drawRawAxis("L-Stick Y", "J1Y", false);
-        drawRawAxis("R-Stick X", "J2X", false);
-        drawRawAxis("R-Stick Y", "J2Y", false);
-
-        // These are now independent! You will see both bars move separately.
-        drawRawAxis("LT (Left)", "LT", true);
-        drawRawAxis("RT (Right)", "RT", true);
-
-        // --- D-PAD SECTION ---
-        ImGui::Separator();
-        bool up = raw.isButtonDown(SDL_CONTROLLER_BUTTON_DPAD_UP);
-        bool down = raw.isButtonDown(SDL_CONTROLLER_BUTTON_DPAD_DOWN);
-        bool left = raw.isButtonDown(SDL_CONTROLLER_BUTTON_DPAD_LEFT);
-        bool right = raw.isButtonDown(SDL_CONTROLLER_BUTTON_DPAD_RIGHT);
-        ImGui::Text("D-Pad: %s %s %s %s",
-            up ? "[U]" : " _ ", down ? "[D]" : " _ ",
-            left ? "[L]" : " _ ", right ? "[R]" : " _ ");
-
+        drawAxis("L-Stick X", "J1X");
+        drawAxis("L-Stick Y", "J1Y");
+        drawAxis("R-Stick X", "J2X");
+        drawAxis("R-Stick Y", "J2Y");
     }
     else {
-        ImGui::TextColored(ImVec4(1, 0.4f, 0.4f, 1), "No SDL Controller Detected");
-        ImGui::Text("Waiting for SDL_CONTROLLERDEVICEADDED...");
+        ImGui::TextColored(ImVec4(1, 0, 0, 1), "No Controller Detected");
     }
-
     ImGui::End();
 }
+
 void GameImGuiSystem::drawSystemExecution(GameContext* context) {
-    ImGui::Begin("System Execution##Game", nullptr);
-
+    ImGui::Begin("System Execution##Game");
     Scene* scene = context->sceneManager.currentScene();
-    if (!scene || scene->systems().getNodes().empty()) {
-        ImGui::Text("Loading systems...");
-        ImGui::End();
-        return;
+    if (scene) {
+        for (const auto& node : scene->systems().getNodes()) {
+            drawSystemNodeRecursive(node);
+        }
     }
-
-    const SystemGraph& graph = scene->systems();
-
-    for (const auto& node : graph.getNodes()) {
-        drawSystemNodeRecursive(node);
-    }
-
     ImGui::End();
 }
-
-
 
 void GameImGuiSystem::drawSystemNodeRecursive(const SystemNode& node, int depth) {
     ImGui::Indent(depth * 14.0f);
-
-    bool isGroup =
-        dynamic_cast<ISystemGroup*>(node.system.get()) != nullptr;
-
-    bool open = true;
-
+    bool isGroup = dynamic_cast<ISystemGroup*>(node.system.get()) != nullptr;
     if (isGroup) {
-        open = ImGui::TreeNodeEx(
-            typeid(*node.system).name(),
-            ImGuiTreeNodeFlags_DefaultOpen
-        );
+        if (ImGui::TreeNodeEx(typeid(*node.system).name(), ImGuiTreeNodeFlags_DefaultOpen)) {
+            auto* group = static_cast<ISystemGroup*>(node.system.get());
+            for (const auto& child : group->childGraph().getNodes()) {
+                drawSystemNodeRecursive(child, depth + 1);
+            }
+            ImGui::TreePop();
+        }
     }
     else {
         ImGui::BulletText("%s", typeid(*node.system).name());
     }
-
-    ImGui::SameLine(300);
-    ImGui::Text("%s",
-        node.debug.exitedEarlyLastRun ? "Early Exit" : "Ran"
-    );
-
-    if (
-        node.debug.exitedEarlyLastRun &&
-        !node.debug.lastEarlyExitReason.empty() &&
-        ImGui::IsItemHovered()
-        ) {
-        ImGui::BeginTooltip();
-        ImGui::TextUnformatted(node.debug.lastEarlyExitReason.c_str());
-        ImGui::EndTooltip();
-    }
-
-    if (isGroup && open) {
-        auto* group =
-            static_cast<ISystemGroup*>(node.system.get());
-
-        for (const auto& child : group->childGraph().getNodes()) {
-            drawSystemNodeRecursive(child, depth + 1);
-        }
-
-        ImGui::TreePop();
-    }
-
     ImGui::Unindent(depth * 14.0f);
 }

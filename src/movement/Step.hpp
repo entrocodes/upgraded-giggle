@@ -1,7 +1,7 @@
 #pragma once
 
 #include "math/Vec3.hpp"
-enum class StepKind { Tap, Hop, Leap };
+enum class StepKind { None, Tap, Hop, Leap };
 
 struct StepRaw {
     StepKind kind;
@@ -9,6 +9,8 @@ struct StepRaw {
 
 };
 struct StepProfile {
+
+    StepKind kind;
     int totalFrames;
     int recoveryFrames;
     float maxSpeed_mps;

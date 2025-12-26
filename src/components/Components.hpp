@@ -23,3 +23,4 @@
 #include "CFootworkIntent.hpp"
 #include "CFootworkState.hpp"
 #include "CRotation3D.hpp"
+#include "CAuthorization.hpp"

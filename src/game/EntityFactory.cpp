@@ -91,7 +91,7 @@ Entity EntityFactory::createPlayer() {
     m_registry.addComponent<CVelocity>(ePlayer);
     m_registry.addComponent<CVelocity3D>(ePlayer);
     m_registry.addComponent<CTransform>(ePlayer);
-
+    m_registry.addComponent<CAuthorization>(ePlayer);
     // --- Render ---
     m_registry.addComponent<CRenderLayer>(ePlayer, 90);
 

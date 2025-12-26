@@ -14,7 +14,6 @@
 #include "systems/LogoRotationSystem.hpp"
 #include "systems/RenderLayerSystem.hpp"
 #include "systems/RenderSystem.hpp"
-#include "systems/groups/RacketMovementSystemGroup.hpp"
 #include "systems/FrameStatsSystem.hpp"
 #include "systems/game/imgui/GameImGuiSystem.hpp"
 #include "systems/game/debug/BallSpawnDebugSystem.hpp"
@@ -29,7 +28,7 @@ GameScene::GameScene(GameContext* context)
 
     // --- System wiring ---
     systemGraph.add<FrameStatsSystem>(m_factory, 0, TickPhase::Fixed, NotPausable);
-    systemGraph.add <BallSpawnDebugSystem>(m_factory, 5, TickPhase::Fixed, NotPausable);
+    systemGraph.add<BallSpawnDebugSystem>(m_factory, 5, TickPhase::Fixed, NotPausable);
     systemGraph.add<InputSystem>(m_factory, 10, TickPhase::Fixed, NotPausable);
     systemGraph.add<GlobalIntentSystem>(m_factory, 12, TickPhase::Fixed, NotPausable);
     systemGraph.add<DebugIntentSystem>(m_factory, 14, TickPhase::Fixed, NotPausable);
@@ -37,12 +36,11 @@ GameScene::GameScene(GameContext* context)
     systemGraph.add<PlayerIntentSystem>(m_factory, 17, TickPhase::Fixed, NotPausable);
     systemGraph.add<DebugActionSystem>(m_factory, 18, TickPhase::Fixed, NotPausable);
     systemGraph.add<PlayerActionSystem>(m_factory, 50, TickPhase::Fixed, NotPausable);
-    systemGraph.add<RacketMovementSystemGroup>(m_factory, 60, TickPhase::Fixed, Pausable, m_factory);
     systemGraph.add<MovementSystemGroup>(m_factory, 100, TickPhase::Fixed, Pausable, m_factory);
     systemGraph.add<BallRemovalSystem>(m_factory, 200, TickPhase::Fixed);
     systemGraph.add<AnimationSystem>(m_factory, 300, TickPhase::Fixed);
     systemGraph.add<LogoRotationSystem>(m_factory, 400, TickPhase::Fixed);
-    systemGraph.add <ProceduralAnimationSystem>(m_factory, 500, TickPhase::Fixed, NotPausable);
+    systemGraph.add<ProceduralAnimationSystem>(m_factory, 500, TickPhase::Fixed, NotPausable);
     systemGraph.add<RenderLayerSystem>(m_factory, 900, TickPhase::Render, NotPausable);
     systemGraph.add<RenderSystem>(m_factory, 1000, TickPhase::Render, NotPausable);
     systemGraph.add<GameImGuiSystem>(m_factory, 1200, TickPhase::Render, NotPausable);

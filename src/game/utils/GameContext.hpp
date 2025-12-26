@@ -15,8 +15,12 @@
 #include "BallSpawnDebug.hpp"
 #include "ecs/SceneManager.hpp"
 
-
+struct DebugFootworkIntent {
+    float leftHoldTime = 0.0f;
+    float rightHoldTime = 0.0f;
+};
 struct FootworkMovement {
+    DebugFootworkIntent debugFootworkIntent;
     float tapStrength = .5f;
     float tapFrameLimit = 6;
     float hopStrength = 2.5;
@@ -81,7 +85,7 @@ struct PhysicsDebugSettings {
     bool debugRemoveAllBalls = false;
     bool debugSpinEnabled = true;
     bool debugSpinArrows = false;
-    bool debugArrows = false;
+    bool debugArrows = true;
     bool enableConsoleDebugOutput = false;
     bool clickToSpawn = true;
     bool clickForMousePos = false;
@@ -93,6 +97,7 @@ struct PhysicsDebugSettings {
     int debugIntKeepXBalls = 5;
     bool debugBoolKeepXBalls = true;
     float yAtPlaneContact = 0.0f;
+    float racketGripFactor = 2.0f;
 
 };
 struct MetaInputState {
@@ -122,7 +127,7 @@ struct RenderSettings {
     bool updateResolution = false;
     bool hideImGui = false;
 
-    bool debugDrawPlayerBody = false;
+    bool debugDrawPlayerBody = true;
     bool debugDrawArmLine = false;
     bool debugDrawBladeNormal = false;
     bool debugDrawTorsoIndicator = false;

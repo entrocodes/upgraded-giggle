@@ -7,14 +7,19 @@
 #include "systems/TransformSaveSystem.hpp"
 #include "ecs/system/ISystemGroup.hpp"
 #include "ecs/system/SystemFactory.hpp"
+#include "systems/groups/RacketMovementSystemGroup.hpp"
+#include "systems/game/movement/anatomy/AnatomySystem.hpp"
 class MovementSystemGroup final : public ISystemGroup {
 public:
     explicit MovementSystemGroup(SystemFactory& factory)
         : m_factory(factory)
     {
         m_graph.add<TransformSaveSystem>(m_factory, 0, TickPhase::Fixed);
+        m_graph.add<PlayerMovementSystemGroup>(m_factory, 70, TickPhase::Fixed, Pausable, m_factory);
+        m_graph.add<AnatomySystem>(m_factory, 75, TickPhase::Fixed, NotPausable);
+        m_graph.add<RacketMovementSystemGroup>(m_factory, 80, TickPhase::Fixed, Pausable, m_factory);
         m_graph.add<BallPhysicsSystemGroup>(m_factory, 100, TickPhase::Fixed, Pausable, m_factory);
-        m_graph.add<PlayerMovementSystemGroup>(m_factory, 150, TickPhase::Fixed, Pausable, m_factory);
+
     }
 
     SystemExec update(GameContext* context) override {

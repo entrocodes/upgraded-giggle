@@ -43,9 +43,10 @@ set(PIXEL_PONG_SOURCES
     helpers/FileUtils.cpp
     game/utils/JsonEntityLoader.cpp
     input/RawInputState.cpp
-    systems/movement/player/footwork/FootworkMovementSystem.cpp
-    systems/movement/player/VelocityIntegrationSystem.cpp
+    systems/game/movement/player/footwork/FootworkMovementSystem.cpp
+    systems/game/movement/player/VelocityIntegrationSystem.cpp
     systems/ProceduralAnimationSystem.cpp
+    systems/game/movement/anatomy/AnatomySystem.cpp
 )
 
 

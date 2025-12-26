@@ -5,108 +5,128 @@
 #include "debug/Debug.hpp"
 
 SystemExec RacketSwingSystem::update(GameContext* context) {
-    auto* ePlayer = context->registry.getEntity("player");
-    auto [cPlayerInput, cPlayerRacketSwing, cPlayerRacketHandle, cPlayerArm, cPlayerPos] =
-        context->registry.getComponents<CInput, CRacketSwing, CRacketHandle, CArm, CTransform3D>(*ePlayer);
+    for (auto entity : context->registry.getEntitiesWith<CRacketSwing, CRacketHandle, CArm, CTransform3D>()) {
+        auto [cAuthorization, cRacketSwing, cRacketHandle, cArm, cTransform3D] = context->registry.getComponents<CAuthorization, CRacketSwing, CRacketHandle, CArm, CTransform3D>(entity);
 
-    float dt = context->frameStats.dt;
+        float dt = context->frameStats.dt;
 
-    // 1. Torso Load (X and B buttons)
-    // Assuming you have holdTime mapped for both left/right rotation
-    cPlayerRacketSwing->torsoLeftLoad = cPlayerInput->holdTime["X"];
-    cPlayerRacketSwing->torsoRightLoad = cPlayerInput->holdTime["B"];
-    // Combine for a master "Torso Factor" for lean/twist
-    float totalTorsoLoad = cPlayerRacketSwing->torsoLeftLoad + cPlayerRacketSwing->torsoRightLoad;
+        StrokeState& strokeState = cRacketSwing->strokeState;
+        StrokeState& prevStrokeState = cRacketSwing->prevStrokeState;
+        prevStrokeState = strokeState;
+        // 1. Torso Load (X and B buttons)
+        cRacketSwing->torsoLeftLoad = cAuthorization->floatMap["TorsoLeftLoad"];
+        cRacketSwing->torsoRightLoad = cAuthorization->floatMap["TorsoRightLoad"];
+        float totalTorsoLoad = cRacketSwing->torsoLeftLoad + cRacketSwing->torsoRightLoad;
 
-    // 2. PHASE 1 & 2: BACKSWING (LT)
-    // StartAttack = LT Pressed, ReleaseAttack = LT Released
-    if (cPlayerInput->actions["StartAttack"]) {
-        cPlayerRacketSwing->isCharging = true;
-        cPlayerRacketSwing->swingTriggered = false; // Reset if interrupted
-    }
+        // 2. PHASE 1 & 2: BACKSWING (LT)
+        // StartAttack = LT Pressed, ReleaseAttack = LT Released
+        if (cAuthorization->boolMap["RequestBackswing"] && strokeState == StrokeState::Idle) {
+            strokeState = StrokeState::Backswing;
+        }
+        if (cAuthorization->boolMap["RequestPush"] && strokeState == StrokeState::Idle) {
+            strokeState = StrokeState::Push;
+        }
+        if (cAuthorization->boolMap["RequestStopPush"] && strokeState == StrokeState::Push) {
+            strokeState = StrokeState::PushRecovery;    
+        }
+        if (cAuthorization->boolMap["RequestReleaseSwing"] && (strokeState == StrokeState::Backswing || strokeState == StrokeState::BrakedBackSwing)) {
+            strokeState = StrokeState::Swing;
+        }
+        if (cAuthorization->boolMap["RequestStopBackswing"] && strokeState == StrokeState::Backswing) {
+            strokeState = StrokeState::BrakedBackSwing;
+        }
+        Vec2 steer = cAuthorization->vec2Map["SteerIntent"];
+        if (strokeState == StrokeState::Backswing || strokeState == StrokeState::BrakedBackSwing) {
+            if (prevStrokeState != StrokeState::Backswing && prevStrokeState != StrokeState::BrakedBackSwing) {
+                cRacketSwing->backswingTime = 0.0f;
+            }
+            if (strokeState != StrokeState::BrakedBackSwing) {
+                cRacketSwing->backswingTime = std::min(
+                    cRacketSwing->backswingTime + dt,
+                    cRacketSwing->maxBackswing
+                );
+            }
+   
+            float t = cRacketSwing->backswingTime / cRacketSwing->maxBackswing;
 
-    if (cPlayerRacketSwing->isCharging) {
-        // --- THE RT BRAKE LOGIC ---
-        // If RT is held (mapped to "Brake" or checked via raw axis), we STOP the backswing timer
-        bool isBraking = cPlayerInput->axes["RT"] > 0.5f;
 
-        if (!isBraking) {
-            cPlayerRacketSwing->backswingTime = std::min(
-                cPlayerRacketSwing->backswingTime + dt,
-                cPlayerRacketSwing->maxBackswing
-            );
+            cRacketHandle->strokeWeight = 0.0f;
+            cRacketHandle->swingOffset_m = { 0,0,0 };
+
+            Vec3 pocketPos = { steer.x * 0.4f, -steer.y * 0.4f, -0.3f };
+
+            cRacketHandle->swingOffset_m = pocketPos * t;
+
+            cRacketHandle->strokeWeight = 1.0f; 
+        }
+        if (cRacketSwing->strokeState == StrokeState::Push || cRacketSwing->strokeState == StrokeState::Idle) {
+            float sensitivity = .8f;
+            if (cRacketSwing->strokeState == StrokeState::Push) {
+                float sensitivityZ = 5.0f;
+                float manualZ = cAuthorization->floatMap["ManualReachZ"];
+                cRacketHandle->freeOffset_m.z += manualZ * sensitivity * sensitivityZ * dt; //make pushoffset separable from free offset later
+            }
+            cRacketHandle->freeOffset_m.x += steer.x * sensitivity * dt;
+            cRacketHandle->freeOffset_m.y += -steer.y * sensitivity * dt;
+        }
+        if (strokeState == StrokeState::PushRecovery) {
+            if (cRacketHandle->freeOffset_m.z > 0) {
+                float pushResetRate = 1.0f;
+                cRacketHandle->freeOffset_m.z -= pushResetRate * dt;
+                if (cRacketHandle->freeOffset_m.z <= 0) cRacketHandle->freeOffset_m.z = 0;
+            }
+            else {
+                strokeState = StrokeState::Idle;
+            }
+        }
+        if (strokeState == StrokeState::Swing) {
+            if (prevStrokeState == StrokeState::Backswing || prevStrokeState == StrokeState::BrakedBackSwing) {
+                cRacketSwing->strokeTime_ms = 0.f;
+            }
+
+            float chargePct = cRacketSwing->backswingTime / cRacketSwing->maxBackswing;
+            cRacketSwing->swingSpeed = (0.5f + chargePct + totalTorsoLoad) * 6.0f;
+            cRacketSwing->strokeTime_ms += dt * 1000.f;
+            float ms = cRacketSwing->strokeTime_ms;
+
+            // Reach Power Dampening
+            float currentExtension = cRacketHandle->swingOffset_m.length();
+            float reachRatio = currentExtension / cArm->maxReach_m;
+            float stiffness = std::clamp((reachRatio - 0.85f) / 0.15f, 0.0f, 1.0f);
+            float powerMult = 1.0f - (stiffness * 0.9f);
+            // Generative steering
+            Vec3 j1Steer(steer.x, -steer.y, 0.f);
+            Vec3 forwardVel(0, 0, cRacketSwing->swingSpeed * powerMult);
+
+            if (ms < 80.f) {      // COMMIT WINDOW (High steering)
+                forwardVel.x += j1Steer.x * 4.5f * powerMult;
+                forwardVel.y += j1Steer.y * 4.5f * powerMult;
+            }
+            else if (ms < 180.f) { // ACCELERATION (Low steering)
+                forwardVel.x += j1Steer.x * 1.0f * powerMult;
+                forwardVel.y += j1Steer.y * 1.0f * powerMult;
+            }
+
+            cRacketHandle->swingOffset_m += forwardVel * dt;
+            // HARD LIMIT: Prevents racket from detaching during ballistic swing
+            if (cRacketHandle->swingOffset_m.length() > cArm->maxReach_m) {
+                cRacketHandle->swingOffset_m = cRacketHandle->swingOffset_m.normalized() * cArm->maxReach_m;
+            }
+            // End of Stroke condition
+            if (ms > 300.f){//TODO: better conditions 
+                strokeState = StrokeState::SwingRecovery;
+                cRacketHandle->freeOffset_m = cRacketHandle->swingOffset_m;
+            }
+        }
+        if (strokeState == StrokeState::SwingRecovery) {
+            cRacketHandle->strokeWeight = std::clamp(cRacketHandle->strokeWeight - dt * 4.f, 0.f, 1.f);
+            cRacketHandle->swingOffset_m = cRacketHandle->swingOffset_m * (1.f - dt * 8.f);
+            if (cRacketHandle->strokeWeight == 0) {
+                strokeState = StrokeState::Idle;
+            }
         }
 
-        // J1 defines the START POINT of the Arc
-        // Even if braking, J1 is "free move" within the reach sphere
-        float t = cPlayerRacketSwing->backswingTime / cPlayerRacketSwing->maxBackswing;
-
-        // J1 X/Y defines the "pocket" position (Lateral/Height)
-        cPlayerRacketHandle->arcStartPoint.x = cPlayerInput->axes["J1X"] * 0.4f;
-        cPlayerRacketHandle->arcStartPoint.y = -cPlayerInput->axes["J1Y"] * 0.4f;
-        // Z is the pull-back depth, now "freezable" by RT
-        cPlayerRacketHandle->arcStartPoint.z = -t * 0.5f;
-
-        // During charge, racket follows the start point exactly
-        cPlayerRacketHandle->swingOffset_m = cPlayerRacketHandle->arcStartPoint;
-        cPlayerRacketHandle->strokeWeight = 1.0f;
     }
-
-    // 3. TRANSITION: RELEASE LT (The Hand-off)
-    if (cPlayerInput->actions["ReleaseAttack"] && cPlayerRacketSwing->isCharging) {
-        cPlayerRacketSwing->isCharging = false;
-        cPlayerRacketSwing->swingTriggered = true;
-        cPlayerRacketHandle->strokeTime_ms = 0.f;
-
-        // Calculate exit velocity
-        float chargePct = cPlayerRacketSwing->backswingTime / cPlayerRacketSwing->maxBackswing;
-        // Swing speed is a mix of backswing depth and total torso rotation
-        cPlayerRacketSwing->swingSpeed = (0.5f + chargePct + totalTorsoLoad) * 6.0f;
-    }
-
-    // 4. PHASE 3: FORWARD SWING (The Generative Arc)
-    if (cPlayerRacketSwing->swingTriggered) {
-        cPlayerRacketHandle->strokeTime_ms += dt * 1000.f;
-        float ms = cPlayerRacketHandle->strokeTime_ms;
-
-        // Reach Power Dampening
-        float currentExtension = cPlayerRacketHandle->swingOffset_m.length();
-        float reachRatio = currentExtension / cPlayerArm->maxReach_m;
-        float stiffness = std::clamp((reachRatio - 0.85f) / 0.15f, 0.0f, 1.0f);
-        float powerMult = 1.0f - (stiffness * 0.9f);
-
-        // Generative steering
-        Vec3 j1Steer(cPlayerInput->axes["J1X"], -cPlayerInput->axes["J1Y"], 0.f);
-        Vec3 forwardVel(0, 0, cPlayerRacketSwing->swingSpeed * powerMult);
-
-        if (ms < 80.f) {      // COMMIT WINDOW (High steering)
-            forwardVel.x += j1Steer.x * 4.5f * powerMult;
-            forwardVel.y += j1Steer.y * 4.5f * powerMult;
-        }
-        else if (ms < 180.f) { // ACCELERATION (Low steering)
-            forwardVel.x += j1Steer.x * 1.0f * powerMult;
-            forwardVel.y += j1Steer.y * 1.0f * powerMult;
-        }
-
-        cPlayerRacketHandle->swingOffset_m += forwardVel * dt;
-
-        // Physical Arm Constraint
-        if (cPlayerRacketHandle->swingOffset_m.length() > cPlayerArm->maxReach_m) {
-            cPlayerRacketHandle->swingOffset_m = cPlayerRacketHandle->swingOffset_m.normalized() * cPlayerArm->maxReach_m;
-        }
-
-        // End of Stroke condition
-        if (ms > 250.f || cPlayerRacketHandle->swingOffset_m.z > 0.6f) {
-            cPlayerRacketSwing->swingTriggered = false;
-            cPlayerRacketSwing->backswingTime = 0.f;
-            cPlayerRacketHandle->freeOffset_m = cPlayerRacketHandle->swingOffset_m;
-        }
-    }
-    else if (!cPlayerRacketSwing->isCharging) {
-        // Return to neutral blend
-        cPlayerRacketHandle->strokeWeight = std::clamp(cPlayerRacketHandle->strokeWeight - dt * 4.f, 0.f, 1.f);
-        cPlayerRacketHandle->swingOffset_m = cPlayerRacketHandle->swingOffset_m * (1.f - dt * 8.f);
-    }
-
+    
     return { SystemExecResult::Ran };
 }

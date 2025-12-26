@@ -87,6 +87,7 @@ SystemExec FootworkMovementSystem::update(GameContext* context) {
 StepProfile FootworkMovementSystem::convertStepFromRaw(const StepRaw& rawStep) {
 
 	StepProfile stepProfile{};
+	stepProfile.kind = rawStep.kind;
 	if (rawStep.kind == StepKind::Tap) {
 		stepProfile.totalFrames = 5;
 		stepProfile.recoveryFrames = 7;

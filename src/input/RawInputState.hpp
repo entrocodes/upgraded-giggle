@@ -42,12 +42,12 @@ struct RawInputState {
     bool isButtonDown(SDL_GameControllerButton b) const;
     bool isButtonJustPressed(SDL_GameControllerButton b) const;
     bool isButtonJustReleased(SDL_GameControllerButton b) const;
+    float getButtonHoldDuration(SDL_GameControllerButton b, int currentTick) const;
     // --- Analog/Axis Helpers ---
     bool isAxisDown(const std::string& name) const;
     bool isAxisJustPressed(const std::string& name) const;
     bool isAxisReleased(const std::string& name) const;
     float getAxis(const std::string& name) const;
-
     // Lifecycle
     void nextFrame();
 };

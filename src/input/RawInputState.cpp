@@ -72,6 +72,13 @@ bool RawInputState::isButtonJustReleased(SDL_GameControllerButton b) const {
     bool curr = padStates.count(btn) ? padStates.at(btn) : false;
     return prev && !curr;
 }
+float RawInputState::getButtonHoldDuration(SDL_GameControllerButton b, int currentTick) const {
+    int btn = static_cast<int>(b);
+    if (framePadPressed.count(btn)) {
+        return currentTick - framePadPressed.at(btn);
+    }
+    return 0;
+}
 // --- Cycle State ---
 void RawInputState::nextFrame() {
     prevKeyStates = keyStates;

@@ -9,5 +9,6 @@ struct CFootworkState : public Component{
     bool buffered = false;
     StepRaw bufferedStep;
     Vec3 bufferedDirection;
+    StepKind kind;
 
 };
