@@ -1,7 +1,8 @@
 #include "RawInputState.hpp"
-#include "game/utils/GameContext.hpp" 
 
-// --- Keyboard ---
+// =========================================================
+// KEYBOARD (SFML)
+// =========================================================
 bool RawInputState::isKeyDown(sf::Keyboard::Key k) const {
     auto it = keyStates.find(k);
     return it != keyStates.end() && it->second;
@@ -19,16 +20,27 @@ bool RawInputState::isKeyReleased(sf::Keyboard::Key k) const {
     return prev && !curr;
 }
 
-// --- Mouse ---
+int RawInputState::getKeyHoldDuration(sf::Keyboard::Key k, int currentTick) const {
+    auto it = frameKeyPressed.find(k);
+    if (it == frameKeyPressed.end())
+        return 0;
+    return currentTick - it->second;
+}
+
+// =========================================================
+// MOUSE
+// =========================================================
 bool RawInputState::isMouseButtonDown(sf::Mouse::Button b) const {
     auto it = mouseButtonStates.find(b);
     return it != mouseButtonStates.end() && it->second;
 }
 
-// --- SDL Gamepad Buttons ---
-// Now uses SDL enum values (e.g., SDL_CONTROLLER_BUTTON_A)
+// =========================================================
+// GAMEPAD BUTTONS (SDL)
+// =========================================================
 bool RawInputState::isButtonDown(SDL_GameControllerButton b) const {
-    auto it = padStates.find(static_cast<int>(b));
+    int btn = static_cast<int>(b);
+    auto it = padStates.find(btn);
     return it != padStates.end() && it->second;
 }
 
@@ -39,14 +51,27 @@ bool RawInputState::isButtonJustPressed(SDL_GameControllerButton b) const {
     return !prev && curr;
 }
 
-// --- Analog Axis Logic (SDL Independent Triggers) ---
+bool RawInputState::isButtonJustReleased(SDL_GameControllerButton b) const {
+    int btn = static_cast<int>(b);
+    bool prev = prevPadStates.count(btn) ? prevPadStates.at(btn) : false;
+    bool curr = padStates.count(btn) ? padStates.at(btn) : false;
+    return prev && !curr;
+}
 
+float RawInputState::getButtonHoldDuration(SDL_GameControllerButton b, int currentTick) const {
+    int btn = static_cast<int>(b);
+    auto it = framePadPressed.find(btn);
+    if (it == framePadPressed.end())
+        return 0.f;
+    return float(currentTick - it->second);
+}
+
+// =========================================================
+// ANALOG AXES
+// =========================================================
 bool RawInputState::isAxisDown(const std::string& name) const {
-    // For triggers "LT" or "RT", "Down" means squeezed past a deadzone
     auto it = axes.find(name);
     if (it == axes.end()) return false;
-
-    // We treat triggers/sticks as "Down" if pushed more than 20%
     return std::abs(it->second) > 0.2f;
 }
 
@@ -64,35 +89,18 @@ bool RawInputState::isAxisReleased(const std::string& name) const {
 
 float RawInputState::getAxis(const std::string& name) const {
     auto it = axes.find(name);
-    return (it != axes.end()) ? it->second : 0.0f;
+    return (it != axes.end()) ? it->second : 0.f;
 }
-bool RawInputState::isButtonJustReleased(SDL_GameControllerButton b) const {
-    int btn = static_cast<int>(b);
-    bool prev = prevPadStates.count(btn) ? prevPadStates.at(btn) : false;
-    bool curr = padStates.count(btn) ? padStates.at(btn) : false;
-    return prev && !curr;
-}
-float RawInputState::getButtonHoldDuration(SDL_GameControllerButton b, int currentTick) const {
-    int btn = static_cast<int>(b);
-    if (framePadPressed.count(btn)) {
-        return currentTick - framePadPressed.at(btn);
-    }
-    return 0;
-}
-// --- Cycle State ---
+
+// =========================================================
+// FRAME LIFECYCLE
+// =========================================================
 void RawInputState::nextFrame() {
     prevKeyStates = keyStates;
     prevMouseButtonStates = mouseButtonStates;
     prevPadStates = padStates;
     prevAxes = axes;
 
-    // Cleanup Button Timers: If the button isn't down anymore, stop tracking its start frame
-    for (auto it = framePadPressed.begin(); it != framePadPressed.end(); ) {
-        if (!padStates.count(it->first) || !padStates.at(it->first)) {
-            it = framePadPressed.erase(it);
-        }
-        else {
-            ++it;
-        }
-    }
+    frameKeyPressed.clear();
+    framePadPressed.clear();
 }

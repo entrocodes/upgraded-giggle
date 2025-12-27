@@ -81,15 +81,17 @@ struct PhysicsDebugSettings {
     Vec3 debugBallSpin = { 0.0f, 0.0f, 0.0f };
     float debugBallHeight = 1.0f;
     Vec3 debugBallVelocity = { 0.0f,0.0f,-1.5f };
-    float debugKMagnus = 0.00035f;
     bool debugRemoveAllBalls = false;
+    bool debugDrawImpulses = false;
     bool debugSpinEnabled = true;
-    bool debugSpinArrows = false;
-    bool debugArrows = true;
+    bool debugBallSpinArrows = false;
+    bool debugBallVelocityArrows = false;
+    bool debugShapes = true;
     bool enableConsoleDebugOutput = false;
     bool clickToSpawn = true;
     bool clickForMousePos = false;
     bool debugRacketAttach = true;
+    bool logImpulses = true;
     bool drawGrid = false;
     bool autoSpawnBalls = true;
     float autoSpawnInterval = 0.25f;   // seconds between spawns
@@ -97,7 +99,10 @@ struct PhysicsDebugSettings {
     int debugIntKeepXBalls = 5;
     bool debugBoolKeepXBalls = true;
     float yAtPlaneContact = 0.0f;
-    float racketGripFactor = 2.0f;
+    float racketGripFactor = .4f;
+    float maxBallSpin_revps = 180.0f;
+    float slipKillFactor = .25f;
+    float towardsRacketHeightDebugFactor = .15f;
 
 };
 struct MetaInputState {

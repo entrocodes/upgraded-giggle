@@ -8,7 +8,7 @@
 #include "ecs/system/ISystemGroup.hpp"
 #include "debug/Debug.hpp"
 #include <cmath>
-
+#include "GameImGuiConsole.hpp"
 SystemExec GameImGuiSystem::update(GameContext* context) {
     if (context->renderSettings.hideImGui) {
         context->inputBlocked = false;
@@ -27,7 +27,8 @@ SystemExec GameImGuiSystem::update(GameContext* context) {
     drawRacketDebug(context);
     drawControllerDebug(context);
     drawSystemExecution(context);
-
+    static bool showConsole = true;
+    ImGuiConsoleDraw(&showConsole);
     return { SystemExecResult::Ran };
 }
 
@@ -45,7 +46,7 @@ void GameImGuiSystem::drawDeveloperPanel(GameContext* context) {
         ImGui::Checkbox("Draw Blade Normal Arrow", &context->renderSettings.debugDrawBladeNormal);
     }
 
-    if (ImGui::CollapsingHeader("Display", ImGuiTreeNodeFlags_DefaultOpen)) {
+    if (ImGui::CollapsingHeader("Display")) {
         ImGui::Text("Resolution: %.0fx%.0f",
             context->display.windowSize.x,
             context->display.windowSize.y);
@@ -65,7 +66,7 @@ void GameImGuiSystem::drawDeveloperPanel(GameContext* context) {
 
         ImGui::Checkbox("Show Bounding Boxes", &context->renderSettings.draw3DBoundingBoxes);
         ImGui::Checkbox("Show Homography Grid", &context->camera.homography.drawGrid);
-        ImGui::Checkbox("Show Arrows", &context->physicsDebug.debugArrows);
+        ImGui::Checkbox("Show Debug Shapes", &context->physicsDebug.debugShapes);
     }
 
     if (ImGui::CollapsingHeader("3D Transform Inspector")) {
@@ -87,8 +88,8 @@ void GameImGuiSystem::drawDeveloperPanel(GameContext* context) {
         ImGui::SliderFloat("Ball Height", &context->physicsDebug.debugBallHeight, 0.f, 3.f);
         ImGui::SliderFloat3("Velocity", &context->physicsDebug.debugBallVelocity.x, -2.f, 2.f);
         ImGui::SliderFloat3("Spin", &context->physicsDebug.debugBallSpin.x, -2.f, 2.f);
-        ImGui::Checkbox("Show Spin Arrows", &context->physicsDebug.debugSpinArrows);
-
+        ImGui::Checkbox("Show Spin Arrows", &context->physicsDebug.debugBallSpinArrows);
+        ImGui::Checkbox("Show Velocity Arrows", &context->physicsDebug.debugBallVelocityArrows);
         if (ImGui::Button("Reset Spin & Velocity")) {
             context->physicsDebug.debugBallSpin = {};
             context->physicsDebug.debugBallVelocity = {};
@@ -103,14 +104,23 @@ void GameImGuiSystem::drawDeveloperPanel(GameContext* context) {
             ImGui::Checkbox("Enable Ball Limit", &context->physicsDebug.debugBoolKeepXBalls);
         }
     }
+    if (ImGui::CollapsingHeader("Last Ball")) {
+        Entity* lastBall = context->registry.getLastEntity();
+        if (context->registry.hasComponent<CBall>(*lastBall)) {
+            auto [cVelocity3D, cTransform3D, cBall] = context->registry.getComponents<CVelocity3D, CTransform3D, CBall>(*lastBall);
+            ImGui::Text("Position: %.2f, %.2f, %.2f", cTransform3D->pos_m.x, cTransform3D->pos_m.y, cTransform3D->pos_m.z);
+            ImGui::Text("Velocity: %.2f, %.2f, %.2f", cVelocity3D->vel_mps.x, cVelocity3D->vel_mps.y, cVelocity3D->vel_mps.z);
+            ImGui::Text("Spin: %.2f, %.2f, %.2f", cBall->spin.x, cBall->spin.y, cBall->spin.z);
+        }
+    }
 
     if (ImGui::CollapsingHeader("Ball Spawn Debug")) {
         auto& ctxBallSpawnDebug = context->ballSpawnDebug;
         ImGui::Checkbox("Auto Spawn", &ctxBallSpawnDebug.autoSpawn);
         ImGui::SliderFloat("Spawn Interval (s)", &ctxBallSpawnDebug.interval, 0.05f, 3.0f);
         ImGui::SliderFloat("Feed Speed", &ctxBallSpawnDebug.feedSpeed, 0.2f, 6.0f);
-
-        const char* modes[] = { "Toward Racket", "Fixed Position", "Alternate L / R" };
+        ImGui::SliderFloat("Debug Height Offset", &context->physicsDebug.towardsRacketHeightDebugFactor, 0.0f, .5f);
+        const char* modes[] = { "Toward Racket", "Fixed Position", "Alternate L / R", "Toward Opponent Racket"};
         int mode = static_cast<int>(ctxBallSpawnDebug.mode);
         if (ImGui::Combo("Spawn Mode", &mode, modes, IM_ARRAYSIZE(modes))) {
             ctxBallSpawnDebug.mode = static_cast<BallSpawnMode>(mode);
@@ -124,7 +134,7 @@ void GameImGuiSystem::drawDeveloperPanel(GameContext* context) {
         }
     }
 
-    if (ImGui::CollapsingHeader("Player Debug", ImGuiTreeNodeFlags_DefaultOpen)) {
+    if (ImGui::CollapsingHeader("Player Debug")) {
         Entity* ePlayer = context->registry.getEntity("player");
         if (!ePlayer) {
             ImGui::TextColored(ImVec4(1, 0, 0, 1), "PLAYER ENTITY NOT FOUND");
@@ -180,7 +190,7 @@ void GameImGuiSystem::drawDeveloperPanel(GameContext* context) {
                     ImGui::TreePop();
                 }
             }
-            if (ImGui::CollapsingHeader("Footwork (Debug)", ImGuiTreeNodeFlags_DefaultOpen)) {
+            if (ImGui::CollapsingHeader("Footwork (Debug)")) {
                 if (ImGui::BeginChild("FootworkTuning", ImVec2(0, 160), true)) {
                     ImGui::SliderFloat("Tap Strength", &context->playerMovement.footworkMovement.tapStrength, 1.f, 25.f);
                     ImGui::SliderFloat("Hop Strength", &context->playerMovement.footworkMovement.hopStrength, 1.f, 25.f);
@@ -236,13 +246,14 @@ void GameImGuiSystem::drawRacketDebug(GameContext* context) {
                 ImGui::Columns(2, "OrientationCols", false);
                 ImGui::SetColumnWidth(0, 120.0f);
 
-                drawRacketOrientationWidget(cRacketPhysical->normal);
+                drawRacketOrientationWidget(cRacketPhysical->worldNormal);
 
                 ImGui::NextColumn();
                 ImGui::Text("Normal Vector:");
-                ImGui::Text("X: %.2f", cRacketPhysical->normal.x);
-                ImGui::Text("Y: %.2f", cRacketPhysical->normal.y);
-                ImGui::Text("Z: %.2f", cRacketPhysical->normal.z);
+                ImGui::Text("X: %.2f", cRacketPhysical->worldNormal.x);
+                ImGui::Text("Y: %.2f", cRacketPhysical->worldNormal.y);
+                ImGui::Text("Z: %.2f", cRacketPhysical->worldNormal.z);
+
 
                 ImGui::Separator();
                 ImGui::Text("Euler (deg):");
@@ -326,6 +337,9 @@ void GameImGuiSystem::drawRacketDebug(GameContext* context) {
 
                 ImGui::Separator();
                 ImGui::Text("Contact Plane Z: %.3f", context->physicsDebug.debugBallVelocity.z);
+                ImGui::Separator();
+                ImGui::Checkbox("Log Impulses", &context->physicsDebug.logImpulses);
+                ImGui::Checkbox("Draw Impuse Arrows", &context->physicsDebug.debugDrawImpulses);
             }
         }
     }

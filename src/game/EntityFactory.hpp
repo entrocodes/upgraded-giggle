@@ -26,7 +26,8 @@ public:
     Entity createBall(const Vec3& pos_m, const Vec3& vel_mps, const Vec3& spin = { 0.0f,0.0f,0.0f });
     Entity createPlayerRacket();
     Entity createText(std::string pString = "Hello World", float pCharacterSize = 32.0f, sf::Color pColor = sf::Color::White, Vec2 pPos = { 10, 10 }, const std::string pFont = "Tech");
-
+    Entity createOpponent();
+    Entity createOpponentRacket();
 private:
     Registry& m_registry;
     DisplayConfig& m_display;

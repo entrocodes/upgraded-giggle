@@ -48,6 +48,7 @@ struct RawInputState {
     bool isAxisJustPressed(const std::string& name) const;
     bool isAxisReleased(const std::string& name) const;
     float getAxis(const std::string& name) const;
+    int getKeyHoldDuration(sf::Keyboard::Key k, int currentTick) const;
     // Lifecycle
     void nextFrame();
 };

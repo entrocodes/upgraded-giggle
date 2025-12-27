@@ -78,7 +78,7 @@ void NetCollisionSystem::resolveNetContact(GameContext* context, Entity eBall)
         vel_mps.y = std::abs(vel_mps.y) + 0.3f; // slight upward deflection
 
     // Debug arrows (optional)
-    if (context->physicsDebug.debugArrows) {
+    if (context->physicsDebug.debugShapes) {
         Debug::queueArrow3D(pos_m, pos_m + vel_mps.normalized() * 0.2f, sf::Color::Red);
     }
 }

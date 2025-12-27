@@ -1,4 +1,4 @@
-Texture   TexStand     bin/assets/images/player/playerstand.png
+Texture   TexPlayerStand     bin/assets/images/player/playerstand.png
 Texture   TexBackswing bin/assets/images/player/playerbackswing.png
 Texture   TexBallShadow bin/assets/images/ball/ballshadow.png
 Texture   TexBall        bin/assets/images/ball/ball.png
@@ -7,11 +7,13 @@ Texture   TexOrangeRoom bin/assets/images/stage/orangeroom.png
 Texture   TexTable      bin/assets/images/table/table.png
 Texture   TexNet        bin/assets/images/table/net.png
 Texture   TexRacket        bin/assets/images/racket/racket.png
+Texture   TexOpponentStand     bin/assets/images/opponent/opponentstand.png
 Animation BallShadow   TexBallShadow 1    0
 Animation Ball         TexBall       1    0
 Animation BallLogo     TexBallLogo   1    0
-Animation Stand        TexStand      1    0
+Animation PlayerStand    TexPlayerStand      1    0
 Animation Backswing TexBackswing 1 0
+Animation OpponentStand TexOpponentStand 1 0
 Animation OrangeRoom   TexOrangeRoom 1    0
 Animation Table        TexTable 1 0
 Animation Net          TexNet 1 0

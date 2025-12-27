@@ -15,14 +15,13 @@ SystemExec BallForceSystem::update(GameContext* context) {
         if (!cBallBall || !cBallVelocity3D || !cBallTransform3D) continue;
 
         cBallBall->bForces.forceGravity = calcBallGrav.calculateForceGravity(cBallBall->mass);
-        cBallBall->bForces.forceMagnus = calcMagnus.calculateForceMagnus(cBallBall->spin, cBallVelocity3D->vel_mps, context->physicsDebug.debugKMagnus);
+        cBallBall->bForces.forceMagnus = calcMagnus.calculateForceMagnus(cBallBall->spin, cBallVelocity3D->vel_mps);
         cBallBall->bForces.forceDrag = calcBallDrag.calculateForceDrag(cBallVelocity3D->vel_mps);
 
 
-        cBallBall->bForces.totalForces = cBallBall->bForces.forceGravity + cBallBall->bForces.forceMagnus + cBallBall->bForces.forceDrag + cBallBall->bForces.racketImpulseForce;
+        cBallBall->bForces.totalForces = cBallBall->bForces.forceGravity + cBallBall->bForces.forceMagnus + cBallBall->bForces.forceDrag;
         cBallBall->bForces.acceleration = cBallBall->bForces.totalForces / cBallBall->mass;
 
-        cBallBall->bForces.racketImpulseForce = { 0,0,0 };
     }
     return {SystemExecResult::Ran};
 }

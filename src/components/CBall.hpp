@@ -39,6 +39,7 @@ public:
     float mass = .0027f; //kg
     bool hasFallen = false;
     bool hitNet = false;
+    bool hitRacket = false;
     Entity ballShadow;
 
     CBall() = default;

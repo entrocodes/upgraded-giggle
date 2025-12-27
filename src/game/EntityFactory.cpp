@@ -88,7 +88,6 @@ Entity EntityFactory::createPlayer() {
 
     // --- Transform ---
     auto& cPlayerTransform3D = m_registry.addComponent<CTransform3D>(ePlayer);
-    m_registry.addComponent<CVelocity>(ePlayer);
     m_registry.addComponent<CVelocity3D>(ePlayer);
     m_registry.addComponent<CTransform>(ePlayer);
     m_registry.addComponent<CAuthorization>(ePlayer);
@@ -96,7 +95,7 @@ Entity EntityFactory::createPlayer() {
     m_registry.addComponent<CRenderLayer>(ePlayer, 90);
 
     // --- Animation ---
-    const Animation& aStand = m_assets.getAnimation("Stand");
+    const Animation& aStand = m_assets.getAnimation("PlayerStand");
     auto& cPlayerAnimation = m_registry.addComponent<CAnimation>(ePlayer, aStand, false);
 
     sf::Sprite& s = cPlayerAnimation.animation.getSprite();
@@ -107,7 +106,7 @@ Entity EntityFactory::createPlayer() {
     s.setOrigin(spriteBounds.x / 2.f, spriteBounds.y / 2.f);
 
     m_registry.addComponent<CBoundingBox>(ePlayer, s.getLocalBounds());
-
+    m_registry.addComponent<CFootworkState>(ePlayer);
     // --- Gameplay Components ---
     m_registry.addComponent<CRacketSwing>(ePlayer);
 
@@ -136,14 +135,9 @@ Entity EntityFactory::createPlayerRacket() {
     auto& cPlayerRacketRacketPhysical = m_registry.addComponent<CRacketPhysical>(eRacket);
     cPlayerRacketRacketPhysical.restitution = 0.85f;
     cPlayerRacketRacketPhysical.friction = 0.50f;
-    //cRacketPhys.normal = Vec3(0, 0, 1);
-
-    //TEMP
-    cPlayerRacketRacketPhysical.normal = Vec3(0.08f, -0.15f, 0.98f).normalized();
 
     // Attach to player
     Entity* ePlayer = m_registry.getEntity("player");
-    m_registry.addComponent<CFootworkState>(*ePlayer);
     auto& cPlayerRacketHandle = m_registry.addComponent<CRacketHandle>(*ePlayer);
 
     cPlayerRacketHandle.racketEntity = eRacket;
@@ -171,7 +165,95 @@ Entity EntityFactory::createPlayerRacket() {
     m_registry.addComponent<CRotation3D>(eRacket);
     return eRacket;
 }
+Entity EntityFactory::createOpponent() {
+    Entity eOpponent = m_registry.createEntity("opponent");
 
+    m_registry.addComponent<CRotation3D>(eOpponent);
+    //m_registry.addComponent<Player>(eOpponent);
+    m_registry.addComponent<CState>(eOpponent, "stand");
+
+    // --- Transform ---
+    auto& cOpponentTransform3D = m_registry.addComponent<CTransform3D>(eOpponent);
+    m_registry.addComponent<CVelocity3D>(eOpponent);
+    m_registry.addComponent<CTransform>(eOpponent);
+    m_registry.addComponent<CAuthorization>(eOpponent);
+    m_registry.addComponent<CFootworkState>(eOpponent);
+    // --- Render ---
+    m_registry.addComponent<CRenderLayer>(eOpponent, 20);
+
+    // --- Animation ---
+    const Animation& aStand = m_assets.getAnimation("OpponentStand");
+    auto& cOpponentAnimation = m_registry.addComponent<CAnimation>(eOpponent, aStand, false);
+
+    sf::Sprite& s = cOpponentAnimation.animation.getSprite();
+    Vec2 spriteBounds = {
+        s.getLocalBounds().width,
+        s.getLocalBounds().height
+    };
+    s.setOrigin(spriteBounds.x / 2.f, spriteBounds.y / 2.f);
+
+    m_registry.addComponent<CBoundingBox>(eOpponent, s.getLocalBounds());
+
+    // --- Gameplay Components ---
+    m_registry.addComponent<CRacketSwing>(eOpponent);
+
+    // Player world position
+    cOpponentTransform3D.pos_m = {
+        0.0f,
+        -m_tableParameters.tableHeight + m_tableParameters.playerHeight * 0.5f,
+        m_tableParameters.tableLength + 0.3f
+    };
+
+    auto& cOpponentArm = m_registry.addComponent<CArm>(eOpponent);
+
+    // Shoulder height relative to player position
+    cOpponentArm.shoulderPos_m =
+        cOpponentTransform3D.pos_m + Vec3(0.f, 0.45f, 0.f);
+
+    cOpponentArm.maxReach_m = 0.65f; // realistic adult reach
+
+
+    return eOpponent;
+}
+Entity EntityFactory::createOpponentRacket() {
+    Entity eRacket = m_registry.createEntity("opponentRacket");
+    
+    auto& cOppenentRacketRacketPhysical = m_registry.addComponent<CRacketPhysical>(eRacket);
+    cOppenentRacketRacketPhysical.restitution = 0.85f;
+    cOppenentRacketRacketPhysical.friction = 0.50f;
+
+    //TEMP
+    cOppenentRacketRacketPhysical.localNormal = Vec3(0, 0, -1);
+
+    // Attach to opponent
+    Entity* eOpponent = m_registry.getEntity("opponent");
+    auto& cOpponentRacketHandle = m_registry.addComponent<CRacketHandle>(*eOpponent);
+
+    cOpponentRacketHandle.racketEntity = eRacket;
+    cOpponentRacketHandle.freeOffset_m = Vec3(-.25f, -0.2f, 0.0f); // neutral ready position
+
+    // TEMP: transform set to player; will update next frame
+    auto cOpponentTransform3D = m_registry.getComponent<CTransform3D>(*eOpponent);
+
+    Vec3 startPos = cOpponentTransform3D ? cOpponentTransform3D->pos_m : Vec3();
+
+    auto& cOpponentRacketTransform3D = m_registry.addComponent<CTransform3D>(eRacket, startPos);
+    m_registry.addComponent<CVelocity3D>(eRacket, Vec3());
+    auto& cOpponentRacketTransform = m_registry.addComponent<CTransform>(eRacket);
+    Vec2 screenPos = m_camera.homography.worldToImage(cOpponentRacketTransform3D.pos_m);
+    cOpponentRacketTransform.pos = screenPos;
+    cOpponentRacketTransform.lastPos = screenPos; // Snap interpolation
+    // Bounding volume from center
+    const Vec3 halfSize = { 0.076f, 0.095f, 0.005f }; // bad place for this
+    m_registry.addComponent<CBoundingBox3D>(eRacket, startPos, halfSize);
+    const Animation& aRacket = m_assets.getAnimation("Racket");
+    auto& cBallAnimation = m_registry.addComponent<CAnimation>(eRacket, aRacket, true);
+    m_registry.addComponent<CRenderLayer>(eRacket, 85);
+    sf::Sprite& s = cBallAnimation.animation.getSprite();
+    s.setOrigin(s.getLocalBounds().width / 2.f, s.getLocalBounds().height / 2.f);
+    m_registry.addComponent<CRotation3D>(eRacket);
+    return eRacket;
+}
 Entity EntityFactory::createBall(const Vec3& pos_m, const Vec3& vel_mps, const Vec3& spin) {
     // pos parameter is passed in in pixels, pos.x and pos.z are the (x,y) coordinates to spawn at, y is the height offset 
     Vec3 shadowPos_m = { pos_m.x, 0.0f, pos_m.z }; // no Y offset for shadow

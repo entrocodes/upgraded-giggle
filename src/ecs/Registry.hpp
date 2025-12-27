@@ -15,6 +15,7 @@ public:
         Entity e;
         e.id = ++m_nextEntityId;
         m_entities.push_back(e);
+        m_lastCreatedEntity = e;
         return e;
     }
 
@@ -24,6 +25,7 @@ public:
         e.name = name;
         m_entities.push_back(e);
         m_nameLookup[name] = e;  // store a copy, not a pointer
+        m_lastCreatedEntity = e;
         return e;
     }
 
@@ -37,7 +39,9 @@ public:
         }
         return nullptr;
     }
-
+    Entity* getLastEntity() {
+        return &m_lastCreatedEntity;
+    }
 
     size_t getEntityCount() const {
         return m_entities.size();
@@ -138,7 +142,7 @@ private:
     std::uint32_t m_nextEntityId = 0;
     std::vector<Entity> m_entities;
     std::unordered_map<std::string, Entity> m_nameLookup;
-
+    Entity m_lastCreatedEntity;
 
     std::unordered_map<
         std::type_index,

@@ -3,87 +3,104 @@
 #include "debug/Debug.hpp"
 #include <SFML/Window/Joystick.hpp>
 #include <SDL.h>
-SystemExec InputSystem::update(GameContext* context) {
-    RawInputState& ctxRawInput = context->rawInput;
+SystemExec InputSystem::update(GameContext* context)
+{
+    RawInputState& raw = context->rawInput;
+    int tick = context->frameStats.tickIndex;
 
-    // --- CRITICAL FIX 1: Cycle states BEFORE polling ---
-    if (!ctxRawInput.controllerHandle) {
+    // -------------------------------------------------
+    // 1. Controller discovery
+    // -------------------------------------------------
+    if (!raw.controllerHandle) {
         for (int i = 0; i < SDL_NumJoysticks(); ++i) {
             if (SDL_IsGameController(i)) {
-                ctxRawInput.controllerHandle = SDL_GameControllerOpen(i);
-                if (ctxRawInput.controllerHandle) {
-                    // Success! Log the name: SDL_GameControllerName(raw.controllerHandle)
-                    break;
-                }
-            }
-        }
-    }
-    // 1. SDL Event Pump
-    SDL_Event sdlEv;
-    while (SDL_PollEvent(&sdlEv)) {
-        if (sdlEv.type == SDL_CONTROLLERDEVICEADDED) {
-            if (!ctxRawInput.controllerHandle) {
-                ctxRawInput.controllerHandle = SDL_GameControllerOpen(sdlEv.cdevice.which);
-            }
-        }
-        if (sdlEv.type == SDL_CONTROLLERDEVICEREMOVED) {
-            if (ctxRawInput.controllerHandle) {
-                // Check if the removed device is the one we are using
-                SDL_JoystickID id = SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(ctxRawInput.controllerHandle));
-                if (sdlEv.cdevice.which == id) {
-                    SDL_GameControllerClose(ctxRawInput.controllerHandle);
-                    ctxRawInput.controllerHandle = nullptr;
-                }
+                raw.controllerHandle = SDL_GameControllerOpen(i);
+                break;
             }
         }
     }
 
-    // Update local pointer in case it changed during events
-    auto gGameController = ctxRawInput.controllerHandle;
+    // -------------------------------------------------
+    // 2. SDL Event Pump (CONTROLLER ONLY)
+    // -------------------------------------------------
+    SDL_Event ev;
+    while (SDL_PollEvent(&ev)) {
+        switch (ev.type) {
 
-    // 2. Mouse (SFML)
-    ctxRawInput.mousePosition = Vec2(
-        static_cast<float>(sf::Mouse::getPosition(context->window).x),
-        static_cast<float>(sf::Mouse::getPosition(context->window).y)
+        case SDL_CONTROLLERDEVICEADDED:
+            if (!raw.controllerHandle) {
+                raw.controllerHandle = SDL_GameControllerOpen(ev.cdevice.which);
+            }
+            break;
+
+        case SDL_CONTROLLERDEVICEREMOVED:
+            if (raw.controllerHandle) {
+                SDL_JoystickID id =
+                    SDL_JoystickInstanceID(
+                        SDL_GameControllerGetJoystick(raw.controllerHandle));
+                if (ev.cdevice.which == id) {
+                    SDL_GameControllerClose(raw.controllerHandle);
+                    raw.controllerHandle = nullptr;
+                }
+            }
+            break;
+
+        default:
+            break;
+        }
+    }
+
+    // -------------------------------------------------
+    // 3. Mouse (SFML)
+    // -------------------------------------------------
+    raw.mousePosition = Vec2(
+        (float)sf::Mouse::getPosition(context->window).x,
+        (float)sf::Mouse::getPosition(context->window).y
     );
 
-    // 3. SDL Polling
-    if (gGameController && SDL_GameControllerGetAttached(gGameController)) {
+    // -------------------------------------------------
+    // 4. Gamepad polling (SDL)
+    // -------------------------------------------------
+    if (raw.controllerHandle &&
+        SDL_GameControllerGetAttached(raw.controllerHandle)) {
 
-        // --- CRITICAL FIX 2: Poll Buttons ---
         for (int i = 0; i < SDL_CONTROLLER_BUTTON_MAX; ++i) {
-            SDL_GameControllerButton btn = static_cast<SDL_GameControllerButton>(i);
-            ctxRawInput.padStates[i] = SDL_GameControllerGetButton(gGameController, btn);
+            raw.padStates[i] =
+                SDL_GameControllerGetButton(
+                    raw.controllerHandle,
+                    (SDL_GameControllerButton)i);
         }
 
-        // SDL range is -32768 to 32767
-        auto getAxis = [](SDL_GameController* gc, SDL_GameControllerAxis axis) {
-            float val = SDL_GameControllerGetAxis(gc, axis) / 32767.f;
-            return (std::abs(val) < 0.15f) ? 0.f : val; // Slightly larger deadzone for safety
+        auto getAxis = [&](SDL_GameControllerAxis axis) {
+            float v = SDL_GameControllerGetAxis(raw.controllerHandle, axis) / 32767.f;
+            return (std::abs(v) < 0.15f) ? 0.f : v;
             };
 
-        // Triggers (0.0 to 1.0)
-        ctxRawInput.axes["LT"] = SDL_GameControllerGetAxis(gGameController, SDL_CONTROLLER_AXIS_TRIGGERLEFT) / 32767.f;
-        ctxRawInput.axes["RT"] = SDL_GameControllerGetAxis(gGameController, SDL_CONTROLLER_AXIS_TRIGGERRIGHT) / 32767.f;
+        raw.axes["LT"] = SDL_GameControllerGetAxis(
+            raw.controllerHandle, SDL_CONTROLLER_AXIS_TRIGGERLEFT) / 32767.f;
+        raw.axes["RT"] = SDL_GameControllerGetAxis(
+            raw.controllerHandle, SDL_CONTROLLER_AXIS_TRIGGERRIGHT) / 32767.f;
 
-        // Sticks (-1.0 to 1.0)
-        ctxRawInput.axes["J1X"] = getAxis(gGameController, SDL_CONTROLLER_AXIS_LEFTX);
-        ctxRawInput.axes["J1Y"] = getAxis(gGameController, SDL_CONTROLLER_AXIS_LEFTY);
-        ctxRawInput.axes["J2X"] = getAxis(gGameController, SDL_CONTROLLER_AXIS_RIGHTX);
-        ctxRawInput.axes["J2Y"] = getAxis(gGameController, SDL_CONTROLLER_AXIS_RIGHTY);
+        raw.axes["J1X"] = getAxis(SDL_CONTROLLER_AXIS_LEFTX);
+        raw.axes["J1Y"] = getAxis(SDL_CONTROLLER_AXIS_LEFTY);
+        raw.axes["J2X"] = getAxis(SDL_CONTROLLER_AXIS_RIGHTX);
+        raw.axes["J2Y"] = getAxis(SDL_CONTROLLER_AXIS_RIGHTY);
     }
     else {
-        // Optional: clear states if controller is lost
-        ctxRawInput.axes.clear();
-        ctxRawInput.padStates.clear();
+        // Controller disconnected ¡ú neutral state
+        raw.axes.clear();
+        raw.padStates.clear();
     }
-    for (int i = 0; i < SDL_CONTROLLER_BUTTON_MAX; ++i) {
-        bool isDown = ctxRawInput.padStates[i];
-        bool wasDown = ctxRawInput.prevPadStates.count(i) ? ctxRawInput.prevPadStates[i] : false;
 
-        if (isDown && !wasDown) {
-            // Button was just pressed this frame, record the tick index
-            ctxRawInput.framePadPressed[i] = context->frameStats.tickIndex;
+    // -------------------------------------------------
+    // 5. Keyboard polling (SFML ONLY)
+    // -------------------------------------------------
+    for (int k = sf::Keyboard::A; k < sf::Keyboard::KeyCount; ++k) {
+        auto key = static_cast<sf::Keyboard::Key>(k);
+        raw.keyStates[key] = sf::Keyboard::isKeyPressed(key);
+
+        if (raw.keyStates[key] && !raw.prevKeyStates[key]) {
+            raw.frameKeyPressed[key] = tick;
         }
     }
 

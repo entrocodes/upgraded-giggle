@@ -73,7 +73,8 @@ void GameScene::onEnter() {
     m_context->entityFactory.createNet();
     m_context->entityFactory.createPlayer();
     m_context->entityFactory.createPlayerRacket();
-
+    m_context->entityFactory.createOpponent();
+    m_context->entityFactory.createOpponentRacket();
 
 }
 void GameScene::update() {
