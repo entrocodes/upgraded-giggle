@@ -65,7 +65,7 @@ SystemExec PlayerActionSystem::update(GameContext* context) {
         if (cPlayerInput->actions["StopPush"]) cPlayerAuthorization->boolMap["RequestStopPush"] = true;
         // Inside PlayerActionSystem::update
         cPlayerAuthorization->vec2Map["SteerIntent"] = Vec2(cPlayerInput->axes["J1X"], cPlayerInput->axes["J1Y"]);
-        cPlayerAuthorization->vec2Map["BladeOrientation"] = Vec2(cPlayerInput->axes["J2X"], cPlayerInput->axes["J2Y"]);
+        cPlayerAuthorization->vec2Map["BladeOrientation"] = Vec2(cPlayerInput->axes["J2X"] * 100, cPlayerInput->axes["J2Y"] * 100);
     }
 
     return { SystemExecResult::Ran };

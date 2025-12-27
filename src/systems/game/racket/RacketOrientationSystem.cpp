@@ -13,8 +13,8 @@ SystemExec RacketOrientationSystem::update(GameContext* context) {
             context->registry.getComponents<CRacketPhysical, CRotation3D, CTransform3D>(eRacket);
         auto it = cAuthorization->vec2Map.find("BladeOrientation");
         if (it != cAuthorization->vec2Map.end() || cAuthorization->vec2Map["BladeOrientation"].length() == 0) {
-            cRotation3D->euler_deg.y = cAuthorization->vec2Map["BladeOrientation"].y;
-            cRotation3D->euler_deg.x = cAuthorization->vec2Map["BladeOrientation"].x;
+            cRotation3D->euler_deg.y = cAuthorization->vec2Map["BladeOrientation"].x;
+            cRotation3D->euler_deg.x = cAuthorization->vec2Map["BladeOrientation"].y;
             float pitch = cRotation3D->euler_deg.x * DEG2RAD;
             float yaw = cRotation3D->euler_deg.y * DEG2RAD;
             float roll = cRotation3D->euler_deg.z * DEG2RAD;

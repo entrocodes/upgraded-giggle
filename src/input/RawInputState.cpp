@@ -101,6 +101,5 @@ void RawInputState::nextFrame() {
     prevPadStates = padStates;
     prevAxes = axes;
 
-    frameKeyPressed.clear();
-    framePadPressed.clear();
+
 }

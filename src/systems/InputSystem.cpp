@@ -63,7 +63,23 @@ SystemExec InputSystem::update(GameContext* context)
     // -------------------------------------------------
     if (raw.controllerHandle &&
         SDL_GameControllerGetAttached(raw.controllerHandle)) {
+        for (int i = 0; i < SDL_CONTROLLER_BUTTON_MAX; ++i) {
+            bool isDown = SDL_GameControllerGetButton(raw.controllerHandle, (SDL_GameControllerButton)i);
 
+            // Detect "Just Pressed" to record the start tick
+            // Check if it's down now AND it wasn't down in the previous frame
+            if (isDown && !raw.prevPadStates[i]) {
+                raw.framePadPressed[i] = tick;
+            }
+
+            // If it's released, you can optionally erase it (though getButtonHoldDuration 
+            // will return 0 anyway if the check in RawInputState is robust)
+            if (!isDown) {
+                raw.framePadPressed.erase(i);
+            }
+
+            raw.padStates[i] = isDown;
+        }
         for (int i = 0; i < SDL_CONTROLLER_BUTTON_MAX; ++i) {
             raw.padStates[i] =
                 SDL_GameControllerGetButton(
@@ -95,14 +111,14 @@ SystemExec InputSystem::update(GameContext* context)
     // -------------------------------------------------
     // 5. Keyboard polling (SFML ONLY)
     // -------------------------------------------------
-    for (int k = sf::Keyboard::A; k < sf::Keyboard::KeyCount; ++k) {
-        auto key = static_cast<sf::Keyboard::Key>(k);
-        raw.keyStates[key] = sf::Keyboard::isKeyPressed(key);
+    //for (int k = sf::Keyboard::A; k < sf::Keyboard::KeyCount; ++k) {
+    //    auto key = static_cast<sf::Keyboard::Key>(k);
+    //    raw.keyStates[key] = sf::Keyboard::isKeyPressed(key);
 
-        if (raw.keyStates[key] && !raw.prevKeyStates[key]) {
-            raw.frameKeyPressed[key] = tick;
-        }
-    }
+    //    if (raw.keyStates[key] && !raw.prevKeyStates[key]) {
+    //        raw.frameKeyPressed[key] = tick;
+    //    }
+    //}
 
     return { SystemExecResult::Ran };
 }

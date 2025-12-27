@@ -86,7 +86,7 @@ void GameImGuiSystem::drawDeveloperPanel(GameContext* context) {
 
     if (ImGui::CollapsingHeader("Ball Debug")) {
         ImGui::SliderFloat("Ball Height", &context->physicsDebug.debugBallHeight, 0.f, 3.f);
-        ImGui::SliderFloat3("Velocity", &context->physicsDebug.debugBallVelocity.x, -2.f, 2.f);
+        ImGui::SliderFloat3("Velocity", &context->physicsDebug.debugBallVelocity.x, -5.f, 5.f);
         ImGui::SliderFloat3("Spin", &context->physicsDebug.debugBallSpin.x, -2.f, 2.f);
         ImGui::Checkbox("Show Spin Arrows", &context->physicsDebug.debugBallSpinArrows);
         ImGui::Checkbox("Show Velocity Arrows", &context->physicsDebug.debugBallVelocityArrows);

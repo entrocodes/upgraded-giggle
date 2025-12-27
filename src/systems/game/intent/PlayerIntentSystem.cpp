@@ -21,33 +21,34 @@ SystemExec PlayerIntentSystem::update(GameContext* context)
         // -------------------------------------------------
         // Helper: merge controller + keyboard
         // -------------------------------------------------
-        auto mapHold = [&](SDL_GameControllerButton btn,
-            sf::Keyboard::Key key,
-            const std::string& action)
-            {
-                bool btnDown = raw.isButtonDown(btn);
-                bool btnReleased = raw.isButtonJustReleased(btn);
+        auto mapHold = [&](SDL_GameControllerButton btn, sf::Keyboard::Key key, const std::string& action) {
+            bool btnDown = raw.isButtonDown(btn);
+            bool keyDown = raw.isKeyDown(key);
 
-                bool keyDown = raw.isKeyDown(key);
-                bool keyReleased = raw.isKeyReleased(key);
+            bool btnReleased = raw.isButtonJustReleased(btn);
+            bool keyReleased = raw.isKeyReleased(key);
 
-                bool down = btnDown || keyDown;
-                bool released = btnReleased || keyReleased;
+            bool isDown = btnDown || keyDown;
+            bool isReleased = btnReleased || keyReleased;
 
-                if (down) {
-                    // Controller gets duration; keyboard is frame-based (>=1)
-                    int hold = btnDown
-                        ? raw.getButtonHoldDuration(btn, currentTick)
-                        : 1;
-
-                    cInput->holdTime[action] = hold;
+            if (isDown) {
+                // If it's a controller, we can use the raw duration
+                if (btnDown) {
+                    cInput->holdTime[action] = raw.getButtonHoldDuration(btn, currentTick);
                 }
+                // If it's a keyboard, increment manually or set a flag
                 else {
-                    cInput->holdTime[action] = 0;
+                    cInput->holdTime[action] = raw.getKeyHoldDuration(key, currentTick);
                 }
+            }
+            else if (!isReleased) {
+                // Only reset to 0 if it wasn't JUST released this frame
+                cInput->holdTime[action] = 0;
+            }
 
-                cInput->actions[action] = released;
-            };
+            // This will be true ONLY on the frame the button is let go
+            cInput->actions[action] = isReleased;
+        };
 
         // -------------------------------------------------
         // Movement
@@ -83,7 +84,8 @@ SystemExec PlayerIntentSystem::update(GameContext* context)
         cInput->axes["ReachZ"] = raw.getAxis("LT");
         cInput->axes["J1X"] = raw.getAxis("J1X");
         cInput->axes["J1Y"] = raw.getAxis("J1Y");
-
+        cInput->axes["J2X"] = raw.getAxis("J2X");
+        cInput->axes["J2Y"] = raw.getAxis("J2Y");
         // -------------------------------------------------
         // Semantic attack states
         // -------------------------------------------------
