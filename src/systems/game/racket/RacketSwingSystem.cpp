@@ -6,7 +6,7 @@
 
 SystemExec RacketSwingSystem::update(GameContext* context) {
     for (auto entity : context->registry.getEntitiesWith<CRacketSwing, CRacketHandle, CArm, CTransform3D>()) {
-        auto [cAuthorization, cRacketSwing, cRacketHandle, cArm, cTransform3D] = context->registry.getComponents<CAuthorization, CRacketSwing, CRacketHandle, CArm, CTransform3D>(entity);
+        auto [cAuthorization, cRacketSwing, cRacketHandle, cArm, cTransform3D, cBodyTableCollision] = context->registry.getComponents<CAuthorization, CRacketSwing, CRacketHandle, CArm, CTransform3D, CBodyTableCollision>(entity);
 
         float dt = context->frameStats.dt;
 
@@ -36,6 +36,10 @@ SystemExec RacketSwingSystem::update(GameContext* context) {
             strokeState = StrokeState::BrakedBackSwing;
         }
         Vec2 steer = cAuthorization->vec2Map["SteerIntent"];
+        if (strokeState == StrokeState::Idle && cBodyTableCollision) {
+            cRacketHandle->freeOffset_m.z += cBodyTableCollision->overlap * 1.25;
+            context->registry.removeComponent<CBodyTableCollision>(entity);
+        }
         if (strokeState == StrokeState::Backswing || strokeState == StrokeState::BrakedBackSwing) {
             if (prevStrokeState != StrokeState::Backswing && prevStrokeState != StrokeState::BrakedBackSwing) {
                 cRacketSwing->backswingTime = 0.0f;

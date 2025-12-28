@@ -24,3 +24,4 @@
 #include "CFootworkState.hpp"
 #include "CRotation3D.hpp"
 #include "CAuthorization.hpp"
+#include "CBodyTableCollision.hpp"

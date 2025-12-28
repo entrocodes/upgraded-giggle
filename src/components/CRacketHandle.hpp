@@ -7,6 +7,7 @@ struct CRacketHandle : public Component {
     Entity racketEntity;
 
     // Offsets RELATIVE to shoulder
+    Vec3 pushOffset_m = { 0.f, 0.f, 0.f };
     Vec3 freeOffset_m = { 0.f, 0.f, 0.f };   // driven by Aim stick
     Vec3 swingOffset_m = { 0.f, 0.f, 0.f };  // driven by swing system
     Vec3  arcStartPoint = { 0,0,0 }; // Snapshot at RT release

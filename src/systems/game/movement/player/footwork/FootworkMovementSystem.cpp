@@ -8,6 +8,9 @@ SystemExec FootworkMovementSystem::update(GameContext* context) {
 	for (auto entity : context->registry.getEntitiesWith<CFootworkState, CVelocity3D>()) {
 		auto [cFootworkIntent, cFootworkState, cVelocity3D] = context->registry.getComponents<CFootworkIntent, CFootworkState, CVelocity3D>(entity);
 		if (cFootworkIntent) {
+			if (cFootworkIntent->direction.z < 0) {
+
+			}
 			StepRaw rawStep{};
 			float s = cFootworkIntent->directionalStrength;
 			if (cFootworkIntent->heldFrames < context->playerMovement.footworkMovement.tapFrameLimit) {

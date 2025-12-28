@@ -80,7 +80,8 @@ Entity EntityFactory::createNet() {
 
 Entity EntityFactory::createPlayer() {
     Entity ePlayer = m_registry.createEntity("player");
-
+    Vec3 startPlayerPos_m = {0.0f, -m_tableParameters.tableHeight + m_tableParameters.playerHeight * 0.5f, -0.3f};
+    Vec3 playerSize_m = { .4f, m_tableParameters.playerHeight , .15f };
     m_registry.addComponent<CRotation3D>(ePlayer);
     m_registry.addComponent<Player>(ePlayer);
     m_registry.addComponent<CInput>(ePlayer);
@@ -93,7 +94,7 @@ Entity EntityFactory::createPlayer() {
     m_registry.addComponent<CAuthorization>(ePlayer);
     // --- Render ---
     m_registry.addComponent<CRenderLayer>(ePlayer, 90);
-
+    m_registry.addComponent<CBoundingBox3D>(ePlayer, Bounds3D(startPlayerPos_m - playerSize_m / 2, startPlayerPos_m + playerSize_m / 2));
     // --- Animation ---
     const Animation& aStand = m_assets.getAnimation("PlayerStand");
     auto& cPlayerAnimation = m_registry.addComponent<CAnimation>(ePlayer, aStand, false);
@@ -111,11 +112,7 @@ Entity EntityFactory::createPlayer() {
     m_registry.addComponent<CRacketSwing>(ePlayer);
 
     // Player world position
-    cPlayerTransform3D.pos_m = {
-        0.0f,
-        -m_tableParameters.tableHeight + m_tableParameters.playerHeight * 0.5f,
-        -0.3f
-    };
+    cPlayerTransform3D.pos_m = startPlayerPos_m;
 
     auto& cPlayerArm = m_registry.addComponent<CArm>(ePlayer);
 
@@ -169,7 +166,6 @@ Entity EntityFactory::createOpponent() {
     Entity eOpponent = m_registry.createEntity("opponent");
 
     m_registry.addComponent<CRotation3D>(eOpponent);
-    //m_registry.addComponent<Player>(eOpponent);
     m_registry.addComponent<CState>(eOpponent, "stand");
 
     // --- Transform ---

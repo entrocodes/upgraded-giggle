@@ -100,6 +100,12 @@ void RawInputState::nextFrame() {
     prevMouseButtonStates = mouseButtonStates;
     prevPadStates = padStates;
     prevAxes = axes;
-
+    
+    for (auto it = frameKeyPressed.begin(); it != frameKeyPressed.end();) {
+        if (!keyStates[it->first])
+            it = frameKeyPressed.erase(it);
+        else
+            ++it;
+    }
 
 }
