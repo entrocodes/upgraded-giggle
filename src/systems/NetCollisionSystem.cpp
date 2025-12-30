@@ -1,7 +1,7 @@
 ﻿#include "NetCollisionSystem.hpp"
 #include "math/Vec2.hpp"
 #include "math/Vec3.hpp"
-#include "math/physics/collision/BallObjectIntersection.hpp"
+#include "math/physics/collision/ObjectIntersection.hpp"
 #include "components/Components.hpp"
 #include "ecs/Entity.hpp"
 #include "debug/Debug.hpp"
@@ -26,27 +26,27 @@ SystemExec NetCollisionSystem::update(GameContext* context) {
 
 void NetCollisionSystem::resolveNetContact(GameContext* context, Entity eBall)
 {
-    auto [cBallBall, cBallTransform3D, cBallBoundingBox3D, cBallVelocity3D] = context->registry.getComponents<CBall, CTransform3D, CBoundingBox3D, CVelocity3D>(eBall);
+    auto [cBall, cBallTransform3D, cBallBoundingBox3D, cBallVelocity3D] = context->registry.getComponents<CBall, CTransform3D, CBoundingBox3D, CVelocity3D>(eBall);
 
-    if (!cBallBall || !cBallTransform3D || !cBallBoundingBox3D || !cBallVelocity3D) return;
+    if (!cBall || !cBallTransform3D || !cBallBoundingBox3D || !cBallVelocity3D) return;
 
     Vec3& pos_m = cBallTransform3D->pos_m;
     Vec3& vel_mps = cBallVelocity3D->vel_mps;
-    Vec3& spin = cBallBall->spin;
+    Vec3& spin = cBall->spin;
 
     Entity* eNet = context->registry.getEntity("net");
     auto cNetBoundingBox3D = context->registry.getComponent<CBoundingBox3D>(*eNet);
 
-    if (!BallObjectIntersection::intersects(cBallBoundingBox3D->box, cNetBoundingBox3D->box))
+    if (!ObjectIntersection::intersects(cBallBoundingBox3D->box, cNetBoundingBox3D->box))
     {
-        cBallBall->hitNet = false; // reset when clear
+        cBall->hitNet = false; // reset when clear
         return;
     }
 
-    if (cBallBall->hitNet)
+    if (cBall->hitNet)
         return; // avoid constant flipping
 
-    cBallBall->hitNet = true;
+    cBall->hitNet = true;
     vel_mps.z *= -(1.f - context->tableParameters.netDamping);   // reverse and reduce forward motion
 
     // Spin to trajectory (filthy net clips)

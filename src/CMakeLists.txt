@@ -49,7 +49,8 @@ set(PIXEL_PONG_SOURCES
     systems/game/racket/RacketOrientationSystem.cpp
     systems/game/imgui/GameImGuiConsole.cpp
     systems/game/movement/player/BodyTableCollisionSystem.cpp
-)
+    systems/BallContactSystem.cpp
+    systems/game/collision/BoundingBoxUpdateSystem.cpp)
 
 
 

@@ -2,15 +2,24 @@
 #include "Vec3.hpp"
 
 struct Bounds3D {
-    Vec3 min;  // minimum x,y,z corner
-    Vec3 max;  // maximum x,y,z corner
+    Vec3 min = { 0,0,0 };
+    Vec3 max = { 0,0,0 };
 
-    Bounds3D() = default;
-    Bounds3D(const Vec3& minPt, const Vec3& maxPt)
-        : min(minPt), max(maxPt) {
+    bool isEmpty() const {
+        return min.x >= max.x ||
+            min.y >= max.y ||
+            min.z >= max.z;
     }
-    const void setBounds(const Vec3& minPt, const Vec3& maxPt) {
-        min = minPt;
-        max = maxPt;
+
+    Vec3 size() const {
+        return max - min;
     }
+
+    Vec3 center() const {
+        return (min + max) * 0.5f;
+    }
+
+    Bounds3D(Vec3 pMin, Vec3 pMax) 
+        : min(pMin), max(pMax) { }
+    Bounds3D() {};
 };

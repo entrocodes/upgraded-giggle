@@ -3,7 +3,6 @@
 #include "game/utils/GameContext.hpp"
 #include "systems/game/movement/player/footwork/FootworkMovementSystem.hpp"
 #include "systems/game/movement/player/VelocityIntegrationSystem.hpp"
-#include "systems/game/movement/player/BodyTableCollisionSystem.hpp"
 #include "ecs/system/ISystemGroup.hpp"
 
 class PlayerMovementSystemGroup final : public ISystemGroup {
@@ -13,7 +12,6 @@ public:
     {
         m_graph.add<FootworkMovementSystem>(m_factory, 0, TickPhase::Fixed);
         m_graph.add<VelocityIntegrationSystem>(m_factory, 10, TickPhase::Fixed);
-        m_graph.add<BodyTableCollisionSystem>(m_factory, 20, TickPhase::Fixed);
     }
 
     SystemExec update(GameContext* context) override {

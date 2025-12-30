@@ -11,7 +11,7 @@ struct CBoundingBox3D : public Component {
     CBoundingBox3D() = default;
 
     CBoundingBox3D(Bounds3D pBox)
-        : box(pBox) {
+        : box(pBox), halfSize((box.max - box.min) / 2) {
     }
     CBoundingBox3D(Vec3 pStartPos, Vec3 pHalfSize)
         : box(pStartPos - pHalfSize, pStartPos + pHalfSize), halfSize(pHalfSize) {

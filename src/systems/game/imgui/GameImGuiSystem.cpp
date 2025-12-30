@@ -103,6 +103,30 @@ void GameImGuiSystem::drawDeveloperPanel(GameContext* context) {
             ImGui::SliderInt("Max Balls to Keep", &context->physicsDebug.debugIntKeepXBalls, 1, 15);
             ImGui::Checkbox("Enable Ball Limit", &context->physicsDebug.debugBoolKeepXBalls);
         }
+        if (ImGui::CollapsingHeader("Ball Collision Inspector")) {
+            if (ImGui::BeginChild("BallScroll", ImVec2(0, 200), true)) {
+                for (auto e : context->registry.getEntitiesWith<CBall, CTransform3D, CVelocity3D>()) {
+                    auto [c3D, cBall, cVelocity3D] = context->registry.getComponents<CTransform3D, CBall, CVelocity3D>(e);
+                    std::string label = e.name.empty() ? "Ball " + std::to_string(e.id) : e.name;
+                    if (ImGui::TreeNode(label.c_str())) {
+                        ImGui::Text("Pos_m: %.2f, %.2f, %.2f", c3D->pos_m.x, c3D->pos_m.y, c3D->pos_m.z);
+                        ImGui::Text("Velocity: %.2f, %.2f, %.2f", cVelocity3D->vel_mps.x, cVelocity3D->vel_mps.y, cVelocity3D->vel_mps.z);
+                        ImGui::Text("Touching: %s", cBall->contactingSurface ? "Yes" : "No");
+                        ImGui::Text("Impact Resolved: %s", cBall->contactingSurface ? "Yes" : "No");
+                        const char* surfaceNames[] = { "None", "Table", "Floor", "Net", "Racket"};
+                        int currentSurfaceIdx = (int)cBall->contactSurface;
+                        ImGui::Text("CURRENT SURFACE: %s", surfaceNames[currentSurfaceIdx]);
+                        const char* stateNames[] = { "None", "Impact", "Sliding", "Rolling"};
+                        int currentStateIdx = (int)cBall->contactState;
+                        ImGui::Text("CURRENT STATE: %s", stateNames[currentStateIdx]);
+
+                        ImGui::TreePop();
+                    }
+                }
+            }
+            ImGui::EndChild();
+        }
+
     }
     if (ImGui::CollapsingHeader("Last Ball")) {
         Entity* lastBall = context->registry.getLastEntity();

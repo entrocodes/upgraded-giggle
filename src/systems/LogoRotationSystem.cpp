@@ -14,12 +14,12 @@ SystemExec LogoRotationSystem::update(GameContext* context) {
 
     for (auto eBall : context->registry.getEntitiesWith<CBall, CTransform3D>()) {
 
-        auto [cBallBall, cBallTransform3D] =
+        auto [cBall, cBallTransform3D] =
             context->registry.getComponents<CBall, CTransform3D>(eBall);
-        if (!cBallBall || !cBallTransform3D) continue;
+        if (!cBall || !cBallTransform3D) continue;
 
-        auto& logo = cBallBall->logo;
-        Vec3  spin = cBallBall->spin;
+        auto& logo = cBall->logo;
+        Vec3  spin = cBall->spin;
 
         // 1) Integrate orientation from spin
         //    y = sidespin → rotates around vertical axis (yaw)

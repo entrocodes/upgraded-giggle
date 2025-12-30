@@ -43,10 +43,6 @@ SystemExec PlayerActionSystem::update(GameContext* context) {
         // The "Three Gear" Authorization
         cPlayerAuthorization->floatMap["ManualReachZ"] = cPlayerInput->axes["ReachZ"];
 
-
-
-
-
         // 3. Authorize Attack Phase
         cPlayerAuthorization->boolMap["RequestReleaseSwing"] = false;
         cPlayerAuthorization->boolMap["RequestStopBackswing"] = false;

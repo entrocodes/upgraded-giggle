@@ -11,16 +11,16 @@
 
 SystemExec BallForceSystem::update(GameContext* context) {
     for (auto eBall : context->registry.getEntitiesWith<CBall, CTransform>()) {
-        auto [cBallBall, cBallVelocity3D, cBallTransform3D] = context->registry.getComponents<CBall, CVelocity3D, CTransform3D>(eBall);
-        if (!cBallBall || !cBallVelocity3D || !cBallTransform3D) continue;
+        auto [cBall, cBallVelocity3D, cBallTransform3D] = context->registry.getComponents<CBall, CVelocity3D, CTransform3D>(eBall);
+        if (!cBall || !cBallVelocity3D || !cBallTransform3D) continue;
 
-        cBallBall->bForces.forceGravity = calcBallGrav.calculateForceGravity(cBallBall->mass);
-        cBallBall->bForces.forceMagnus = calcMagnus.calculateForceMagnus(cBallBall->spin, cBallVelocity3D->vel_mps);
-        cBallBall->bForces.forceDrag = calcBallDrag.calculateForceDrag(cBallVelocity3D->vel_mps);
+        cBall->bForces.forceGravity = calcBallGrav.calculateForceGravity(cBall->mass);
+        cBall->bForces.forceMagnus = calcMagnus.calculateForceMagnus(cBall->spin, cBallVelocity3D->vel_mps);
+        cBall->bForces.forceDrag = calcBallDrag.calculateForceDrag(cBallVelocity3D->vel_mps);
 
 
-        cBallBall->bForces.totalForces = cBallBall->bForces.forceGravity + cBallBall->bForces.forceMagnus + cBallBall->bForces.forceDrag;
-        cBallBall->bForces.acceleration = cBallBall->bForces.totalForces / cBallBall->mass;
+        cBall->bForces.totalForces = cBall->bForces.forceGravity + cBall->bForces.forceMagnus + cBall->bForces.forceDrag;
+        cBall->bForces.acceleration = cBall->bForces.totalForces / cBall->mass;
 
     }
     return {SystemExecResult::Ran};

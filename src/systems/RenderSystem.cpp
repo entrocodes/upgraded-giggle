@@ -23,11 +23,11 @@ SystemExec RenderSystem::update(GameContext* context) {
 
     // Logos — drawn on ball
     for (auto eBall : context->registry.getEntitiesWith<CBall, CTransform3D, CTransform, CRenderLayer>()) {
-        auto [cBallBall, cBallTransform3D, cBallTransform, cBallRenderLayer] = context->registry.getComponents<CBall, CTransform3D, CTransform, CRenderLayer>(eBall);
-        if (!cBallBall || !cBallTransform3D || !cBallTransform || !cBallRenderLayer) continue;
-        if (!cBallBall->logo.visible || cBallBall->logo.opacity <= 0.f) continue;
+        auto [cBall, cBallTransform3D, cBallTransform, cBallRenderLayer] = context->registry.getComponents<CBall, CTransform3D, CTransform, CRenderLayer>(eBall);
+        if (!cBall || !cBallTransform3D || !cBallTransform || !cBallRenderLayer) continue;
+        if (!cBall->logo.visible || cBall->logo.opacity <= 0.f) continue;
 
-        drawList.push_back({ cBallRenderLayer->layer, eBall, DrawType::Logo, cBallTransform3D, cBallTransform, nullptr, cBallBall, nullptr, false });
+        drawList.push_back({ cBallRenderLayer->layer, eBall, DrawType::Logo, cBallTransform3D, cBallTransform, nullptr, cBall, nullptr, false });
     }
 
     // Text

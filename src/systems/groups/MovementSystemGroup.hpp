@@ -2,13 +2,14 @@
 
 #include "game/utils/GameContext.hpp"
 #include "systems/BoundarySystem.hpp"
-#include "systems/groups/BallPhysicsSystemGroup.hpp"
 #include "systems/groups/PlayerMovementSystemGroup.hpp"
 #include "systems/TransformSaveSystem.hpp"
 #include "ecs/system/ISystemGroup.hpp"
 #include "ecs/system/SystemFactory.hpp"
 #include "systems/groups/RacketMovementSystemGroup.hpp"
 #include "systems/game/movement/anatomy/AnatomySystem.hpp"
+#include "systems/BallForceSystem.hpp"
+#include "systems/BallIntegrateSystem.hpp"
 class MovementSystemGroup final : public ISystemGroup {
 public:
     explicit MovementSystemGroup(SystemFactory& factory)
@@ -18,7 +19,8 @@ public:
         m_graph.add<PlayerMovementSystemGroup>(m_factory, 70, TickPhase::Fixed, Pausable, m_factory);
         m_graph.add<AnatomySystem>(m_factory, 75, TickPhase::Fixed, NotPausable);
         m_graph.add<RacketMovementSystemGroup>(m_factory, 80, TickPhase::Fixed, Pausable, m_factory);
-        m_graph.add<BallPhysicsSystemGroup>(m_factory, 100, TickPhase::Fixed, Pausable, m_factory);
+        m_graph.add<BallForceSystem>(m_factory, 0, TickPhase::Fixed);
+        m_graph.add<BallIntegrateSystem>(m_factory, 100, TickPhase::Fixed);
 
     }
 

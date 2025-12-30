@@ -33,31 +33,55 @@ Entity EntityFactory::createBackground() {
     cBackgroundTransform.pos = { m_display.logicalSize.x / 2.f, m_display.logicalSize.y / 2.f }; //center of screen
     return eBackground;
 }
-
 Entity EntityFactory::createTable() {
     Entity eTable = m_registry.createEntity("table");
 
-    auto& cTableTransform = m_registry.addComponent<CTransform>(eTable);
+    float tableWidth = m_tableParameters.tableWidth;
+    float tableHeight = m_tableParameters.tableHeight;
+    float tableLength = m_tableParameters.tableLength;
+    float tableTopThickness = m_tableParameters.tableTopThickness;
+    Vec3 tableSize_m = { tableWidth, tableHeight, tableLength };
+    auto& cTableTransform =
+        m_registry.addComponent<CTransform>(eTable);
 
-    const Animation& aTable = m_assets.getAnimation("Table");
-    auto& cTableAnimation = m_registry.addComponent<CAnimation>(eTable, aTable, false);
+    const Animation& aTable =
+        m_assets.getAnimation("Table");
+
+    auto& cTableAnimation =
+        m_registry.addComponent<CAnimation>(eTable, aTable, false);
+
     m_registry.addComponent<CRenderLayer>(eTable, 30);
-    // Ensure sprite origin is set and bounding box uses the animation sprite
+
+    // Ensure sprite origin is set
     sf::Sprite& s = cTableAnimation.animation.getSprite();
-    s.setOrigin(s.getLocalBounds().width / 2.f, s.getLocalBounds().height / 2.f);
+    s.setOrigin(
+        s.getLocalBounds().width / 2.f,
+        s.getLocalBounds().height / 2.f
+    );
+
     auto texSize = s.getTexture()->getSize();
 
+
     // Center in camera space
-    Vec2 initialPos = { 532.f + texSize.x / 2, 599.f - texSize.y / 2 };
+    Vec2 initialPos = {532.f + texSize.x / 2.f, 599.f - texSize.y / 2.f};
     cTableTransform.pos = initialPos;
-    cTableTransform.lastPos = initialPos; // <--- ADD THIS
+
+    Vec3 tablePos_m = {tableWidth * 0.5f, tableHeight + tableTopThickness * 0.5f, tableLength * 0.5f};
+    Vec3 tableTopHalfSize = {tableWidth * 0.5f, tableTopThickness * 0.5f,tableLength * 0.5f};
+    m_registry.addComponent<CBoundingBox3D>(eTable, tablePos_m, tableTopHalfSize);
+
+
     return eTable;
 }
+
+
 Entity EntityFactory::createNet() {
     Entity eNet = m_registry.createEntity("net");
     //these should probably be stored somewhere else
-    const Vec3 netPos_m = { 1.525 / 2, .1525f / 2, 2.74f / 2 };
-    const Vec3 netSize_m = { (1.525 + .15), .1525f, .0001f }; //net should be made to be a little longer than the table later
+    float tableWidth = m_tableParameters.tableWidth;
+    float tableLength = m_tableParameters.tableLength;
+    const Vec3 netPos_m = { tableWidth / 2, .1525f / 2, tableLength / 2 };
+    const Vec3 netSize_m = { (tableWidth + .15f), .1525f, .0001f }; //net should be made to be a little longer than the table later
 
     auto& cNetTransform = m_registry.addComponent<CTransform>(eNet);
     const Animation& aNet = m_assets.getAnimation("Net");
@@ -259,13 +283,13 @@ Entity EntityFactory::createBall(const Vec3& pos_m, const Vec3& vel_mps, const V
 
 
     Entity eBall = m_registry.createEntity("ball");
-    auto& cBallBall = m_registry.addComponent<CBall>(eBall, eBallShadow, spin);
+    auto& cBall = m_registry.addComponent<CBall>(eBall, eBallShadow, spin);
     auto& cBallTransform = m_registry.addComponent<CTransform>(eBall, ballScreenPos, Vec2(1.0, 1.0), 0.f);
     cBallTransform.lastPos = ballScreenPos; // <--- ADD THIS
-    Vec3 size_m = { cBallBall.ballRadius * 2,cBallBall.ballRadius * 2,cBallBall.ballRadius * 2 }; //set ball size to a cube (even though its a circle)
+    Vec3 size_m = { cBall.ballRadius * 2,cBall.ballRadius * 2,cBall.ballRadius * 2 }; //set ball size to a cube (even though its a circle)
     m_registry.addComponent<CTransform3D>(eBall, pos_m); //cTransform3D is initialized with the actual position of the ball in meters.
     m_registry.addComponent<CVelocity3D>(eBall, vel_mps);
-    Bounds3D ballBox3D = Bounds3D(pos_m - cBallBall.ballRadius, pos_m + cBallBall.ballRadius);
+    Bounds3D ballBox3D = Bounds3D(pos_m - cBall.ballRadius, pos_m + cBall.ballRadius);
     m_registry.addComponent<CBoundingBox3D>(eBall, ballBox3D);
     
     

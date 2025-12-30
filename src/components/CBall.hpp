@@ -4,6 +4,13 @@
 #include "math/Vec3.hpp"
 #include "math/Bounds3D.hpp"
 #include "math/physics/forces/BallForcesStruct.hpp"
+enum class ContactSurface { None, Table, Floor, Net, Racket };
+enum class ContactState {
+    None,
+    Impact,     
+    Sliding,       
+    Rolling        
+};
 
 struct BallLogo {
     // Spherical orientation of the logo’s center on the ball
@@ -39,9 +46,12 @@ public:
     float mass = .0027f; //kg
     bool hasFallen = false;
     bool hitNet = false;
-    bool hitRacket = false;
+    bool racketLastContact = false;
     Entity ballShadow;
-
+    ContactState contactState = ContactState::None;
+    ContactSurface contactSurface = ContactSurface::None;
+    bool impactResolved = false;
+    bool contactingSurface = false;
     CBall() = default;
 
     explicit CBall(const Entity& shadow, Vec3 pSpin)

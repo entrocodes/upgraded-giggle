@@ -6,8 +6,8 @@
 SystemExec BallRemovalSystem::update(GameContext* context) {
     std::vector<Entity> toRemove;
     for (auto eBall : context->registry.getEntitiesWith<CBall>()) {
-        auto [cBallTransform, cBallBall] = context->registry.getComponents<CTransform, CBall>(eBall);
-        Entity eBallShadow = cBallBall->ballShadow;
+        auto [cBallTransform, cBall] = context->registry.getComponents<CTransform, CBall>(eBall);
+        Entity eBallShadow = cBall->ballShadow;
         Vec2& ballPos = cBallTransform->pos;
 
         if (ballPos.y > context->display.logicalSize.y || ballPos.y < 0 || ballPos.x < 0 || ballPos.x > context->display.logicalSize.x) {
@@ -35,8 +35,8 @@ SystemExec BallRemovalSystem::update(GameContext* context) {
 void BallRemovalSystem::removeAll(GameContext* context) {
     std::vector<Entity> toRemove;
     for (auto eBall : context->registry.getEntitiesWith<CBall>()) {
-        auto [cBallTransform, cBallBall] = context->registry.getComponents<CTransform, CBall>(eBall);
-        Entity shadowEntity = cBallBall->ballShadow;
+        auto [cBallTransform, cBall] = context->registry.getComponents<CTransform, CBall>(eBall);
+        Entity shadowEntity = cBall->ballShadow;
         Vec2& ballPos = cBallTransform->pos;
         toRemove.push_back(eBall);
         toRemove.push_back(shadowEntity);

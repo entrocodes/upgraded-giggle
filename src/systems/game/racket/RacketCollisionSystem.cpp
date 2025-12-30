@@ -4,7 +4,7 @@
 #include "components/Components.hpp"
 #include "math/Vec3.hpp"
 #include "math/Constants.hpp" // expects PI, DEG2RAD, etc.
-#include "math/physics/collision/BallObjectIntersection.hpp"
+#include "math/physics/collision/ObjectIntersection.hpp"
 #include "debug/Debug.hpp"
 #include "systems/game/imgui/GameImGuiConsole.hpp"
 #include <algorithm>
@@ -42,15 +42,15 @@ SystemExec RacketCollisionSystem::update(GameContext* context)
         Vec3 n = cRacketPhysical->worldNormal.normalized();
 
         for (auto eBall : context->registry.getEntitiesWith<CBall, CTransform3D, CVelocity3D>()) {
-            auto [cBallBall, cBallTransform3D, cBallVelocity3D, cBallBoundingBox3D] =
+            auto [cBall, cBallTransform3D, cBallVelocity3D, cBallBoundingBox3D] =
                 context->registry.getComponents<CBall, CTransform3D, CVelocity3D, CBoundingBox3D>(eBall);
 
-            if (!cBallBall || !cBallTransform3D || !cBallVelocity3D || !cBallBoundingBox3D)
+            if (!cBall || !cBallTransform3D || !cBallVelocity3D || !cBallBoundingBox3D)
                 continue;
 
             checkIntersection(context, cRacketTransform3D, cBallTransform3D);
-            if (cBallBall->hitRacket) continue;
-            const float spinBefore = cBallBall->spin.length();
+            if (cBall->racketLastContact) continue;
+            const float spinBefore = cBall->spin.length();
 
             // --- Broad phase ---
             Vec3 toBall = cBallTransform3D->pos_m - cRacketTransform3D->pos_m;
@@ -60,7 +60,7 @@ SystemExec RacketCollisionSystem::update(GameContext* context)
 
             // --- Plane distance (signed) ---
             float distFromPlane = toBall.dot(n);
-            float R = cBallBall->ballRadius;
+            float R = cBall->ballRadius;
             if (std::abs(distFromPlane) > R) continue;
 
             // --- Radial (in-plane) check ---
@@ -75,9 +75,9 @@ SystemExec RacketCollisionSystem::update(GameContext* context)
             if (vN >= 0.f) continue;
 
             // --- Coefficients ---
-            float e = cRacketPhysical->restitution * cBallBall->restitution; // restitution
+            float e = cRacketPhysical->restitution * cBall->restitution; // restitution
             float mu = cRacketPhysical->friction;                            // Coulomb coefficient
-            float m = cBallBall->mass;
+            float m = cBall->mass;
 
             // --- Contact lever arm (approx center -> contact point) ---
             // Contact point on the face in direction -n
@@ -85,7 +85,7 @@ SystemExec RacketCollisionSystem::update(GameContext* context)
 
             // --- Slip velocity at contact ---
             // IMPORTANT: spin is in REV/S (world). Convert to RAD/S for ¦Ø¡Ár.
-            Vec3 omega = cBallBall->spin * (2.f * PI); // rad/s
+            Vec3 omega = cBall->spin * (2.f * PI); // rad/s
             Vec3 vSpinAtContact = omega.cross(r);      // m/s
             Vec3 vRelAtContact = relVel + vSpinAtContact;
 
@@ -144,12 +144,12 @@ SystemExec RacketCollisionSystem::update(GameContext* context)
             Vec3 deltaSpinRev = deltaOmega / (2.f * PI);                 // rev/s
 
             // Damping + grip
-            cBallBall->spin =
-                (cBallBall->spin * 0.3f) +
+            cBall->spin =
+                (cBall->spin * 0.3f) +
                 (deltaSpinRev * context->physicsDebug.racketGripFactor);
 
             // Clamp spin
-            clampSpinRevPerSec(cBallBall->spin, context->physicsDebug.maxBallSpin_revps);
+            clampSpinRevPerSec(cBall->spin, context->physicsDebug.maxBallSpin_revps);
 
             // --- Anti-tunneling position correction ---
             // penetration depth (how far inside plane along normal)
@@ -161,11 +161,11 @@ SystemExec RacketCollisionSystem::update(GameContext* context)
             cBallBoundingBox3D->color = sf::Color::Red;
             cRacketBoundingBox3D->color = sf::Color::Red;
             
-            cBallBall->hitRacket = true;
+            cBall->racketLastContact = true;
             if (context->physicsDebug.logImpulses) {
 
-                // After you update cBallBall->spin and clamp it:
-                const float spinAfter = cBallBall->spin.length();
+                // After you update cBall->spin and clamp it:
+                const float spinAfter = cBall->spin.length();
 
                 ImGuiConsoleQueue(
                     "[RacketContact] vNc=" + std::to_string(vNc) +

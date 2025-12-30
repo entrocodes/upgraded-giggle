@@ -7,6 +7,7 @@ struct TableParameters {
     const float tableWidth = 1.525f;    // meters (Y)
     const float tableY = 0.0f;           // table plane at y=0
     const float tableHeight = 0.76f;
+    const float tableTopThickness = .025f;
     const float floorY = -0.76f;  //floor plane at y=-0.76
     const float stopBelow = -1.0f;
     float netDamping = .45f;

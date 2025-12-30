@@ -17,8 +17,8 @@ SystemExec RenderLayerSystem::update(GameContext* context) {
     float netZ = cNetTransform3D->pos_m.z;
 
     for (auto eBall : context->registry.getEntitiesWith<CRenderLayer, CBall, CTransform3D>()) {
-        auto [cBallBall, cBallRenderLayer, cBallTransform3D] = context->registry.getComponents<CBall, CRenderLayer, CTransform3D>(eBall);
-        auto eBallShadow = cBallBall->ballShadow;
+        auto [cBall, cBallRenderLayer, cBallTransform3D] = context->registry.getComponents<CBall, CRenderLayer, CTransform3D>(eBall);
+        auto eBallShadow = cBall->ballShadow;
         auto cBallShadowRenderLayer = context->registry.getComponent<CRenderLayer>(eBallShadow);
         cBallRenderLayer->layer = 80;
         //if ball is above net on Z axis, render the net after the ball
