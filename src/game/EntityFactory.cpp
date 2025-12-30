@@ -66,7 +66,7 @@ Entity EntityFactory::createTable() {
     Vec2 initialPos = {532.f + texSize.x / 2.f, 599.f - texSize.y / 2.f};
     cTableTransform.pos = initialPos;
 
-    Vec3 tablePos_m = {tableWidth * 0.5f, tableHeight + tableTopThickness * 0.5f, tableLength * 0.5f};
+    Vec3 tablePos_m = {tableWidth * 0.5f, tableTopThickness * 0.5f, tableLength * 0.5f};
     Vec3 tableTopHalfSize = {tableWidth * 0.5f, tableTopThickness * 0.5f,tableLength * 0.5f};
     m_registry.addComponent<CBoundingBox3D>(eTable, tablePos_m, tableTopHalfSize);
 

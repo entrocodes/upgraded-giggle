@@ -16,7 +16,7 @@ SystemExec BodyTableCollisionSystem::update(GameContext* context)
         float penetrationZ = ObjectIntersection::calculatePenetration(cBodyBox->box, cTableBox->box).z;
         auto& cCollision =
             context->registry.addComponent<CBodyTableCollision>(eBody);
-
+        
         cCollision.overlap = penetrationZ;
 
 

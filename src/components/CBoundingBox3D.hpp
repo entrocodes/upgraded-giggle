@@ -5,6 +5,7 @@
 #include "math/Vec3.hpp"
 struct CBoundingBox3D : public Component {
     Bounds3D box;
+    Bounds3D lastBox;
     sf::Color color = sf::Color::Green;
     float iter_color = 50;
     Vec3 halfSize = { 0, 0, 0 };
@@ -21,6 +22,7 @@ struct CBoundingBox3D : public Component {
     }
     void setBoundingBox(const Vec3& pCurrent_Pos) {
         box = Bounds3D(pCurrent_Pos - halfSize, pCurrent_Pos + halfSize);
+        lastBox = box;
     }
 
 };
