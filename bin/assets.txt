@@ -7,6 +7,7 @@ Texture   TexOrangeRoom bin/assets/images/stage/orangeroom.png
 Texture   TexTable      bin/assets/images/table/table.png
 Texture   TexNet        bin/assets/images/table/net.png
 Texture   TexRacket        bin/assets/images/racket/racket.png
+Texture   TexRacketShadow  bin/assets/images/racket/racketshadow.png
 Texture   TexOpponentStand     bin/assets/images/opponent/opponentstand.png
 Animation BallShadow   TexBallShadow 1    0
 Animation Ball         TexBall       1    0
@@ -18,4 +19,5 @@ Animation OrangeRoom   TexOrangeRoom 1    0
 Animation Table        TexTable 1 0
 Animation Net          TexNet 1 0
 Animation Racket       TexRacket 1 0
+Animation RacketShadow TexRacketShadow 1 0
 Font      Tech         bin/assets/fonts/tech.ttf

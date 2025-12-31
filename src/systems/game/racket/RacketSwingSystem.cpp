@@ -37,7 +37,7 @@ SystemExec RacketSwingSystem::update(GameContext* context) {
         }
         Vec2 steer = cAuthorization->vec2Map["SteerIntent"];
         if (strokeState == StrokeState::Idle && cBodyTableCollision) {
-            cRacketHandle->freeOffset_m.z += cBodyTableCollision->overlap * 1.25;
+            cRacketHandle->freeOffset_m.z += cBodyTableCollision->penetration.z * 1.25;
             context->registry.removeComponent<CBodyTableCollision>(entity);
         }
         if (strokeState == StrokeState::Backswing || strokeState == StrokeState::BrakedBackSwing) {
@@ -68,21 +68,30 @@ SystemExec RacketSwingSystem::update(GameContext* context) {
             if (cRacketSwing->strokeState == StrokeState::Push) {
                 float sensitivityZ = 5.0f;
                 float manualZ = cAuthorization->floatMap["ManualReachZ"];
-                cRacketHandle->freeOffset_m.z += manualZ * sensitivity * sensitivityZ * dt; //make pushoffset separable from free offset later
+                cRacketHandle->pushOffset_m.z += manualZ * sensitivity * sensitivityZ * dt; //make pushoffset separable from free offset later
             }
             cRacketHandle->freeOffset_m.x += steer.x * sensitivity * dt;
             cRacketHandle->freeOffset_m.y += -steer.y * sensitivity * dt;
         }
         if (strokeState == StrokeState::PushRecovery) {
-            if (cRacketHandle->freeOffset_m.z > 0) {
-                float pushResetRate = 1.0f;
-                cRacketHandle->freeOffset_m.z -= pushResetRate * dt;
+            if (cRacketHandle->freeOffset_m.z > 0 || cRacketHandle->pushOffset_m.z > 0) {
+                float pushResetRate = 1.5f;
+                float freeResetRate = 2.0f;
+                if (cRacketHandle->pushOffset_m.z > 0) {
+                    cRacketHandle->pushOffset_m.z -= pushResetRate * dt;
+                }
+                else {
+                    cRacketHandle->freeOffset_m.z -= freeResetRate * dt;
+                }
+
                 if (cRacketHandle->freeOffset_m.z <= 0) cRacketHandle->freeOffset_m.z = 0;
+                if (cRacketHandle->pushOffset_m.z <= 0) cRacketHandle->pushOffset_m.z = 0;
             }
             else {
                 strokeState = StrokeState::Idle;
             }
         }
+
         if (strokeState == StrokeState::Swing) {
             if (prevStrokeState == StrokeState::Backswing || prevStrokeState == StrokeState::BrakedBackSwing) {
                 cRacketSwing->strokeTime_ms = 0.f;

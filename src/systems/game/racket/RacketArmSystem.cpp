@@ -9,10 +9,10 @@ SystemExec RacketArmSystem::update(GameContext* context) {
         auto [cAuth, cArm, cHandle, cPos, cSwing] = context->registry.getComponents<CAuthorization, CArm, CRacketHandle, CTransform3D, CRacketSwing>(entity);
 
         auto eRacket = cHandle->racketEntity;
-        auto [cRacketTransform, cRacketVel] = context->registry.getComponents<CTransform3D, CVelocity3D>(eRacket);
+        auto [cRacketPhysical, cRacketTransform3D, cRacketVel, cRacketBoundingBox3D] = context->registry.getComponents<CRacketPhysical, CTransform3D, CVelocity3D, CBoundingBox3D>(eRacket);
 
         float dt = context->frameStats.dt;
-        Vec3 lastPos = cRacketTransform->pos_m;
+        Vec3 lastPos = cRacketTransform3D->pos_m;
 
         // Body Lean: Moves the anchor based on where the player is reaching
         Vec3 reachVec = (cSwing->swingTriggered) ? cHandle->swingOffset_m : cHandle->freeOffset_m;
@@ -33,7 +33,7 @@ SystemExec RacketArmSystem::update(GameContext* context) {
 
         // --- FINAL POSITIONING ---
         Vec3 targetOffset = (cHandle->swingOffset_m * cHandle->strokeWeight) +
-            (cHandle->freeOffset_m * (1.0f - cHandle->strokeWeight));
+            (cHandle->freeOffset_m * (1.0f - cHandle->strokeWeight)) + cHandle->pushOffset_m; //consider reworking this logic later
 
         // Final Hard Constraint: Arm cannot physically leave the socket
         if (targetOffset.length() > cArm->maxReach_m) {
@@ -43,8 +43,8 @@ SystemExec RacketArmSystem::update(GameContext* context) {
         Vec3 finalPos = cArm->shoulderPos_m + targetOffset;
 
         // --- 4. PHYSICS COMMIT ---
-        cRacketTransform->lastPos_m = lastPos;
-        cRacketTransform->pos_m = finalPos;
+        cRacketTransform3D->lastPos_m = lastPos;
+        cRacketTransform3D->pos_m = finalPos;
 
         // Velocity calculation (Smoothed for collision detection)
         Vec3 instantVel = (finalPos - lastPos) / dt;
@@ -53,6 +53,38 @@ SystemExec RacketArmSystem::update(GameContext* context) {
 
         if (cSwing->strokeState == StrokeState::Swing) {
             Debug::queueLine3D(cArm->shoulderPos_m, finalPos, sf::Color::Yellow);
+        }
+        // Shadow
+        auto eTable = context->registry.getEntity("table");
+        auto cTableBox3D = context->registry.getComponent<CBoundingBox3D>(*eTable);
+        // Check if the racket is within the table boundaries (X and Z plane)
+        bool xOverlap = (cRacketBoundingBox3D->box.min.x <= cTableBox3D->box.max.x) &&
+            (cRacketBoundingBox3D->box.max.x >= cTableBox3D->box.min.x);
+
+        bool zOverlap = (cRacketBoundingBox3D->box.min.z <= cTableBox3D->box.max.z) &&
+            (cRacketBoundingBox3D->box.max.z >= cTableBox3D->box.min.z);
+
+        // If it overlaps both X and Z, it is OVER the table. 
+        // If it doesn't, it is OFF the table.
+        cRacketPhysical->offTable = !(xOverlap && zOverlap);
+        // --- SHADOW ---
+
+        auto tp = context->tableParameters;
+        auto p = cRacketTransform3D->pos_m;
+        Entity eRacketShadow = cRacketPhysical->racketShadow;
+        auto [cRacketShadowTransform, cRacketShadowTransform3D] =
+            context->registry.getComponents<CTransform, CTransform3D>(eRacketShadow);
+
+        if (cRacketShadowTransform && cRacketShadowTransform3D) {
+            cRacketShadowTransform3D->lastPos_m = cRacketShadowTransform3D->pos_m;
+            cRacketShadowTransform3D->lastScale_m = cRacketShadowTransform3D->scale_m;
+
+            float shadowY = cRacketPhysical->offTable ? tp.floorY : tp.tableY;
+            cRacketShadowTransform3D->pos_m = Vec3(p.x, shadowY, p.z);
+
+            float heightAboveSurface = p.y - shadowY;
+            float scale = std::max(0.5f, 1.5f - 0.2f * heightAboveSurface);
+            cRacketShadowTransform3D->scale_m = { scale, 1.f, scale };
         }
     }
         

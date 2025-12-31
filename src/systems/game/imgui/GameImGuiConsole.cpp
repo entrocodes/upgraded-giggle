@@ -20,7 +20,15 @@ void ImGuiConsoleQueue(const std::string& msg)
     if (g_lines.size() > g_maxLines)
         g_lines.pop_front();
 }
+void ImGuiConsoleQueue(const std::string& varName, const float& varValue)
+{
+    std::lock_guard<std::mutex> lock(g_mutex);
+    std::string msg = varName + ": " + std::to_string(varValue);
+    g_lines.push_back(msg);
 
+    if (g_lines.size() > g_maxLines)
+        g_lines.pop_front();
+}
 void ImGuiConsoleClear()
 {
     std::lock_guard<std::mutex> lock(g_mutex);

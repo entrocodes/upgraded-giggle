@@ -152,8 +152,8 @@ Entity EntityFactory::createPlayer() {
 
 Entity EntityFactory::createPlayerRacket() {
     Entity eRacket = m_registry.createEntity("playerRacket");
-
-    auto& cPlayerRacketRacketPhysical = m_registry.addComponent<CRacketPhysical>(eRacket);
+    Entity eRacketShadow = createRacketShadow();
+    auto& cPlayerRacketRacketPhysical = m_registry.addComponent<CRacketPhysical>(eRacket, eRacketShadow);
     cPlayerRacketRacketPhysical.restitution = 0.85f;
     cPlayerRacketRacketPhysical.friction = 0.50f;
 
@@ -237,8 +237,8 @@ Entity EntityFactory::createOpponent() {
 }
 Entity EntityFactory::createOpponentRacket() {
     Entity eRacket = m_registry.createEntity("opponentRacket");
-    
-    auto& cOppenentRacketRacketPhysical = m_registry.addComponent<CRacketPhysical>(eRacket);
+    Entity eRacketShadow = createRacketShadow();
+    auto& cOppenentRacketRacketPhysical = m_registry.addComponent<CRacketPhysical>(eRacket, eRacketShadow);
     cOppenentRacketRacketPhysical.restitution = 0.85f;
     cOppenentRacketRacketPhysical.friction = 0.50f;
 
@@ -281,11 +281,9 @@ Entity EntityFactory::createBall(const Vec3& pos_m, const Vec3& vel_mps, const V
 
     Vec2 ballScreenPos = m_camera.homography.worldToImage(pos_m); 
 
-
     Entity eBall = m_registry.createEntity("ball");
     auto& cBall = m_registry.addComponent<CBall>(eBall, eBallShadow, spin);
     auto& cBallTransform = m_registry.addComponent<CTransform>(eBall, ballScreenPos, Vec2(1.0, 1.0), 0.f);
-    cBallTransform.lastPos = ballScreenPos; // <--- ADD THIS
     Vec3 size_m = { cBall.ballRadius * 2,cBall.ballRadius * 2,cBall.ballRadius * 2 }; //set ball size to a cube (even though its a circle)
     m_registry.addComponent<CTransform3D>(eBall, pos_m); //cTransform3D is initialized with the actual position of the ball in meters.
     m_registry.addComponent<CVelocity3D>(eBall, vel_mps);
@@ -304,9 +302,7 @@ Entity EntityFactory::createBall(const Vec3& pos_m, const Vec3& vel_mps, const V
 }
 Entity EntityFactory::createBallShadow(const Vec3& shadowPos_m) {
     Entity eBallShadow = m_registry.createEntity("ballShadow");
-    Vec2 shadowScreenPos = m_camera.homography.worldToImage(shadowPos_m);
-    // Transform
-    auto& cBallShadowTransform = m_registry.addComponent<CTransform>(eBallShadow, shadowScreenPos, Vec2(2.0f,2.0f)); //this is setting the ballShadow to the same screen coordinates as the ball.
+    auto& cBallShadowTransform = m_registry.addComponent<CTransform>(eBallShadow); 
 
     // animation
     const Animation& aShadow = m_assets.getAnimation("BallShadow");
@@ -318,6 +314,22 @@ Entity EntityFactory::createBallShadow(const Vec3& shadowPos_m) {
 
 
     return eBallShadow;
+}
+Entity EntityFactory::createRacketShadow() {
+    Entity eRacketShadow = m_registry.createEntity("racketShadow");
+    auto& cBallShadowTransform = m_registry.addComponent<CTransform>(eRacketShadow);
+
+    // animation
+    const Animation& aShadow = m_assets.getAnimation("RacketShadow");
+    auto& cBallShadowAnimation = m_registry.addComponent<CAnimation>(eRacketShadow, aShadow, false);
+    m_registry.addComponent<CRenderLayer>(eRacketShadow, 31);
+    m_registry.addComponent<CTransform3D>(eRacketShadow);
+    m_registry.addComponent<CRacketShadow>(eRacketShadow);
+    sf::Sprite& s = cBallShadowAnimation.animation.getSprite();
+    s.setOrigin(s.getLocalBounds().width / 2.f, s.getLocalBounds().height / 2.f);
+
+
+    return eRacketShadow;
 }
 Entity EntityFactory::createText(std::string pString, float pCharacterSize, sf::Color pColor, Vec2 pPos, const std::string pFont) {
     Entity eText = m_registry.createEntity("text");

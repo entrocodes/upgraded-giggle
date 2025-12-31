@@ -251,8 +251,8 @@ void GameImGuiSystem::drawRacketDebug(GameContext* context) {
         return;
     }
 
-    auto [cPlayerSwing, cPlayerHandle, cPlayerState, cPlayerInput, cPlayerArm, cPlayerAuthorization] =
-        context->registry.getComponents<CRacketSwing, CRacketHandle, CState, CInput, CArm, CAuthorization>(*ePlayer);
+    auto [cPlayerSwing, cPlayerHandle, cPlayerState, cPlayerInput, cPlayerArm, cPlayerAuthorization, cPlayerTransform3D] =
+        context->registry.getComponents<CRacketSwing, CRacketHandle, CState, CInput, CArm, CAuthorization, CTransform3D>(*ePlayer);
 
     if (cPlayerHandle) {
         auto eRacket = cPlayerHandle->racketEntity;
@@ -260,8 +260,12 @@ void GameImGuiSystem::drawRacketDebug(GameContext* context) {
             context->registry.getComponents<CRacketPhysical, CTransform3D, CRotation3D>(eRacket);
         if (cPlayerAuthorization) {
             if (ImGui::CollapsingHeader("Racket Position")) {
-                ImGui::Text("Racket Posisition: %.2f, %.2f, %.2f", cRacketTransform3D->pos_m.x, cRacketTransform3D->pos_m.y, cRacketTransform3D->pos_m.z);
+                ImGui::Text("Player Position: %.2f, %.2f, %.2f", cPlayerTransform3D->pos_m.x, cPlayerTransform3D->pos_m.y, cPlayerTransform3D->pos_m.z);
+                ImGui::Text("Shoulder Position: %.2f, %.2f, %.2f", cPlayerArm->shoulderPos_m.x, cPlayerArm->shoulderPos_m.y, cPlayerArm->shoulderPos_m.z);
+                ImGui::Text("Racket Position: %.2f, %.2f, %.2f", cRacketTransform3D->pos_m.x, cRacketTransform3D->pos_m.y, cRacketTransform3D->pos_m.z);
                 ImGui::Text("Racket Movement: %.2f, %.2f, %.2f", cPlayerAuthorization->vec2Map["SteerIntent"].x, cPlayerAuthorization->vec2Map["SteerIntent"].y, cPlayerAuthorization->floatMap["ManualReachZ"]);
+                ImGui::Text("Racket Free Offset: %.2f, %.2f, %.2f", cPlayerHandle->freeOffset_m.x, cPlayerHandle->freeOffset_m.y, cPlayerHandle->freeOffset_m.z);
+                ImGui::Text("Racket Push Offset: %.2f, %.2f, %.2f", cPlayerHandle->pushOffset_m.x, cPlayerHandle->pushOffset_m.y, cPlayerHandle->pushOffset_m.z);
             }
         }
         if (cRacketPhysical && cRacketRotation3D) {
@@ -303,31 +307,31 @@ void GameImGuiSystem::drawRacketDebug(GameContext* context) {
                 const char* stateNames[] = { "Idle", "Backswing", "Swing", "Swing Recovery", "Push", "Push Recovery", "Braked Backswing"};
                 int currentStateIdx = (int)cPlayerSwing->strokeState;
                 ImGui::Text("CURRENT STATE: %s", stateNames[currentStateIdx]);
-                ImGui::Text("Braking: %s", cPlayerSwing->isBraking ? "Yes" : "No");
-                // 2. Specialized Feedback per Phase
-                float ms = cPlayerSwing->strokeTime_ms;
+                //ImGui::Text("Braking: %s", cPlayerSwing->isBraking ? "Yes" : "No");
+                //// 2. Specialized Feedback per Phase
+                //float ms = cPlayerSwing->strokeTime_ms;
 
-                if (cPlayerSwing->strokeState == StrokeState::Swing) {
-                    if (ms < 80.0f)
-                        ImGui::TextColored(ImVec4(0, 1, 1, 1), "PHASE: COMMIT WINDOW (Steer Enabled)");
-                    else if (ms < 180.0f)
-                        ImGui::TextColored(ImVec4(1, 0.5f, 0, 1), "PHASE: ACCELERATION");
-                    else
-                        ImGui::Text("PHASE: FOLLOW-THROUGH");
+                //if (cPlayerSwing->strokeState == StrokeState::Swing) {
+                //    if (ms < 80.0f)
+                //        ImGui::TextColored(ImVec4(0, 1, 1, 1), "PHASE: COMMIT WINDOW (Steer Enabled)");
+                //    else if (ms < 180.0f)
+                //        ImGui::TextColored(ImVec4(1, 0.5f, 0, 1), "PHASE: ACCELERATION");
+                //    else
+                //        ImGui::Text("PHASE: FOLLOW-THROUGH");
 
-                    // Progress toward end of swing (300ms)
-                    ImGui::ProgressBar(ms / 300.0f, ImVec2(-1, 0), (std::to_string((int)ms) + " / 300 ms").c_str());
-                }
-                else if (cPlayerSwing->strokeState == StrokeState::Backswing) {
-                    float chargePct = cPlayerSwing->backswingTime / cPlayerSwing->maxBackswing;
-                    ImGui::ProgressBar(chargePct, ImVec2(-1, 0), "CHARGING BACKSWING");
-                }
-                else if (cPlayerSwing->strokeState == StrokeState::Push) {
-                    ImGui::TextColored(ImVec4(0.5f, 1.0f, 0.5f, 1.0f), "MANUAL PUSH ACTIVE");
-                }
-                else {
-                    ImGui::TextDisabled("System Ready...");
-                }
+                //    // Progress toward end of swing (300ms)
+                //    ImGui::ProgressBar(ms / 300.0f, ImVec2(-1, 0), (std::to_string((int)ms) + " / 300 ms").c_str());
+                //}
+                //else if (cPlayerSwing->strokeState == StrokeState::Backswing) {
+                //    float chargePct = cPlayerSwing->backswingTime / cPlayerSwing->maxBackswing;
+                //    ImGui::ProgressBar(chargePct, ImVec2(-1, 0), "CHARGING BACKSWING");
+                //}
+                //else if (cPlayerSwing->strokeState == StrokeState::Push) {
+                //    ImGui::TextColored(ImVec4(0.5f, 1.0f, 0.5f, 1.0f), "MANUAL PUSH ACTIVE");
+                //}
+                //else {
+                //    ImGui::TextDisabled("System Ready...");
+                //}
 
                 // 3. Weight Monitoring (For Smoothing Debug)
                 ImGui::Separator();

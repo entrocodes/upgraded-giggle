@@ -3,7 +3,7 @@
 
 // Queue a line of text to the ImGui console
 void ImGuiConsoleQueue(const std::string& msg);
-
+void ImGuiConsoleQueue(const std::string& varName, const float& varValue);
 // Draw the ImGui console window (call once per frame)
 void ImGuiConsoleDraw(bool* pOpen = nullptr);
 
