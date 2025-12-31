@@ -1,0 +1,858 @@
+--- FILE: src\math\MathHelpers.hpp ---
+#pragma once
+
+#include "Vec3.hpp"
+#include <cmath>
+class MathHelpers {
+public:
+    static Vec3 normalize(const Vec3& v) {
+        float len = std::sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+        if (len < 0.00001f) return { 0,0,0 };
+        return { v.x / len, v.y / len, v.z / len };
+    }
+
+    static float dot(const Vec3& a, const Vec3& b) {
+        return a.x * b.x + a.y * b.y + a.z * b.z;
+    }
+
+    static Vec3 cross(const Vec3& a, const Vec3& b) {
+        return {
+            a.y * b.z - a.z * b.y,
+            a.z * b.x - a.x * b.z,
+            a.x * b.y - a.y * b.x
+        };
+    }
+};
+
+--- FILE: src\math\Random.hpp ---
+#pragma once
+#include <random>
+#include "math/Vec2.hpp"  // assuming your Vec2 struct is here
+
+namespace Math {
+
+    class Random {
+    public:
+        // Generates a random float between min and max, snapped to the given increment.
+        static float range(float min, float max, float increment = 0.0f) {
+            static std::mt19937 rng{ std::random_device{}() };
+            std::uniform_real_distribution<float> dist(min, max);
+
+            float value = dist(rng);
+
+            if (increment > 0.0f) {
+                // Snap to nearest increment
+                float snapped = std::round((value - min) / increment) * increment + min;
+                // Clamp to ensure it stays within range
+                if (snapped > max) snapped = max;
+                if (snapped < min) snapped = min;
+                return snapped;
+            }
+
+            return value;
+        }
+
+        // Generates a random Vec2 where each component is between its own min/max, with its own increment
+        static Vec2 rangeVec2(
+            Vec2 min, Vec2 max,
+            Vec2 increment = Vec2{ 0.0f, 0.0f }
+        ) {
+            return Vec2{
+                range(min.x, max.x, increment.x),
+                range(min.y, max.y, increment.y)
+            };
+        }
+    };
+
+} // namespace Math
+
+
+--- FILE: src\math\Rectangle.hpp ---
+#pragma once
+#include <SFML/Graphics.hpp>
+#include <algorithm> // for std::min/std::max
+#include "Vec2.hpp"
+
+struct Rectangle {
+    sf::RectangleShape rect;
+
+    Rectangle() = default;
+
+    Rectangle(const Vec2& p1, const Vec2& p2, sf::Color color)
+    {
+        sf::Vector2f pos(
+            std::min(p1.x, p2.x),
+            std::min(p1.y, p2.y)
+        );
+
+        sf::Vector2f size(
+            std::abs(p2.x - p1.x),
+            std::abs(p2.y - p1.y)
+        );
+
+        rect.setPosition(pos);
+        rect.setSize(size);
+        rect.setFillColor(sf::Color(color.r, color.g, color.b, 50)); // transparent
+        rect.setOutlineColor(color);
+        rect.setOutlineThickness(2.f);
+    }
+
+    // Give direct reference instead of copy
+    sf::RectangleShape& shape() { return rect; }
+};
+
+
+--- FILE: src\math\TableHomography.cpp ---
+﻿#include "TableHomography.hpp"
+#include "debug/Debug.hpp"
+#include "math/Vec2.hpp"
+#include <SFML/Graphics.hpp>
+#include <Eigen/Dense>
+#include <cmath>
+#include <iostream>
+
+
+
+// Compute full perspective homography using Eigen
+static Eigen::Matrix3f computeHomographyEigen(const std::array<Vec2, 4>& src, const std::array<Vec2, 4>& dst) {
+    Eigen::Matrix<float, 8, 8> A;
+    Eigen::Matrix<float, 8, 1> b;
+
+    for (int i = 0; i < 4; ++i) {
+        float x = src[i].x;
+        float y = src[i].y;
+        float X = dst[i].x;
+        float Y = dst[i].y;
+
+        A(2 * i, 0) = x;
+        A(2 * i, 1) = y;
+        A(2 * i, 2) = 1.0f;
+        A(2 * i, 3) = 0.0f;
+        A(2 * i, 4) = 0.0f;
+        A(2 * i, 5) = 0.0f;
+        A(2 * i, 6) = -x * X;
+        A(2 * i, 7) = -y * X;
+        b(2 * i, 0) = X;
+
+        A(2 * i + 1, 0) = 0.0f;
+        A(2 * i + 1, 1) = 0.0f;
+        A(2 * i + 1, 2) = 0.0f;
+        A(2 * i + 1, 3) = x;
+        A(2 * i + 1, 4) = y;
+        A(2 * i + 1, 5) = 1.0f;
+        A(2 * i + 1, 6) = -x * Y;
+        A(2 * i + 1, 7) = -y * Y;
+        b(2 * i + 1, 0) = Y;
+    }
+
+    Eigen::Matrix<float, 8, 1> h = A.colPivHouseholderQr().solve(b);
+
+    Eigen::Matrix3f H;
+    H << h(0), h(1), h(2),
+        h(3), h(4), h(5),
+        h(6), h(7), 1.0f;
+
+    return H;
+}
+
+void TableHomography::calibrate(const std::array<Vec2, 4>& src, const std::array<Vec2, 4>& dst) {
+    srcPoints = src;
+    dstPoints = dst;
+
+    Debug::debugPrint("=== TableHomography::calibrate ===");
+    for (int i = 0; i < 4; ++i) {
+        Debug::debugPrint("src[" + std::to_string(i) + "]", src[i]);
+        Debug::debugPrint("dst[" + std::to_string(i) + "]", dst[i]);
+    }
+
+    // Compute Eigen homography
+    H_eigen = computeHomographyEigen(src, dst);
+    H_inv_eigen = H_eigen.inverse();
+
+    // Convert to sf::Transform for drawing
+    sf::Transform H_sf(
+        H_eigen(0, 0), H_eigen(0, 1), H_eigen(0, 2),
+        H_eigen(1, 0), H_eigen(1, 1), H_eigen(1, 2),
+        H_eigen(2, 0), H_eigen(2, 1), H_eigen(2, 2)
+    );
+
+    H = H_sf;
+    H_inv = H_sf.getInverse();
+
+    Debug::debugPrint("Computed Homography (Eigen):", "--------------------------------");
+    std::cout << H_eigen << std::endl;
+
+    float det = H_eigen.determinant();
+    Debug::debugPrint("Homography determinant", std::to_string(det));
+
+    if (std::isnan(det) || std::abs(det) < 1e-6f)
+        Debug::debugPrint("Warning", "Degenerate or invalid homography matrix!");
+
+    calibrated = true;
+    Debug::debugPrint("Calibration complete", "True perspective homography initialized");
+}
+
+Vec2 TableHomography::imageToWorld(const Vec2& p) const {
+    Eigen::Vector3f pi(p.x, p.y, 1.0f);
+    Eigen::Vector3f pw = H_eigen * pi;
+    return Vec2(pw(0) / pw(2), pw(1) / pw(2));
+}
+
+Vec2 TableHomography::worldToImage(const Vec2& p) const {
+    Eigen::Vector3f pw(p.x, p.y, 1.0f);
+    Eigen::Vector3f pi = H_inv_eigen * pw;
+    return Vec2(pi(0) / pi(2), pi(1) / pi(2));
+}
+Vec2 TableHomography::worldToImage(const Vec3& p) const {
+    Eigen::Vector3f pw(p.x, p.z, 1.0f);
+    Eigen::Vector3f pi = H_inv_eigen * pw;
+    float yOffset = p.y * m_pixelsPerMeter;
+    return Vec2(pi(0) / pi(2), pi(1) / pi(2) - yOffset);
+}
+
+void TableHomography::drawDebugGrid(sf::RenderWindow& window, int divX, int divY) const{
+    if (!calibrated) {
+        if (printDebug) {
+            Debug::debugPrint("TableHomography", "not calibrated");
+        }
+        return;
+    }
+
+    sf::VertexArray grid(sf::Lines);
+
+    float tableXRange = 1.525f; // Table width (meters)
+    float tableZRange = 2.74f;  // Table length (meters)
+    if (printDebug) {
+        Debug::debugPrint("Table size (X,Z)", Vec2(tableXRange, tableZRange));
+    }
+    bool drewSomething = false;
+
+    for (int i = 0; i <= divX; i++) {
+        float t = i / float(divX);
+        Vec2 start{ t * tableXRange, 0.0f };
+        Vec2 end{ t * tableXRange, tableZRange };
+        Vec2 startScreen = worldToImage(start);
+        Vec2 endScreen = worldToImage(end);
+
+        if ((i == 0 || i == divX) && printDebug) {
+            Debug::debugPrint("Vertical Line Start", startScreen);
+            Debug::debugPrint("Vertical Line End", endScreen);
+        }
+
+        if (std::isfinite(startScreen.x) && std::isfinite(startScreen.y) &&
+            std::isfinite(endScreen.x) && std::isfinite(endScreen.y)) {
+
+            grid.append(sf::Vertex({ startScreen.x, startScreen.y }, sf::Color(0, 255, 0, 120)));
+            grid.append(sf::Vertex({ endScreen.x, endScreen.y }, sf::Color(0, 255, 0, 120)));
+            drewSomething = true;
+        }
+    }
+
+    for (int j = 0; j <= divY; j++) {
+        float t = j / float(divY);
+        Vec2 start{ 0.0f, t * tableZRange };
+        Vec2 end{ tableXRange, t * tableZRange };
+
+        Vec2 startScreen = worldToImage(start);
+        Vec2 endScreen = worldToImage(end);
+
+        if ((j == 0 || j == divY) && printDebug) {
+            Debug::debugPrint("Horizontal Line Start", startScreen);
+            Debug::debugPrint("Horizontal Line End", endScreen);
+        }
+
+        if (std::isfinite(startScreen.x) && std::isfinite(startScreen.y) &&
+            std::isfinite(endScreen.x) && std::isfinite(endScreen.y)) {
+
+            grid.append(sf::Vertex({ startScreen.x, startScreen.y }, sf::Color(0, 255, 0, 120)));
+            grid.append(sf::Vertex({ endScreen.x, endScreen.y }, sf::Color(0, 255, 0, 120)));
+            drewSomething = true;
+        }
+    }
+
+    if (drewSomething)
+        window.draw(grid);
+    printDebug = false;
+}
+
+
+--- FILE: src\math\TableHomography.hpp ---
+﻿#pragma once
+#include "math/Vec2.hpp"
+#include "math/Vec3.hpp"
+#include <SFML/Graphics.hpp>
+#include <array>
+#include <Eigen/Dense>
+
+class TableHomography {
+public:
+    explicit TableHomography(float& pixelsPerMeter)
+        :m_pixelsPerMeter(pixelsPerMeter)
+    {
+    }
+    // Each table corner in image pixel space (top-left, top-right, bottom-right, bottom-left)
+    std::array<Vec2, 4> srcPoints;
+
+    // Corresponding real-world coordinates (in meters)
+    std::array<Vec2, 4> dstPoints;
+
+    // SFML transforms (for rendering convenience)
+    sf::Transform H;      // image → world
+    sf::Transform H_inv;  // world → image
+
+    // True 3x3 perspective matrices (used internally)
+    Eigen::Matrix3f H_eigen;      // image → world
+    Eigen::Matrix3f H_inv_eigen;  // world → image
+
+    bool calibrated = false;
+    bool drawGrid = false;
+    mutable bool printDebug = false;
+
+    // Assign corners and compute the homography
+    void calibrate(const std::array<Vec2, 4>& src, const std::array<Vec2, 4>& dst);
+
+    // Convert points
+    Vec2 imageToWorld(const Vec2& p) const;
+    Vec2 worldToImage(const Vec3& p) const;
+    Vec2 worldToImage(const Vec2& p) const;
+
+    // Debug draw
+    void drawDebugGrid(sf::RenderWindow& window, int divX = 10, int divY = 10) const ;
+private:
+    float& m_pixelsPerMeter;
+};
+
+
+--- FILE: src\math\Vec2.hpp ---
+#pragma once
+#include <cmath>
+#include <SFML/System.hpp>
+#include <SFML/Graphics.hpp>
+struct Vec2 {
+    float x = 0.f;
+    float y = 0.f;
+
+    Vec2() = default;
+    Vec2(float x, float y) : x(x), y(y) {}
+
+    Vec2 operator+(const Vec2& other) const { return { x + other.x, y + other.y }; }
+    Vec2 operator-(const Vec2& other) const { return { x - other.x, y - other.y }; }
+    Vec2 operator*(const Vec2& other) const { return { x * other.x, y * other.y }; }
+    Vec2 operator/(const Vec2& other) const { return { x / other.x, y / other.y }; }
+    Vec2 operator*(float scalar) const { return { x * scalar, y * scalar }; }
+    Vec2 operator/(float scalar) const { return { x / scalar, y / scalar }; }
+
+    Vec2& operator+=(const Vec2& other) { x += other.x; y += other.y; return *this; }
+    Vec2& operator-=(const Vec2& other) { x -= other.x; y -= other.y; return *this; }
+    Vec2& operator*=(const Vec2& other) { x *= other.x; y *= other.y; return *this; }
+    Vec2& operator/=(const Vec2& other) { x /= other.x; y /= other.y; return *this; }
+    Vec2& operator*=(float scalar) { x *= scalar; y *= scalar; return *this; }
+    Vec2& operator/=(float scalar) { x /= scalar; y /= scalar; return *this; }
+
+    float length() const { return std::sqrt(x * x + y * y); }
+    Vec2 normalized() const { float len = length(); return len != 0 ? (*this / len) : Vec2{}; }
+    sf::Vector2f toVector2f() {
+        return sf::Vector2f(x, y);
+    }
+    bool intersects(const sf::FloatRect& rect) const {
+        return rect.contains(x, y);  
+    }
+};
+
+
+--- FILE: src\math\Vec3.hpp ---
+#pragma once
+#include <cmath>
+
+struct Vec3 {
+    float x = 0.f;
+    float y = 0.f;
+    float z = 0.f;
+
+    Vec3() = default;
+    Vec3(float x, float y, float z) : x(x), y(y), z(z) {}
+
+    Vec3 operator+(const Vec3& o) const { return { x + o.x, y + o.y, z + o.z }; }
+    Vec3 operator-(const Vec3& o) const { return { x - o.x, y - o.y, z - o.z }; }
+    Vec3 operator*(float s) const { return { x * s, y * s, z * s }; }
+    Vec3 operator/(float s) const { return { x / s, y / s, z / s }; }
+    Vec3 operator+(float s) const { return { x + s, y + s, z + s }; }
+    Vec3 operator-(float s) const { return { x - s, y - s, z - s }; }
+
+    Vec3& operator+=(const Vec3& o) { x += o.x; y += o.y; z += o.z; return *this; }
+    Vec3& operator-=(const Vec3& o) { x -= o.x; y -= o.y; z -= o.z; return *this; }
+
+    Vec3& operator*=(const float s) { x *= s; y *= s; z *= s; return *this; }
+    Vec3& operator/=(const float s) { x /= s; y /= s; z /= s; return *this; }
+    Vec3& operator+=(const float s) { x += s; y += s; z += s; return *this; }
+    Vec3& operator-=(const float s) { x -= s; y -= s; z -= s; return *this; }
+
+    Vec3 operator-() const {
+        return Vec3(-x, -y, -z);
+    }
+    float length() const { return std::sqrt(x * x + y * y + z * z); }
+    Vec3 normalized() const { float len = length(); return len ? *this / len : Vec3(); }
+    // Dot product of two vectors
+    float dot(const Vec3& other) const {
+        return x * other.x + y * other.y + z * other.z;
+    }
+    // Returns the squared magnitude of the vector: x^2 + y^2 + z^2
+    float lengthSq() const {
+        return x * x + y * y + z * z;
+    }
+
+    Vec3 cross(const Vec3& other) {
+        return {
+            y * other.z - z * other.y,
+            z * other.x - x * other.z,
+            x * other.y - y * other.x
+        };
+    }
+    void set(const float f) {
+        x = f;
+        y = f;
+        z = f;
+    }
+    // Returns the Euclidean distance between this vector and another
+    float distance(const Vec3& other) const {
+        float dx = x - other.x;
+        float dy = y - other.y;
+        float dz = z - other.z;
+        return std::sqrt(dx * dx + dy * dy + dz * dz);
+    }
+
+    // Returns the squared distance (useful for performance optimizations)
+    float distanceSq(const Vec3& other) const {
+        float dx = x - other.x;
+        float dy = y - other.y;
+        float dz = z - other.z;
+        return dx * dx + dy * dy + dz * dz;
+    }
+};
+
+
+--- FILE: src\math\physics\collision\ObjectIntersection.hpp ---
+#pragma once
+#include <algorithm>
+#include "math/Vec3.hpp"
+#include "math/Bounds3D.hpp"
+
+class ObjectIntersection {
+public:
+
+    // ------------------------------------
+    // AABB intersection test
+    // ------------------------------------
+    static bool intersects(const Bounds3D& a, const Bounds3D& b) {
+        return (a.min.x < b.max.x && a.max.x > b.min.x) &&
+            (a.min.y < b.max.y && a.max.y > b.min.y) &&
+            (a.min.z < b.max.z && a.max.z > b.min.z);
+    }
+
+    // ------------------------------------
+    // Overlapping volume
+    // ------------------------------------
+    static Bounds3D calculateIntersection(
+        const Bounds3D& a,
+        const Bounds3D& b
+    ) {
+        Bounds3D overlap{
+            {
+                std::max(a.min.x, b.min.x),
+                std::max(a.min.y, b.min.y),
+                std::max(a.min.z, b.min.z)
+            },
+            {
+                std::min(a.max.x, b.max.x),
+                std::min(a.max.y, b.max.y),
+                std::min(a.max.z, b.max.z)
+            }
+        };
+
+        return overlap.isEmpty() ? Bounds3D{} : overlap;
+    }
+    // Checks if two bounds overlap specifically on the Z axis
+    static bool overlapsZ(const Bounds3D& a, const Bounds3D& b) {
+        return a.min.z < b.max.z && a.max.z > b.min.z;
+    }
+
+    // Generic version for any axis if needed
+    static bool overlapsX(const Bounds3D& a, const Bounds3D& b) {
+        return a.min.x < b.max.x && a.max.x > b.min.x;
+    }
+};
+
+--- FILE: src\math\physics\forces\BallForcesStruct.hpp ---
+#pragma once
+#include "math/Vec3.hpp"
+struct BallForces {
+    Vec3 forceGravity = { 0.0f , 0.0f , 0.0f };
+    Vec3 forceMagnus = { 0.0f , 0.0f , 0.0f };
+    Vec3 forceDrag = { 0.0f , 0.0f , 0.0f };
+    Vec3 totalForces = { 0.0f , 0.0f , 0.0f };
+    Vec3 acceleration = { 0.0f , 0.0f , 0.0f };
+    Vec3 friction = { 0.0f , 0.0f , 0.0f };
+};
+
+--- FILE: src\math\physics\forces\CalculateBallDrag.hpp ---
+﻿#pragma once
+#include <SFML/System.hpp> // for sf::Time or deltaTime
+#include <cmath>
+#include "math/Vec3.hpp"
+class CalculateBallDrag {
+public:
+    const float airDensity = 1.2f;     // kg/m³
+    const float kDrag = 0.47f;     // sphere Cd
+    const float radius = 0.02f;        // 40 mm ball
+    const float area = 3.14159f * radius * radius; // m²
+
+    Vec3 calculateForceDrag(const Vec3& velocity) const {
+        float speed = velocity.length();
+        if (speed < 0.0001f) return { 0.f, 0.f, 0.f }; // avoid division by zero
+
+        Vec3 dragDir = velocity.normalized() * -1.f;
+        float dragMag = 0.5f * airDensity * kDrag * area * speed * speed;
+        return dragDir * dragMag;
+    }
+};
+
+--- FILE: src\math\physics\forces\CalculateBallGravity.hpp ---
+#pragma once
+#include <SFML/System.hpp> // for sf::Time or deltaTime
+#include <SFML/Graphics.hpp>
+#include "math/Vec3.hpp"
+class CalculateBallGravity {
+public:
+    const float kGravity = 9.801f;
+    Vec3 calculateForceGravity(float ballMass) {
+        Vec3 forceGravity = { 0.f,  -ballMass * kGravity, 0.f };
+        return forceGravity;
+    }
+
+};
+
+
+--- FILE: src\math\physics\forces\CalculateMagnusForce.hpp ---
+#pragma once
+#include "math/Vec3.hpp"
+#include <cmath>
+#include "math/MathHelpers.hpp"
+#include "math/Constants.hpp"
+#include "debug/Debug.hpp"
+#include "game/utils/GameContext.hpp"
+#include <SFML/Graphics.hpp>
+class CalculateMagnusForce {
+public:
+    Vec3 calculateForceMagnus(
+        const Vec3& spinRevPerSec, // world-space spin (rev/s)
+        const Vec3& vel,
+        float kMagnus = 0.0001f     // tune this
+    ) {
+        float speed = vel.length();
+        if (speed < 0.01f) return { 0,0,0 };
+
+        // Convert rev/s �� rad/s
+        Vec3 omega = spinRevPerSec * (2.f * PI);
+
+        // Magnus force = �� �� v
+        Vec3 magnus = MathHelpers::cross(omega, vel) * kMagnus;
+
+        return magnus;
+    }
+};
+
+
+--- FILE: src\movement\Step.hpp ---
+#pragma once
+
+#include "math/Vec3.hpp"
+enum class StepKind { None, Tap, Hop, Leap };
+
+struct StepRaw {
+    StepKind kind;
+    float strength;
+
+};
+struct StepProfile {
+
+    StepKind kind;
+    int totalFrames;
+    int recoveryFrames;
+    float maxSpeed_mps;
+    float staminaCost;
+};
+
+struct ActiveStep {
+    const StepProfile* profile;
+    int frame = 0;
+    Vec3 direction;
+};
+
+
+--- FILE: src\systems\AnimationSystem.cpp ---
+#include "AnimationSystem.hpp"
+#include <SFML/Graphics.hpp>
+#include "components/Components.hpp"
+#include "debug/Debug.hpp"
+
+SystemExec AnimationSystem::update(GameContext* context) {
+    return updatePlayer(context);
+}
+
+SystemExec AnimationSystem::updatePlayer(GameContext* context) {
+    Entity* ePlayer = context->registry.getEntity("player");
+    if (!ePlayer) {
+        Debug::debugPrint("AnimationSystem: no player entity");
+        return {SystemExecResult::EarlyExit};
+    }
+
+    auto [cPlayerAnimation, cPlayerState] =
+        context->registry.getComponents<CAnimation, CState>(*ePlayer);
+
+    if (!cPlayerAnimation || !cPlayerState)
+        return {SystemExecResult::EarlyExit};
+
+    const std::string& currentState = cPlayerState->state;
+    const std::string& currentAnim = cPlayerAnimation->animation.getName();
+
+    /*if (currentState == "backswing" && currentAnim != "Backswing") {
+        cPlayerAnimation->animation = context->assets.getAnimation("Backswing");
+    }
+    else if (currentState == "stand" && currentAnim != "Stand") {
+        cPlayerAnimation->animation = context->assets.getAnimation("Stand");
+    }*/
+
+    sf::Sprite& s = cPlayerAnimation->animation.getSprite();
+    s.setOrigin(
+        s.getLocalBounds().width / 2.f,
+        s.getLocalBounds().height / 2.f
+    );
+
+    if (!context->registry.hasComponent<CBoundingBox>(*ePlayer)) {
+        context->registry.addComponent<CBoundingBox>(*ePlayer, s.getLocalBounds());
+    }
+    else {
+        auto* bb = context->registry.getComponent<CBoundingBox>(*ePlayer);
+        bb->box = s.getLocalBounds();
+    }
+
+    return {SystemExecResult::Ran};
+}
+
+
+--- FILE: src\systems\AnimationSystem.hpp ---
+#pragma once
+#include "ecs/system/ISystem.hpp"
+
+class AnimationSystem : public ISystem {
+public:
+    SystemExec update(GameContext* context) override;
+
+private:
+    SystemExec updatePlayer(GameContext* context);
+};
+
+
+--- FILE: src\systems\BallContactSystem.cpp ---
+﻿#include "BallContactSystem.hpp"
+
+#include "components/Components.hpp"
+#include "math/Constants.hpp"
+
+SystemExec BallContactSystem::update(GameContext* context) {
+    for (auto eBall : context->registry.getEntitiesWith<CBall>()) {
+        auto [cBall, cBallBoundingBox3D, cBallTransform3D, cBallVelocity3D] = context->registry.getComponents<CBall, CBoundingBox3D, CTransform3D, CVelocity3D>(eBall);
+
+        if (!cBall || !cBallBoundingBox3D || !cBallTransform3D || !cBallVelocity3D) continue;
+
+        if (cBall->contactSurface != ContactSurface::None) {
+            handleContact(context, eBall);
+        }
+    }
+        return { SystemExecResult::Ran };
+}
+void BallContactSystem::handleContact(GameContext* context, Entity& ball) {
+    auto [cBall, cTransform3D, cVelocity3D] =
+        context->registry.getComponents<CBall, CTransform3D, CVelocity3D>(ball);
+    if (!cBall || !cTransform3D || !cVelocity3D) return;
+
+    if (cBall->contactSurface == ContactSurface::None) {
+        cBall->contactingSurface = false;
+        cBall->impactResolved = false;
+        return;
+    }
+    Vec3& vel = cVelocity3D->vel_mps;
+    Vec3& spin = cBall->spin;          // world-space axis, rev/s
+
+    const float R = cBall->ballRadius;
+    const float m = cBall->mass;
+    const float g = 9.8f;
+
+    ContactSurface contactType = cBall->contactSurface;
+
+    auto& tableParameters = context->tableParameters;
+    float surfaceY;
+    float surfaceRestitution;
+    float surfaceDecayRate;
+    float surfaceFrictionCoefficient;
+    if (contactType == ContactSurface::Table) {
+        surfaceY = tableParameters.tableY;
+        surfaceRestitution = tableParameters.tableRestitution;
+        surfaceDecayRate = tableParameters.tableSpinDecayRate;
+        surfaceFrictionCoefficient = tableParameters.tableFrictionCoefficient;
+    }
+    else {
+        surfaceY = tableParameters.floorY;
+        surfaceRestitution = tableParameters.floorRestitution;
+        surfaceDecayRate = tableParameters.floorSpinDecayRate;
+        surfaceFrictionCoefficient = tableParameters.floorFrictionCoefficent;
+    }
+  
+    float targetY = surfaceY + R;
+    float penetration = targetY - cTransform3D->pos_m.y;
+
+
+    // NOT touching → fully reset contact state
+    if (penetration < -0.001f) {
+        cBall->impactResolved = false;
+        cBall->contactSurface = ContactSurface::None;
+        return;
+    }
+    cBall->contactingSurface = (penetration >= -0.001f);
+
+    if (!cBall->contactingSurface) {
+        cBall->impactResolved = false;
+        return;
+    }
+
+
+    // --- Normal bounce ---
+    if (!cBall->impactResolved && vel.y < 0.f) {
+        vel.y = -vel.y * cBall->restitution * surfaceRestitution;
+        cBall->impactResolved = true;
+    }
+    // --- Snap to surface ---
+    cTransform3D->pos_m.y = surfaceY + R;
+    // ============================
+    //  Rolling / Sliding Physics
+    // ============================
+
+    // Floor normal
+    const Vec3 n{ 0.f, 1.f, 0.f };
+
+    // Contact lever arm (center → contact point)
+    const Vec3 r = -n * R;
+
+    // Convert spin from rev/s → rad/s
+    Vec3 omega = spin * (2.f * PI);
+
+    // Tangential velocity at contact point from spin
+    Vec3 vSpinAtContact = omega.cross(r); // m/s
+
+    // Relative tangential velocity at contact
+    Vec3 vRelAtContact{
+        vel.x + vSpinAtContact.x,
+        0.f,
+        vel.z + vSpinAtContact.z
+    };
+
+    float slipSpeed = std::sqrt(
+        vRelAtContact.x * vRelAtContact.x +
+        vRelAtContact.z * vRelAtContact.z
+    );
+
+    // Blend sliding ↔ rolling (stable, energy-safe)
+    float t = std::clamp(slipSpeed / 0.5f, 0.f, 1.f);
+
+    // Frictional velocity correction (never injects energy)
+    vel.x -= vRelAtContact.x * tableParameters.spinToLinearFactor * t;
+    vel.z -= vRelAtContact.z * tableParameters.spinToLinearFactor * t;
+
+    // --- Spin decay ---
+    float decay =
+        tableParameters.rollSpinDecayRate * (1.f - t) +
+        surfaceDecayRate * t;
+
+    spin *= (1.f - decay);
+
+    // ============================
+    //  Coulomb sliding friction
+    // ============================
+
+    float frictionAccel =
+        (surfaceFrictionCoefficient * m * g / m) *
+        context->frameStats.dt;
+
+    if (vel.x > 0.f) vel.x = std::max(0.f, vel.x - frictionAccel);
+    if (vel.x < 0.f) vel.x = std::min(0.f, vel.x + frictionAccel);
+    if (vel.z > 0.f) vel.z = std::max(0.f, vel.z - frictionAccel);
+    if (vel.z < 0.f) vel.z = std::min(0.f, vel.z + frictionAccel);
+
+    cBall->impactResolved = true;
+}
+
+
+
+--- FILE: src\systems\BallContactSystem.hpp ---
+#pragma once
+#include "components/Components.hpp"
+#include "game/utils/GameContext.hpp"
+#include "ecs/system/ISystem.hpp"
+class BallContactSystem : public ISystem {
+public:
+    SystemExec update(GameContext* context);
+private:
+    void handleContact(GameContext* context, Entity& ball);
+
+};
+
+
+--- FILE: src\systems\BallForceSystem.cpp ---
+﻿#include "BallForceSystem.hpp"
+#include "math/Vec2.hpp"
+#include "math/Bounds3D.hpp"
+#include "components/Components.hpp"
+#include "ecs/Entity.hpp"
+#include "debug/Debug.hpp"
+#include "math/GridTransform.hpp"
+
+#include <algorithm>
+#include <iostream>
+
+SystemExec BallForceSystem::update(GameContext* context) {
+    for (auto eBall : context->registry.getEntitiesWith<CBall, CTransform>()) {
+        auto [cBall, cBallVelocity3D, cBallTransform3D] = context->registry.getComponents<CBall, CVelocity3D, CTransform3D>(eBall);
+        if (!cBall || !cBallVelocity3D || !cBallTransform3D) continue;
+
+        cBall->bForces.forceGravity = calcBallGrav.calculateForceGravity(cBall->mass);
+        cBall->bForces.forceMagnus = calcMagnus.calculateForceMagnus(cBall->spin, cBallVelocity3D->vel_mps);
+        cBall->bForces.forceDrag = calcBallDrag.calculateForceDrag(cBallVelocity3D->vel_mps);
+
+
+        cBall->bForces.totalForces = cBall->bForces.forceGravity + cBall->bForces.forceMagnus + cBall->bForces.forceDrag;
+        cBall->bForces.acceleration = cBall->bForces.totalForces / cBall->mass;
+
+    }
+    return {SystemExecResult::Ran};
+}
+
+--- FILE: src\systems\BallForceSystem.hpp ---
+#pragma once
+#include <SFML/System.hpp> // for sf::Time or deltaTime
+#include <SFML/Graphics.hpp>
+#include "game/utils/GameContext.hpp"
+#include "math/Vec3.hpp"
+#include "math/Vec2.hpp"
+#include "math/physics/forces/CalculateBallGravity.hpp"
+#include "math/physics/forces/CalculateMagnusForce.hpp"
+#include "math/physics/forces/CalculateBallDrag.hpp"
+#include "ecs/system/ISystem.hpp"
+class BallForceSystem : public ISystem {
+public:
+    CalculateBallDrag calcBallDrag;
+    CalculateBallGravity calcBallGrav;
+    CalculateMagnusForce calcMagnus;
+    SystemExec update(GameContext* context);
+};
+
+

@@ -30,9 +30,11 @@ set(PIXEL_PONG_SOURCES
     systems/RenderLayerSystem.cpp
     systems/NetCollisionSystem.cpp
     systems/game/racket/RacketCollisionSystem.cpp
-    systems/game/racket/RacketSwingSystem.cpp
+    systems/game/racket/RacketStrokeSystem.cpp
     systems/game/racket/RacketBoundingBoxSystem.cpp
-    systems/game/racket/RacketArmSystem.cpp
+    systems/game/racket/RacketReachSystem.cpp
+    systems/game/racket/RacketInputSystem.cpp
+    systems/game/racket/RacketPoseSystem.cpp
     systems/BallIntegrateSystem.cpp
     systems/LogoRotationSystem.cpp
     systems/DirtyTextSystem.cpp

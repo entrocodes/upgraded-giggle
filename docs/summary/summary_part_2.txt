@@ -1,0 +1,681 @@
+--- FILE: src\debug\systems\Display3DBoundingBoxes.hpp ---
+#pragma once
+
+#include "game/utils/GameContext.hpp"
+#include "components/Components.hpp"
+#include "math/TableHomography.hpp"
+#include "math/Rectangle.hpp"
+#include <SFML/Graphics.hpp>
+
+class Display3DBoundingBoxes {
+public:
+    bool debugDisplay3DBoundingBoxes = true;
+
+    void render(GameContext* context) {
+        if (!context->renderSettings.draw3DBoundingBoxes) return;
+
+        for (auto e : context->registry.getEntitiesWith<CBoundingBox3D>()) {
+            auto* bb = context->registry.getComponent<CBoundingBox3D>(e);
+            if (!bb) continue;
+
+            const Bounds3D& b = bb->box;
+
+            // 8 corners of AABB
+            Vec3 c3[8] = {
+                { b.min.x, b.min.y, b.min.z }, // 0
+                { b.max.x, b.min.y, b.min.z }, // 1
+                { b.max.x, b.min.y, b.max.z }, // 2
+                { b.min.x, b.min.y, b.max.z }, // 3
+                { b.min.x, b.max.y, b.min.z }, // 4
+                { b.max.x, b.max.y, b.min.z }, // 5
+                { b.max.x, b.max.y, b.max.z }, // 6
+                { b.min.x, b.max.y, b.max.z }  // 7
+            };
+
+            Vec2 p2[8];
+            for (int i = 0; i < 8; ++i)
+                p2[i] = context->camera.homography.worldToImage(c3[i]);
+
+            // 12 edges (pairs of corner indices)
+            static constexpr int E[12][2] = {
+                {0,1},{1,2},{2,3},{3,0}, // bottom
+                {4,5},{5,6},{6,7},{7,4}, // top
+                {0,4},{1,5},{2,6},{3,7}  // verticals
+            };
+
+            sf::VertexArray lines(sf::Lines);
+            lines.resize(12 * 2);
+
+            for (int i = 0; i < 12; ++i) {
+                const int a = E[i][0];
+                const int b2 = E[i][1];
+
+                lines[i * 2 + 0] = sf::Vertex(sf::Vector2f(p2[a].x, p2[a].y), bb->color);
+                lines[i * 2 + 1] = sf::Vertex(sf::Vector2f(p2[b2].x, p2[b2].y), bb->color);
+            }
+
+            context->window.draw(lines);
+        }
+    }
+
+};
+
+
+--- FILE: src\display\DisplayConfig.hpp ---
+#pragma once
+#include <SFML/Graphics.hpp>
+#include "math/Vec2.hpp"
+
+struct DisplayConfig {
+    Vec2 logicalSize = { 1280.f, 720.f };   // game space
+    Vec2 windowSize = { 1280.f, 720.f };   // OS window
+    bool isFullscreen = false;
+    bool toggleFullscreen = false;
+    float aspectRatio = 1280.f / 720.f;
+
+    void updateFromWindow(const sf::RenderWindow& window) {
+        auto size = window.getSize();
+        windowSize = { static_cast<float>(size.x),
+                       static_cast<float>(size.y) };
+        aspectRatio = windowSize.x / windowSize.y;
+    }
+};
+
+
+--- FILE: src\display\DisplayUtils.hpp ---
+﻿#pragma once
+#include <SFML/Graphics.hpp>
+#include "display/DisplayConfig.hpp"
+#include "ecs/Registry.hpp"
+#include "components/Components.hpp"
+#include "ecs/Entity.hpp"
+#include "game/utils/GameContext.hpp"
+namespace DisplayUtils {
+
+    inline void applyLetterboxedView(GameContext* context) {
+        float targetAspect = context->display.logicalSize.x / context->display.logicalSize.y;
+        float windowAspect = context->display.windowSize.x / context->display.windowSize.y;
+
+        // Start from camera-defined logical view
+        sf::View view = context->camera.makeView(context->display);
+
+        if (windowAspect > targetAspect) {
+            // Window is wider → pillarbox
+            float viewportWidth = targetAspect / windowAspect;
+            view.setViewport(sf::FloatRect(
+                (1.f - viewportWidth) / 2.f, // left
+                0.f,                         // top
+                viewportWidth,               // width
+                1.f                          // height
+            ));
+        }
+        else {
+            // Window is taller → letterbox
+            float viewportHeight = windowAspect / targetAspect;
+            view.setViewport(sf::FloatRect(
+                0.f,
+                (1.f - viewportHeight) / 2.f,
+                1.f,
+                viewportHeight
+            ));
+        }
+
+        context->window.setView(view);
+    }
+
+    inline Vec2 windowToLogical(const Vec2& windowPos, const DisplayConfig& display)
+    {
+        float windowAspect = display.windowSize.x / display.windowSize.y;
+        float targetAspect = display.logicalSize.x / display.logicalSize.y;
+
+        Vec2 correctionRatio = display.windowSize / display.logicalSize;
+
+        Vec2 corrected = windowPos / correctionRatio;
+
+        return corrected;
+    }
+}
+
+--- FILE: src\ecs\Component.hpp ---
+#pragma once
+struct Component {
+    virtual ~Component() = default;
+};
+
+
+--- FILE: src\ecs\DrawItem.hpp ---
+#pragma once
+
+#include "components/Components.hpp"
+
+enum class DrawType { Sprite, Logo, Text };
+
+struct DrawItem {
+    int layer;
+    Entity entity;
+    DrawType type;
+    CTransform3D* cTransform3D;
+    CTransform* cTransform;
+    CAnimation* cAnimation; // only for Sprite
+    CBall* cBall;           // only for Logo
+    CText* cText;
+    bool isShadow;
+};
+
+
+--- FILE: src\ecs\Entity.hpp ---
+#pragma once
+#include <cstdint>
+#include <string>
+
+struct Entity {
+    std::uint32_t id = 0;
+    std::string name;
+    bool operator==(const Entity& other) const noexcept {
+        return id == other.id;
+    }
+};
+
+// Hash function so Entity can be used as a key in unordered_map
+namespace std {
+    template <>
+    struct hash<Entity> {
+        std::size_t operator()(const Entity& e) const noexcept {
+            return std::hash<std::uint32_t>()(e.id);
+        }
+    };
+}
+
+const Entity INVALID_ENTITY = { 0, "" };
+
+
+--- FILE: src\ecs\Registry.hpp ---
+﻿#pragma once
+#include <unordered_map>
+#include <memory>
+#include <typeindex>
+#include <vector>
+#include <tuple>
+#include <string>
+#include "Entity.hpp"
+#include "Component.hpp"
+
+class Registry {
+public:
+    // --- Entity Creation ---
+    Entity createEntity() {
+        Entity e;
+        e.id = ++m_nextEntityId;
+        m_entities.push_back(e);
+        m_lastCreatedEntity = e;
+        return e;
+    }
+
+    Entity createEntity(const std::string& name) {
+        Entity e;
+        e.id = ++m_nextEntityId;
+        e.name = name;
+        m_entities.push_back(e);
+        m_nameLookup[name] = e;  // store a copy, not a pointer
+        m_lastCreatedEntity = e;
+        return e;
+    }
+
+    Entity* getEntity(const std::string& name) {
+        auto it = m_nameLookup.find(name);
+        if (it == m_nameLookup.end()) return nullptr;
+
+        for (auto& ent : m_entities) {
+            if (ent.id == it->second.id)
+                return &ent;
+        }
+        return nullptr;
+    }
+    Entity* getLastEntity() {
+        return &m_lastCreatedEntity;
+    }
+
+    size_t getEntityCount() const {
+        return m_entities.size();
+    }
+
+    // --- Component Management ---
+    template <typename T, typename... Args>
+    T& addComponent(const Entity& e, Args&&... args) {
+        auto& storage = m_components[typeid(T)];
+        if (!storage) {
+            storage = std::make_unique<std::unordered_map<Entity, std::unique_ptr<Component>>>();
+        }
+
+        auto component = std::make_unique<T>(std::forward<Args>(args)...);
+        T& ref = *component;
+        (*storage)[e] = std::move(component);
+        return ref;
+    }
+
+    template <typename T>
+    T* getComponent(const Entity& e) const {
+        auto it = m_components.find(typeid(T));
+        if (it == m_components.end()) return nullptr;
+        auto& map = *it->second;
+        auto found = map.find(e);
+        if (found == map.end()) return nullptr;
+        return static_cast<T*>(found->second.get());
+    }
+
+    template <typename T>
+    bool hasComponent(const Entity& e) const {
+        auto it = m_components.find(typeid(T));
+        if (it == m_components.end()) return false;
+        auto& map = *it->second;
+        return map.find(e) != map.end();
+    }
+
+    template <typename... Components>
+    std::vector<Entity> getEntitiesWith() const {
+        std::vector<Entity> result;
+        for (const auto& e : m_entities) {
+            if (hasAllComponents<Components...>(e)) {
+                result.push_back(e);
+            }
+        }
+        return result;
+    }
+
+    template <typename... Components>
+    auto getComponents(const Entity& e) {
+        return std::make_tuple(getComponent<Components>(e)...);
+    }
+    void deleteEntity(const Entity& e) {
+        // Remove from all component storages
+        for (auto& [type, storagePtr] : m_components) {
+            auto& compMap = *storagePtr;
+            compMap.erase(e);
+        }
+
+        // 2️⃣ Remove from the entity list
+        m_entities.erase(
+            std::remove_if(
+                m_entities.begin(),
+                m_entities.end(),
+                [&](const Entity& ent) { return ent.id == e.id; }),
+            m_entities.end()
+        );
+
+        // 3️ Remove from name lookup if it exists
+        for (auto it = m_nameLookup.begin(); it != m_nameLookup.end(); ) {
+            if (it->second.id == e.id)
+                it = m_nameLookup.erase(it);
+            else
+                ++it;
+        }
+    }
+    void removeAllEntities() {
+        m_entities.clear();
+        m_nameLookup.clear();
+        m_components.clear();
+        m_nextEntityId = 0;
+    }
+    template <typename T>
+    void removeComponent(const Entity& e) {
+        auto it = m_components.find(typeid(T));
+        if (it == m_components.end()) return;
+
+        auto& map = *it->second;
+        map.erase(e);
+    }
+    template <typename T, typename... Args>
+    T& getOrAddComponent(const Entity& e, Args&&... args) {
+        if (auto* c = getComponent<T>(e))
+            return *c;
+        return addComponent<T>(e, std::forward<Args>(args)...);
+    }
+private:
+    std::uint32_t m_nextEntityId = 0;
+    std::vector<Entity> m_entities;
+    std::unordered_map<std::string, Entity> m_nameLookup;
+    Entity m_lastCreatedEntity;
+
+    std::unordered_map<
+        std::type_index,
+        std::unique_ptr<std::unordered_map<Entity, std::unique_ptr<Component>>>>
+        m_components;
+
+    template <typename First, typename... Rest>
+    bool hasAllComponents(const Entity& e) const {
+        if (!hasComponent<First>(e)) return false;
+        if constexpr (sizeof...(Rest) == 0)
+            return true;
+        else
+            return hasAllComponents<Rest...>(e);
+    }
+
+
+};
+
+
+--- FILE: src\ecs\SceneManager.hpp ---
+#pragma once
+#include <memory>
+#include <unordered_map>
+#include <string>
+#include "game/scenes/Scene.hpp"
+
+class SceneManager {
+public:
+    template <typename T, typename... Args>
+    void registerScene(const std::string& name, Args&&... args) {
+        m_scenes[name] = std::make_unique<T>(std::forward<Args>(args)...);
+    }
+
+    void switchTo(const std::string& name) {
+        if (m_current) {
+            m_current->onExit();
+        }
+
+        auto it = m_scenes.find(name);
+        if (it != m_scenes.end()) {
+            m_current = it->second.get();
+            m_current->onEnter();
+        }
+    }
+
+
+    void update() {
+        if (m_current) m_current->update();
+    }
+
+    void render() {
+        if (m_current) m_current->render();
+    }
+
+    Scene* currentScene() const {
+        return m_current;
+    }
+
+    void requestSwitch(const std::string& name) {
+        m_pending = name;
+    }
+
+    void applyPendingSwitch() {
+        if (!m_pending.empty()) {
+            switchTo(m_pending);
+            m_pending.clear();
+        }
+    }
+private:
+    std::unordered_map<std::string, std::unique_ptr<Scene>> m_scenes;
+    Scene* m_current = nullptr;
+    std::string m_pending;
+};
+
+
+--- FILE: src\ecs\system\ISystem.hpp ---
+#pragma once
+#include "SystemExec.hpp"
+
+struct GameContext;
+
+class ISystem {
+public:
+    virtual ~ISystem() = default;
+
+    // Default behavior = Ran
+    virtual SystemExec update(GameContext* context) {
+        return {};
+    }
+};
+
+
+--- FILE: src\ecs\system\ISystemGroup.hpp ---
+// ISystemGroup.hpp
+#pragma once
+#include "ISystem.hpp"
+#include "SystemGraph.hpp"
+
+class ISystemGroup : public ISystem {
+public:
+    virtual ~ISystemGroup() = default;
+    virtual SystemGraph& childGraph() = 0;
+    virtual const SystemGraph& childGraph() const = 0;
+};
+
+
+--- FILE: src\ecs\system\SystemExec.hpp ---
+#pragma once
+
+enum class SystemExecResult {
+    Ran,
+    EarlyExit
+};
+
+struct SystemExec {
+    SystemExecResult result = SystemExecResult::Ran;
+    const char* earlyExitReason = nullptr;
+};
+
+
+--- FILE: src\ecs\system\SystemFactory.hpp ---
+#pragma once
+
+#include <memory>
+#include <type_traits>
+#include "game/utils/GameContext.hpp"
+#include "ecs/system/ISystem.hpp"
+class SystemFactory {
+public:
+    explicit SystemFactory(GameContext* context)
+        : m_context(context) {
+    }
+
+    template<typename T, typename... Args>
+    std::unique_ptr<ISystem> create(Args&&... args) {
+        static_assert(
+            std::is_base_of_v<ISystem, T>,
+            "SystemFactory::create<T>: T must derive from ISystem"
+            );
+
+        // Explicit upcast through constructor � safe and correct
+        return std::unique_ptr<ISystem>(
+            new T(std::forward<Args>(args)...)
+        );
+    }
+
+private:
+    GameContext* m_context;
+};
+
+--- FILE: src\ecs\system\SystemGraph.cpp ---
+﻿#include "SystemGraph.hpp"
+
+// Run systems in a given phase
+void SystemGraph::run(GameContext* context, TickPhase phase)
+{
+    sortIfDirty();
+
+    for (auto* node : m_sortedNodes) {
+        if (!node->enabled) continue;
+        if (node->phase != phase) continue;
+        if (context->metaInputState.paused && node->pausable) continue;
+
+        // ✅ Run ONCE
+        SystemExec exec = node->system->update(context);
+
+        // ✅ Record stats
+        auto& dbg = node->debug;
+        dbg.lastFrameRan = context->frameStats.tickIndex;
+        dbg.runCount++;
+
+        dbg.exitedEarlyLastRun = (exec.result == SystemExecResult::EarlyExit);
+
+        if (dbg.exitedEarlyLastRun) {
+            dbg.earlyExitCount++;
+            dbg.lastEarlyExitReason =
+                exec.earlyExitReason ? exec.earlyExitReason : "";
+        }
+        else {
+            dbg.lastEarlyExitReason.clear();
+        }
+    }
+}
+
+
+
+// Add pre-built node
+SystemNode& SystemGraph::addNode(SystemNode&& node) {
+    m_nodes.push_back(std::move(node));
+    m_dirty = true;
+    return m_nodes.back();
+}
+
+// Sort system nodes by order
+void SystemGraph::sortIfDirty() {
+    if (!m_dirty) return;
+
+    m_sortedNodes.clear();
+    m_sortedNodes.reserve(m_nodes.size());
+
+    for (auto& node : m_nodes)
+        m_sortedNodes.push_back(&node);
+
+    std::sort(
+        m_sortedNodes.begin(),
+        m_sortedNodes.end(),
+        [](const SystemNode* a, const SystemNode* b) {
+            return a->order < b->order;
+        }
+    );
+
+    m_dirty = false;
+}
+
+
+--- FILE: src\ecs\system\SystemGraph.hpp ---
+#pragma once
+
+#include <vector>
+#include <algorithm>
+#include <type_traits>
+
+#include "game/utils/GameContext.hpp"
+#include "SystemNode.hpp"
+#include "SystemFactory.hpp"
+#include "ISystem.hpp"
+// --------------------------------------------
+// Pause flags (readable call sites)
+// --------------------------------------------
+constexpr bool Pausable = true;
+constexpr bool NotPausable = false;
+
+class SystemGraph {
+public:
+    template<typename T, typename... Args>
+    void add(SystemFactory& factory,
+        int order,
+        TickPhase phase,
+        bool pausable = NotPausable,
+        Args&&... args);
+
+    SystemNode& addNode(SystemNode&& node);
+
+    void run(GameContext* context, TickPhase phase);
+    
+    const std::vector<SystemNode>& getNodes() const { return m_nodes; }
+
+private:
+    void sortIfDirty();
+    std::vector<SystemNode>  m_nodes;
+    std::vector<SystemNode*> m_sortedNodes;
+    bool m_dirty = true;
+};
+
+// --------------------------------------------
+// Template implementation (MUST be in header)
+// --------------------------------------------
+template<typename T, typename... Args>
+void SystemGraph::add(SystemFactory& factory,
+    int order,
+    TickPhase phase,
+    bool pausable,
+    Args&&... args)
+{
+    static_assert(std::is_base_of_v<ISystem, T>,
+        "SystemGraph::add<T>: T must derive from ISystem");
+
+    SystemNode node;
+    node.system = factory.create<T>(std::forward<Args>(args)...);
+    node.order = order;
+    node.phase = phase;
+    node.pausable = pausable;
+
+    m_nodes.push_back(std::move(node));
+    m_dirty = true;
+}
+
+
+--- FILE: src\ecs\system\SystemGroup.hpp ---
+#pragma once
+
+#include "ISystem.hpp"
+#include "SystemGraph.hpp"
+#include "SystemFactory.hpp"
+
+class SystemGroup final : public ISystem {
+public:
+    explicit SystemGroup(GameContext* context)
+        : m_factory(context) {
+    }
+
+protected:
+    // For derived groups to configure
+    void addSystems() {}
+
+    SystemGraph   m_graph;
+    SystemFactory m_factory;
+
+public:
+    void update(GameContext* context, TickPhase phase) override {
+        m_graph.run(context, phase);
+    }
+};
+1
+
+--- FILE: src\ecs\system\SystemNode.hpp ---
+#pragma once
+
+#include <memory>
+#include <string>
+#include "ISystem.hpp"
+#include "TickPhase.hpp"
+
+struct SystemDebugInfo {
+    uint64_t lastFrameRan = 0;
+    uint64_t runCount = 0;
+    uint64_t earlyExitCount = 0;
+
+    bool exitedEarlyLastRun = false;
+    std::string lastEarlyExitReason;
+};
+
+
+struct SystemNode {
+    std::unique_ptr<ISystem> system;
+
+    int order = 0;
+    TickPhase phase = TickPhase::Fixed;
+    bool enabled = true;
+    bool pausable = false;
+
+    SystemDebugInfo debug;
+};
+
+
+--- FILE: src\ecs\system\TickPhase.hpp ---
+#pragma once
+
+enum class TickPhase {
+    Variable,
+    Fixed,
+    Render
+};
+

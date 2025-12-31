@@ -1,0 +1,784 @@
+--- FILE: src\systems\game\racket\RacketOrientationSystem.cpp ---
+#include "RacketOrientationSystem.hpp"
+
+#include "math/Constants.hpp"
+#include "components/Components.hpp"
+#include "debug/Debug.hpp"
+
+SystemExec RacketOrientationSystem::update(GameContext* context) {
+    for (auto e : context->registry.getEntitiesWith<CAuthorization>()) {
+        auto [cRacketHandle, cAuthorization] =
+            context->registry.getComponents<CRacketHandle,CAuthorization>(e);
+        Entity eRacket = cRacketHandle->racketEntity;
+        auto [cRacketPhysical, cRotation3D, cTransform3D] =
+            context->registry.getComponents<CRacketPhysical, CRotation3D, CTransform3D>(eRacket);
+        auto it = cAuthorization->vec2Map.find("BladeOrientation");
+        if (it != cAuthorization->vec2Map.end() || cAuthorization->vec2Map["BladeOrientation"].length() == 0) {
+            cRotation3D->euler_deg.y = cAuthorization->vec2Map["BladeOrientation"].x;
+            cRotation3D->euler_deg.x = cAuthorization->vec2Map["BladeOrientation"].y;
+            float pitch = cRotation3D->euler_deg.x * DEG2RAD;
+            float yaw = cRotation3D->euler_deg.y * DEG2RAD;
+            float roll = cRotation3D->euler_deg.z * DEG2RAD;
+
+            // --- Rotate local blade normal �� world ---
+            Vec3 normal = cRacketPhysical->localNormal;
+
+            // Yaw (Y)
+            normal = {
+                std::sin(yaw) * normal.z + std::cos(yaw) * normal.x,
+                normal.y,
+                std::cos(yaw) * normal.z - std::sin(yaw) * normal.x
+            };
+
+            // Pitch (X)
+            normal = {
+                normal.x,
+                normal.y * std::cos(pitch) - normal.z * std::sin(pitch),
+                normal.y * std::sin(pitch) + normal.z * std::cos(pitch)
+            };
+            cRacketPhysical->worldNormal = normal.normalized();
+
+        }
+        else { cRacketPhysical->worldNormal = cRacketPhysical->localNormal; }
+
+
+        // --- DEBUG DRAW ---
+        if (context->renderSettings.debugDrawBladeNormal) {
+            Vec3 origin = cTransform3D->pos_m;
+            float len = 0.30f;
+
+            // Local normal (unrotated reference)
+            Debug::queueArrow3D(
+                origin,
+                origin + cRacketPhysical->localNormal.normalized() * len,
+                sf::Color::Yellow // Blue = local
+            );
+
+            // World normal (actual blade facing)
+            Debug::queueArrow3D(
+                origin,
+                origin + cRacketPhysical->worldNormal * len,
+                sf::Color::Cyan // Cyan = world
+            );
+        }
+    }
+
+    return { SystemExecResult::Ran };
+}
+
+
+--- FILE: src\systems\game\racket\RacketOrientationSystem.hpp ---
+#pragma once
+
+#include "game/utils/GameContext.hpp"
+#include "ecs/system/ISystem.hpp"
+
+class RacketOrientationSystem : public ISystem {
+public:
+    SystemExec update(GameContext* context);
+
+};
+
+
+--- FILE: src\systems\game\racket\RacketSwingSystem.cpp ---
+﻿#include "RacketSwingSystem.hpp"
+#include "components/Components.hpp"
+#include <algorithm>
+#include <cmath>
+#include "debug/Debug.hpp"
+
+SystemExec RacketSwingSystem::update(GameContext* context) {
+    for (auto entity : context->registry.getEntitiesWith<CRacketSwing, CRacketHandle, CArm, CTransform3D>()) {
+        auto [cAuthorization, cRacketSwing, cRacketHandle, cArm, cTransform3D, cBodyTableCollision] = context->registry.getComponents<CAuthorization, CRacketSwing, CRacketHandle, CArm, CTransform3D, CBodyTableCollision>(entity);
+
+        float dt = context->frameStats.dt;
+
+        StrokeState& strokeState = cRacketSwing->strokeState;
+        StrokeState& prevStrokeState = cRacketSwing->prevStrokeState;
+        prevStrokeState = strokeState;
+        // 1. Torso Load (X and B buttons)
+        cRacketSwing->torsoLeftLoad = cAuthorization->floatMap["TorsoLeftLoad"];
+        cRacketSwing->torsoRightLoad = cAuthorization->floatMap["TorsoRightLoad"];
+        float totalTorsoLoad = cRacketSwing->torsoLeftLoad + cRacketSwing->torsoRightLoad;
+
+        // 2. PHASE 1 & 2: BACKSWING (LT)
+        // StartAttack = LT Pressed, ReleaseAttack = LT Released
+        if (cAuthorization->boolMap["RequestBackswing"] && strokeState == StrokeState::Idle) {
+            strokeState = StrokeState::Backswing;
+        }
+        if (cAuthorization->boolMap["RequestPush"] && strokeState == StrokeState::Idle) {
+            strokeState = StrokeState::Push;
+        }
+        if (cAuthorization->boolMap["RequestStopPush"] && strokeState == StrokeState::Push) {
+            strokeState = StrokeState::PushRecovery;    
+        }
+        if (cAuthorization->boolMap["RequestReleaseSwing"] && (strokeState == StrokeState::Backswing || strokeState == StrokeState::BrakedBackSwing)) {
+            strokeState = StrokeState::Swing;
+        }
+        if (cAuthorization->boolMap["RequestStopBackswing"] && strokeState == StrokeState::Backswing) {
+            strokeState = StrokeState::BrakedBackSwing;
+        }
+        Vec2 steer = cAuthorization->vec2Map["SteerIntent"];
+        if (strokeState == StrokeState::Idle && cBodyTableCollision) {
+            cRacketHandle->freeOffset_m.z += cBodyTableCollision->penetration.z * 1.25;
+            context->registry.removeComponent<CBodyTableCollision>(entity);
+        }
+        if (strokeState == StrokeState::Backswing || strokeState == StrokeState::BrakedBackSwing) {
+            if (prevStrokeState != StrokeState::Backswing && prevStrokeState != StrokeState::BrakedBackSwing) {
+                cRacketSwing->backswingTime = 0.0f;
+            }
+            if (strokeState != StrokeState::BrakedBackSwing) {
+                cRacketSwing->backswingTime = std::min(
+                    cRacketSwing->backswingTime + dt,
+                    cRacketSwing->maxBackswing
+                );
+            }
+   
+            float t = cRacketSwing->backswingTime / cRacketSwing->maxBackswing;
+
+
+            cRacketHandle->strokeWeight = 0.0f;
+            cRacketHandle->swingOffset_m = { 0,0,0 };
+
+            Vec3 pocketPos = { steer.x * 0.4f, -steer.y * 0.4f, -0.3f };
+
+            cRacketHandle->swingOffset_m = pocketPos * t;
+
+            cRacketHandle->strokeWeight = 1.0f; 
+        }
+        if (cRacketSwing->strokeState == StrokeState::Push || cRacketSwing->strokeState == StrokeState::Idle) {
+            float sensitivity = .8f;
+            if (cRacketSwing->strokeState == StrokeState::Push) {
+                float sensitivityZ = 5.0f;
+                float manualZ = cAuthorization->floatMap["ManualReachZ"];
+                cRacketHandle->pushOffset_m.z += manualZ * sensitivity * sensitivityZ * dt; //make pushoffset separable from free offset later
+            }
+            cRacketHandle->freeOffset_m.x += steer.x * sensitivity * dt;
+            cRacketHandle->freeOffset_m.y += -steer.y * sensitivity * dt;
+        }
+        if (strokeState == StrokeState::PushRecovery) {
+            if (cRacketHandle->freeOffset_m.z > 0 || cRacketHandle->pushOffset_m.z > 0) {
+                float pushResetRate = 1.5f;
+                float freeResetRate = 2.0f;
+                if (cRacketHandle->pushOffset_m.z > 0) {
+                    cRacketHandle->pushOffset_m.z -= pushResetRate * dt;
+                }
+                else {
+                    cRacketHandle->freeOffset_m.z -= freeResetRate * dt;
+                }
+
+                if (cRacketHandle->freeOffset_m.z <= 0) cRacketHandle->freeOffset_m.z = 0;
+                if (cRacketHandle->pushOffset_m.z <= 0) cRacketHandle->pushOffset_m.z = 0;
+            }
+            else {
+                strokeState = StrokeState::Idle;
+            }
+        }
+
+        if (strokeState == StrokeState::Swing) {
+            if (prevStrokeState == StrokeState::Backswing || prevStrokeState == StrokeState::BrakedBackSwing) {
+                cRacketSwing->strokeTime_ms = 0.f;
+            }
+
+            float chargePct = cRacketSwing->backswingTime / cRacketSwing->maxBackswing;
+            cRacketSwing->swingSpeed = (0.5f + chargePct + totalTorsoLoad) * 6.0f;
+            cRacketSwing->strokeTime_ms += dt * 1000.f;
+            float ms = cRacketSwing->strokeTime_ms;
+
+            // Reach Power Dampening
+            float currentExtension = cRacketHandle->swingOffset_m.length();
+            float reachRatio = currentExtension / cArm->maxReach_m;
+            float stiffness = std::clamp((reachRatio - 0.85f) / 0.15f, 0.0f, 1.0f);
+            float powerMult = 1.0f - (stiffness * 0.9f);
+            // Generative steering
+            Vec3 j1Steer(steer.x, -steer.y, 0.f);
+            Vec3 forwardVel(0, 0, cRacketSwing->swingSpeed * powerMult);
+
+            if (ms < 80.f) {      // COMMIT WINDOW (High steering)
+                forwardVel.x += j1Steer.x * 4.5f * powerMult;
+                forwardVel.y += j1Steer.y * 4.5f * powerMult;
+            }
+            else if (ms < 180.f) { // ACCELERATION (Low steering)
+                forwardVel.x += j1Steer.x * 1.0f * powerMult;
+                forwardVel.y += j1Steer.y * 1.0f * powerMult;
+            }
+
+            cRacketHandle->swingOffset_m += forwardVel * dt;
+            // HARD LIMIT: Prevents racket from detaching during ballistic swing
+            if (cRacketHandle->swingOffset_m.length() > cArm->maxReach_m) {
+                cRacketHandle->swingOffset_m = cRacketHandle->swingOffset_m.normalized() * cArm->maxReach_m;
+            }
+            // End of Stroke condition
+            if (ms > 300.f){//TODO: better conditions 
+                strokeState = StrokeState::SwingRecovery;
+                cRacketHandle->freeOffset_m = cRacketHandle->swingOffset_m;
+            }
+        }
+        if (strokeState == StrokeState::SwingRecovery) {
+            cRacketHandle->strokeWeight = std::clamp(cRacketHandle->strokeWeight - dt * 4.f, 0.f, 1.f);
+            cRacketHandle->swingOffset_m = cRacketHandle->swingOffset_m * (1.f - dt * 8.f);
+            if (cRacketHandle->strokeWeight == 0) {
+                strokeState = StrokeState::Idle;
+            }
+        }
+
+    }
+    
+    return { SystemExecResult::Ran };
+}
+
+--- FILE: src\systems\game\racket\RacketSwingSystem.hpp ---
+#pragma once
+
+#include "game/utils/GameContext.hpp"
+#include "ecs/system/ISystem.hpp"
+
+class RacketSwingSystem : public ISystem{
+public:
+    SystemExec update(GameContext* context);
+
+};
+
+
+--- FILE: src\systems\groups\CollisionsSystemGroup.hpp ---
+#pragma once
+
+#include "game/utils/GameContext.hpp"
+
+#include "systems/NetCollisionSystem.hpp"
+#include "systems/game/racket/RacketCollisionSystem.hpp"
+#include "systems/game/movement/player/BodyTableCollisionSystem.hpp"
+#include "systems/game/collision/BoundingBoxUpdateSystem.hpp"
+#include "systems/BallContactSystem.hpp"
+#include "ecs/system/ISystemGroup.hpp"
+
+class CollisionsSystemGroup final : public ISystemGroup {
+public:
+    explicit CollisionsSystemGroup(SystemFactory& factory)
+        : m_factory(factory)
+    {
+        m_graph.add<BoundingBoxUpdateSystem>(m_factory, 100, TickPhase::Fixed);
+        m_graph.add<BallContactSystem>(m_factory, 150, TickPhase::Fixed);
+        m_graph.add<NetCollisionSystem>(m_factory, 200, TickPhase::Fixed);
+        m_graph.add<RacketCollisionSystem>(m_factory, 300, TickPhase::Fixed);
+        m_graph.add<BodyTableCollisionSystem>(m_factory, 400, TickPhase::Fixed);
+    }
+
+    SystemExec update(GameContext* context) override {
+        m_graph.run(context, TickPhase::Fixed);
+        return {SystemExecResult::Ran};
+    }
+
+    SystemGraph& childGraph() override { return m_graph; }
+    const SystemGraph& childGraph() const override { return m_graph; }
+
+private:
+    SystemFactory m_factory;
+    SystemGraph   m_graph;
+};
+
+
+--- FILE: src\systems\groups\MovementSystemGroup.hpp ---
+#pragma once
+
+#include "game/utils/GameContext.hpp"
+#include "systems/BoundarySystem.hpp"
+#include "systems/groups/PlayerMovementSystemGroup.hpp"
+#include "systems/TransformSaveSystem.hpp"
+#include "ecs/system/ISystemGroup.hpp"
+#include "ecs/system/SystemFactory.hpp"
+#include "systems/groups/RacketMovementSystemGroup.hpp"
+#include "systems/game/movement/anatomy/AnatomySystem.hpp"
+#include "systems/BallForceSystem.hpp"
+#include "systems/BallIntegrateSystem.hpp"
+class MovementSystemGroup final : public ISystemGroup {
+public:
+    explicit MovementSystemGroup(SystemFactory& factory)
+        : m_factory(factory)
+    {
+        m_graph.add<TransformSaveSystem>(m_factory, 0, TickPhase::Fixed);
+        m_graph.add<PlayerMovementSystemGroup>(m_factory, 70, TickPhase::Fixed, Pausable, m_factory);
+        m_graph.add<AnatomySystem>(m_factory, 75, TickPhase::Fixed, NotPausable);
+        m_graph.add<RacketMovementSystemGroup>(m_factory, 80, TickPhase::Fixed, Pausable, m_factory);
+        m_graph.add<BallForceSystem>(m_factory, 0, TickPhase::Fixed);
+        m_graph.add<BallIntegrateSystem>(m_factory, 100, TickPhase::Fixed);
+
+    }
+
+    SystemExec update(GameContext* context) override {
+        m_graph.run(context, TickPhase::Fixed);
+        return {SystemExecResult::Ran};
+    }
+    SystemGraph& childGraph() override { return m_graph; }
+    const SystemGraph& childGraph() const override { return m_graph; }
+
+private:
+    SystemFactory m_factory;
+    SystemGraph   m_graph;
+};
+
+
+--- FILE: src\systems\groups\PlayerMovementSystemGroup.hpp ---
+#pragma once
+
+#include "game/utils/GameContext.hpp"
+#include "systems/game/movement/player/footwork/FootworkMovementSystem.hpp"
+#include "systems/game/movement/player/VelocityIntegrationSystem.hpp"
+#include "ecs/system/ISystemGroup.hpp"
+
+class PlayerMovementSystemGroup final : public ISystemGroup {
+public:
+    explicit PlayerMovementSystemGroup(SystemFactory& factory)
+        : m_factory(factory)
+    {
+        m_graph.add<FootworkMovementSystem>(m_factory, 0, TickPhase::Fixed);
+        m_graph.add<VelocityIntegrationSystem>(m_factory, 10, TickPhase::Fixed);
+    }
+
+    SystemExec update(GameContext* context) override {
+        m_graph.run(context, TickPhase::Fixed);
+        return { SystemExecResult::Ran };
+    }
+    SystemGraph& childGraph() override { return m_graph; }
+    const SystemGraph& childGraph() const override { return m_graph; }
+private:
+    SystemFactory m_factory;
+    SystemGraph   m_graph;
+};
+
+
+--- FILE: src\systems\groups\RacketMovementSystemGroup.hpp ---
+#pragma once
+
+#include "game/utils/GameContext.hpp"
+#include "systems/game/racket/RacketOrientationSystem.hpp"
+#include "systems/game/racket/RacketArmSystem.hpp"
+#include "systems/game/racket/RacketSwingSystem.hpp"
+#include "systems/game/racket/RacketBoundingBoxSystem.hpp"
+#include "ecs/system/ISystemGroup.hpp"
+
+class RacketMovementSystemGroup final : public ISystemGroup {
+public:
+    explicit RacketMovementSystemGroup(SystemFactory& factory)
+        : m_factory(factory)
+    {
+        m_graph.add<RacketSwingSystem>(m_factory, 0, TickPhase::Fixed);
+        m_graph.add<RacketArmSystem>(m_factory, 100, TickPhase::Fixed);
+        m_graph.add<RacketOrientationSystem>(m_factory, 200, TickPhase::Fixed);
+        m_graph.add<RacketBoundingBoxSystem>(m_factory, 300, TickPhase::Fixed);
+    }
+
+    SystemExec update(GameContext* context) override {
+        m_graph.run(context, TickPhase::Fixed);
+        return {SystemExecResult::Ran};
+    }
+    SystemGraph& childGraph() override { return m_graph; }
+    const SystemGraph& childGraph() const override { return m_graph; }
+private:
+    SystemFactory m_factory;
+    SystemGraph   m_graph;
+};
+
+
+--- FILE: src\systems\menu\action\ActionSystem.cpp ---
+#include "ActionSystem.hpp"
+#include "components/Components.hpp"""
+#include "ecs/Entity.hpp"
+#include <algorithm>
+#include <map>
+#include "game/utils/GameContext.hpp"
+// --- SCROLL CONTROL PARAMETERS ---
+constexpr int SCROLL_INITIAL_DELAY_FRAMES = 30;
+constexpr int SCROLL_RATE_FRAMES = 6;
+// ---------------------------------
+
+SystemExec ActionSystem::update(GameContext* context) {
+    auto& ctxMainMenuIntent = context->mainMenuIntent;
+
+    // --- Static Menu State Tracking ---
+    static int currentSelectedOrder = 1;
+    static int scrollTimer = 0;
+
+    // 1. Collect all buttons
+    std::map<int, Entity> orderedButtons;
+    for (Entity eText : context->registry.getEntitiesWith<CTextButton>()) {
+        auto cTextTextButton = context->registry.getComponent<CTextButton>(eText);
+        orderedButtons[cTextTextButton->order] = eText;
+    }
+
+    if (orderedButtons.empty()) {
+        return { SystemExecResult::EarlyExit, "No buttons" };
+    }
+
+    // --- Navigation Input Check ---
+    bool isNavigating = (ctxMainMenuIntent.menuSelectionInput != MenuDirection::None);
+
+    // --- SCROLL LOGIC (Rate Limiting) ---
+    bool shouldScroll = false;
+
+    if (isNavigating) {
+        scrollTimer++;
+
+        if (scrollTimer == 1) {
+            shouldScroll = true; // Immediate scroll on first press
+        }
+        else if (scrollTimer >= SCROLL_INITIAL_DELAY_FRAMES) {
+            if ((scrollTimer - SCROLL_INITIAL_DELAY_FRAMES) % SCROLL_RATE_FRAMES == 0) {
+                shouldScroll = true; // Continuous scroll after delay
+            }
+        }
+    }
+    else {
+        scrollTimer = 0; // Reset timer when input stops
+    }
+
+
+    // --- 2. Apply Scroll Action ---
+    if (shouldScroll) {
+        int minOrder = orderedButtons.begin()->first;
+        int maxOrder = orderedButtons.rbegin()->first;
+
+        if (ctxMainMenuIntent.menuSelectionInput == MenuDirection::Up) { // FIXED: Use enum
+            currentSelectedOrder = std::max(minOrder, currentSelectedOrder - 1);
+        }
+        else if (ctxMainMenuIntent.menuSelectionInput == MenuDirection::Down) { // FIXED: Use enum
+            currentSelectedOrder = std::min(maxOrder, currentSelectedOrder + 1);
+        }
+    }
+
+    // --- 3. Mouse Override Logic ---
+    if (ctxMainMenuIntent.mouseOverriddenJoystick) {
+        currentSelectedOrder = ctxMainMenuIntent.mouseHoverOrder;
+        scrollTimer = 0;
+    }
+
+    // --- 4. Apply Hover State (Visual Feedback) ---
+    if (orderedButtons.count(currentSelectedOrder)) {
+        Entity selectedEntity = orderedButtons.at(currentSelectedOrder);
+        auto [cText, cTextButton] = context->registry.getComponents<CText, CTextButton>(selectedEntity);
+
+        if (cTextButton) {
+            cTextButton->isHovered = true;
+        }
+    }
+
+    // --- 5. Execute Selection ---
+    if (ctxMainMenuIntent.menuSelectRequested) {
+        if (orderedButtons.count(currentSelectedOrder)) {
+            Entity selectedEntity = orderedButtons.at(currentSelectedOrder);
+            auto cTextButton = context->registry.getComponent<CTextButton>(selectedEntity);
+
+            if (cTextButton) {
+                cTextButton->isSelected = true;
+            }
+        }
+    }
+
+    return { SystemExecResult::Ran };
+}
+
+--- FILE: src\systems\menu\action\ActionSystem.hpp ---
+#pragma once
+#include "ecs/system/ISystem.hpp"
+class ActionSystem : public ISystem {
+public:
+    SystemExec update(GameContext* context);
+};
+
+
+--- FILE: src\systems\menu\imgui\MenuImGuiSystem.cpp ---
+#include "MenuImGuiSystem.hpp"
+#include <imgui.h>         
+#include <imgui-SFML.h>   
+#include "ecs/system/SystemGraph.hpp"
+#include "components/Components.hpp"
+#include "ecs/system/ISystemGroup.hpp"
+SystemExec MenuImGuiSystem::update(GameContext* context) {
+    if (context->renderSettings.hideImGui) {
+        context->inputBlocked = false;
+        return { SystemExecResult::EarlyExit, "UI Hidden" };
+    }
+    ImGuiIO& io = ImGui::GetIO();
+    io.DisplaySize = ImVec2(
+        context->display.windowSize.x,
+        context->display.windowSize.y
+    );
+
+    context->inputBlocked = io.WantCaptureMouse || io.WantCaptureKeyboard;
+
+    drawDeveloperPanel(context);
+    drawTextDebug(context);
+    drawControllerDebug(context);
+    drawSystemExecution(context);
+
+
+    return { SystemExecResult::Ran };
+}
+
+void MenuImGuiSystem::drawDeveloperPanel(GameContext* context) {
+
+    ImGui::Begin("Developer Panel##Menu", nullptr,
+        ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse);
+
+    // ================= DISPLAY =================
+    if (ImGui::CollapsingHeader("Display", ImGuiTreeNodeFlags_DefaultOpen)) {
+        ImGui::Text("Resolution: %.0fx%.0f",
+            context->display.windowSize.x,
+            context->display.windowSize.y);
+
+        auto& resList = context->renderSettings.resolutions;
+        int& idx = context->renderSettings.currentResolutionIndex;
+
+        if (ImGui::BeginCombo("Resolution", resList[idx].first.c_str())) {
+            for (int i = 0; i < resList.size(); i++) {
+                if (ImGui::Selectable(resList[i].first.c_str(), i == idx)) {
+                    idx = i;
+                    context->renderSettings.updateResolution = true;
+                }
+            }
+            ImGui::EndCombo();
+        }
+        ImGui::Checkbox("Show Bounding Boxes",
+            &context->renderSettings.draw3DBoundingBoxes);
+    }
+
+
+
+    // ================= RENDER LAYERS =================
+    if (ImGui::CollapsingHeader("Render Layers")) {
+        for (auto e : context->registry.getEntitiesWith<CRenderLayer>()) {
+            auto* layer = context->registry.getComponent<CRenderLayer>(e);
+            if (layer)
+                ImGui::Text("%s : %d", e.name.c_str(), layer->layer);
+        }
+    }
+
+    // ================= STATS =================
+    if (ImGui::CollapsingHeader("Stats")) {
+        ImGui::Text("FPS: %.1f", context->frameStats.fps);
+        ImGui::Text("Entities: %d",
+            (int)context->registry.getEntityCount());
+    }
+
+    ImGui::End();
+}
+void MenuImGuiSystem::drawControllerDebug(GameContext* context) {
+    ImGui::Begin("Controller Monitor##Global", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
+
+    // 1. Check Connection
+    bool connected = sf::Joystick::isConnected(0);
+    ImGui::Text("Status: %s", connected ? "CONNECTED" : "DISCONNECTED");
+
+    if (connected) {
+        sf::Joystick::Identification id = sf::Joystick::getIdentification(0);
+        ImGui::Text("Name: %s", id.name.toAnsiString().c_str());
+
+        ImGui::Separator();
+        ImGui::Text("Axes:");
+
+        // List common axes to see raw data
+        std::vector<std::pair<const char*, sf::Joystick::Axis>> axes = {
+            {"X (Left Stick H)", sf::Joystick::X},
+            {"Y (Left Stick V)", sf::Joystick::Y},
+            {"Z (Triggers)", sf::Joystick::Z},
+            {"R (Right Stick V)", sf::Joystick::R},
+            {"U (Right Stick H)", sf::Joystick::U},
+            {"PovX (D-Pad H)", sf::Joystick::PovX},
+            {"PovY (D-Pad V)", sf::Joystick::PovY}
+        };
+
+        for (auto& [label, axis] : axes) {
+            if (sf::Joystick::hasAxis(0, axis)) {
+                float val = sf::Joystick::getAxisPosition(0, axis);
+                // Visual progress bar for axis (-100 to 100 range)
+                float fraction = (val + 100.0f) / 200.0f;
+                ImGui::Text("%-15s: %6.1f", label, val);
+                ImGui::SameLine();
+                ImGui::ProgressBar(fraction, ImVec2(100, 0), "");
+            }
+        }
+
+        ImGui::Separator();
+        ImGui::Text("Buttons:");
+        for (int i = 0; i < sf::Joystick::getButtonCount(0); i++) {
+            bool pressed = sf::Joystick::isButtonPressed(0, i);
+            if (pressed) ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.2f, 0.8f, 0.2f, 1.0f));
+
+            ImGui::Button(std::to_string(i).c_str(), ImVec2(25, 25));
+            if (i % 8 != 7) ImGui::SameLine();
+
+            if (pressed) ImGui::PopStyleColor();
+        }
+    }
+    else {
+        ImGui::TextColored(ImVec4(1, 0, 0, 1), "Connect a controller to see raw input data.");
+    }
+
+    ImGui::End();
+}
+void MenuImGuiSystem::drawSystemExecution(GameContext* context) {
+    ImGui::Begin("System Execution##Menu");
+
+    Scene* scene = context->sceneManager.currentScene();
+    if (!scene || scene->systems().getNodes().empty()) { 
+        ImGui::Text("Loading systems...");
+        ImGui::End();
+        return;
+    }
+
+
+    const SystemGraph& graph = scene->systems();
+
+    for (const auto& node : graph.getNodes()) {
+        drawSystemNodeRecursive(node);
+    }
+
+    ImGui::End();
+}
+
+void MenuImGuiSystem::drawSystemNodeRecursive(const SystemNode& node, int depth) {
+    ImGui::Indent(depth * 14.0f);
+
+    bool isGroup =
+        dynamic_cast<ISystemGroup*>(node.system.get()) != nullptr;
+
+    bool open = true;
+
+    if (isGroup) {
+        open = ImGui::TreeNodeEx(
+            typeid(*node.system).name(),
+            ImGuiTreeNodeFlags_DefaultOpen
+        );
+    }
+    else {
+        ImGui::BulletText("%s", typeid(*node.system).name());
+    }
+
+    ImGui::SameLine(300);
+    ImGui::Text("%s",
+        node.debug.exitedEarlyLastRun ? "Early Exit" : "Ran"
+    );
+
+    if (
+        node.debug.exitedEarlyLastRun &&
+        !node.debug.lastEarlyExitReason.empty() &&
+        ImGui::IsItemHovered()
+        ) {
+        ImGui::BeginTooltip();
+        ImGui::TextUnformatted(node.debug.lastEarlyExitReason.c_str());
+        ImGui::EndTooltip();
+    }
+
+    if (isGroup && open) {
+        auto* group =
+            static_cast<ISystemGroup*>(node.system.get());
+
+        for (const auto& child : group->childGraph().getNodes()) {
+            drawSystemNodeRecursive(child, depth + 1);
+        }
+
+        ImGui::TreePop();
+    }
+
+    ImGui::Unindent(depth * 14.0f);
+}
+void MenuImGuiSystem::drawTextDebug(GameContext* context) {
+    ImGui::Begin("Text Debug##Menu", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse);
+    if (ImGui::CollapsingHeader("Text Information")) {
+    // 1. Initialize the table (2 columns: Text and Status)
+        if (ImGui::BeginTable("TextTable", 5, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg)) {
+
+            // Setup headers
+            ImGui::TableSetupColumn("String Content");
+            ImGui::TableSetupColumn("Is Dirty");
+            ImGui::TableSetupColumn("Was Dirty");
+            ImGui::TableSetupColumn("Is Hovered");
+            ImGui::TableSetupColumn("Is Selected");
+            ImGui::TableHeadersRow();
+
+            for (auto eText : context->registry.getEntitiesWith<CText>()) {
+                auto* cTextText = context->registry.getComponent<CText>(eText);
+
+                ImGui::TableNextRow();
+
+                // --- Column 0: The sString ---
+                ImGui::TableNextColumn();
+                if (cTextText && !cTextText->sString.empty()) {
+                    ImGui::Text("%s", cTextText->sString.c_str()); // Ensure .c_str() for safety
+                }
+                else {
+                    ImGui::TextDisabled("[Empty]");
+                }
+
+                ImGui::TableNextColumn();
+                ImGui::Text("%s", cTextText->isDirty ? "Dirty" : "Clean");
+
+                ImGui::TableNextColumn();
+                ImGui::Text("%s", cTextText->wasDirty ? "Was Dirty" : "Was Clean");
+
+                ImGui::TableNextColumn();
+                if (context->registry.hasComponent<CTextButton>(eText)) {
+                    auto* cTextButton = context->registry.getComponent<CTextButton>(eText);
+                    ImGui::Text("%s", cTextButton->isHovered ? "Hovered" : "Idle");
+                }
+                else {
+                    ImGui::TextDisabled("N/A");
+                }
+
+                ImGui::TableNextColumn();
+                if (context->registry.hasComponent<CTextButton>(eText)) {
+                    auto* cTextButton = context->registry.getComponent<CTextButton>(eText);
+                    ImGui::Text("%s", cTextButton->isSelected ? "Selected" : "Idle");
+                }
+                else {
+                    ImGui::TextDisabled("N/A");
+                }
+            }
+            ImGui::EndTable();
+        }
+    }
+    if (ImGui::CollapsingHeader("Menu Intent State")) {
+        auto& ctxMainMenuIntent = context->mainMenuIntent;
+        auto& ctxRawInput = context->rawInput;
+        // Use a local pointer for the string to ensure it's a valid C-string
+        const char* dirStr = "NONE";
+        if (ctxMainMenuIntent.menuSelectionInput == MenuDirection::Up) dirStr = "UP";
+        else if (ctxMainMenuIntent.menuSelectionInput == MenuDirection::Down) dirStr = "DOWN";
+
+        ImGui::Text("Direction: %s", dirStr);
+
+        bool upPressed = ctxRawInput.isKeyJustPressed(sf::Keyboard::W) || ctxRawInput.isKeyJustPressed(sf::Keyboard::Up);
+        bool downPressed = ctxRawInput.isKeyJustPressed(sf::Keyboard::S) || ctxRawInput.isKeyJustPressed(sf::Keyboard::Down);
+
+        // Using %s correctly to prevent crashes
+        ImGui::Text("Raw Input: Keyboard Up:   %s", upPressed ? "YES" : "NO");
+        ImGui::Text("Raw Input: Keyboard Down: %s", downPressed ? "YES" : "NO");
+
+        // Explicitly use booleans for the %s formatter
+        ImGui::Text("Select Requested: %s", ctxMainMenuIntent.menuSelectRequested ? "TRUE" : "FALSE");
+        ImGui::Text("Mouse Override: %s", ctxMainMenuIntent.mouseOverriddenJoystick ? "YES" : "NO");
+
+        // Use Text with an explicit cast to int to be safe
+        ImGui::Text("Hover Order: %d", (int)ctxMainMenuIntent.mouseHoverOrder);
+    }
+
+    ImGui::End();
+}
+
+--- FILE: src\systems\menu\imgui\MenuImGuiSystem.hpp ---
+#pragma once
+#include "ecs/system/ISystem.hpp"
+#include "ecs/system/SystemNode.hpp"
+class MenuImGuiSystem : public ISystem {
+public:
+    SystemExec update(GameContext* context) override;
+
+private:
+    void drawDeveloperPanel(GameContext* context);
+    void drawControllerDebug(GameContext* context);
+    void drawSystemExecution(GameContext* context);
+    void drawTextDebug(GameContext* context);
+    static void drawSystemNodeRecursive(const SystemNode& node, int depth = 0);
+};
+
+

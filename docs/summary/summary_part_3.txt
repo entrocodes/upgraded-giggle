@@ -1,3 +1,4 @@
+--- FILE: src\game\EntityFactory.cpp ---
 ﻿#include "EntityFactory.hpp"
 #include "components/Components.hpp"
 #include "math/GridTransform.hpp"
@@ -104,7 +105,7 @@ Entity EntityFactory::createNet() {
 
 Entity EntityFactory::createPlayer() {
     Entity ePlayer = m_registry.createEntity("player");
-    Vec3 startPlayerPos_m = {m_tableParameters.tableWidth / 2 + .3f, -m_tableParameters.tableHeight + m_tableParameters.playerHeight * 0.5f, -0.15f};
+    Vec3 startPlayerPos_m = {0.0f, -m_tableParameters.tableHeight + m_tableParameters.playerHeight * 0.5f, -0.3f};
     Vec3 playerSize_m = { .4f, m_tableParameters.playerHeight , .15f };
     m_registry.addComponent<CRotation3D>(ePlayer);
     m_registry.addComponent<Player>(ePlayer);
@@ -132,7 +133,8 @@ Entity EntityFactory::createPlayer() {
 
     m_registry.addComponent<CBoundingBox>(ePlayer, s.getLocalBounds());
     m_registry.addComponent<CFootworkState>(ePlayer);
-
+    // --- Gameplay Components ---
+    m_registry.addComponent<CRacketSwing>(ePlayer);
 
     // Player world position
     cPlayerTransform3D.pos_m = startPlayerPos_m;
@@ -155,7 +157,7 @@ Entity EntityFactory::createPlayerRacket() {
     auto& cPlayerRacketRacketPhysical = m_registry.addComponent<CRacketPhysical>(eRacket, eRacketShadow);
     cPlayerRacketRacketPhysical.restitution = 0.85f;
     cPlayerRacketRacketPhysical.friction = 0.50f;
-    m_registry.addComponent<CRacketSwing>(eRacket);
+
     // Attach to player
     Entity* ePlayer = m_registry.getEntity("player");
     auto& cPlayerRacketHandle = m_registry.addComponent<CRacketHandle>(*ePlayer);
@@ -214,7 +216,7 @@ Entity EntityFactory::createOpponent() {
     m_registry.addComponent<CBoundingBox>(eOpponent, s.getLocalBounds());
 
     // --- Gameplay Components ---
-
+    m_registry.addComponent<CRacketSwing>(eOpponent);
 
     // Player world position
     cOpponentTransform3D.pos_m = {
@@ -237,7 +239,6 @@ Entity EntityFactory::createOpponent() {
 Entity EntityFactory::createOpponentRacket() {
     Entity eRacket = m_registry.createEntity("opponentRacket");
     Entity eRacketShadow = createRacketShadow();
-    m_registry.addComponent<CRacketSwing>(eRacket);
     auto& cOppenentRacketRacketPhysical = m_registry.addComponent<CRacketPhysical>(eRacket, eRacketShadow);
     cOppenentRacketRacketPhysical.restitution = 0.85f;
     cOppenentRacketRacketPhysical.friction = 0.50f;
@@ -338,3 +339,414 @@ Entity EntityFactory::createText(std::string pString, float pCharacterSize, sf::
     m_registry.addComponent<CRenderLayer>(eText, 0);
     return eText;
 }
+
+
+--- FILE: src\game\EntityFactory.hpp ---
+#pragma once
+#include <string>
+#include <SFML/Graphics.hpp>
+#include "math/Vec3.hpp"
+#include "ecs/Registry.hpp"
+#include "display/DisplayConfig.hpp"
+#include "game/utils/Assets.hpp"
+#include "game/utils/Camera.hpp"
+#include "game/utils/TableParameters.hpp"
+class EntityFactory {
+public:
+    explicit EntityFactory(Registry& registry, DisplayConfig& display, Assets& assets, Camera& camera, TableParameters& tableParameters)
+        : m_registry(registry)
+        , m_display(display)
+        , m_assets(assets)
+        , m_camera(camera)
+        , m_tableParameters(tableParameters)
+    {
+    }
+
+    Entity createBackground();
+    Entity createTable();
+    Entity createNet();
+    Entity createPlayer();
+    Entity createBallShadow(const Vec3& shadowPos_m);
+    Entity createBall(const Vec3& pos_m, const Vec3& vel_mps, const Vec3& spin = { 0.0f,0.0f,0.0f });
+    Entity createPlayerRacket();
+    Entity createRacketShadow();
+    Entity createText(std::string pString = "Hello World", float pCharacterSize = 32.0f, sf::Color pColor = sf::Color::White, Vec2 pPos = { 10, 10 }, const std::string pFont = "Tech");
+    Entity createOpponent();
+    Entity createOpponentRacket();
+private:
+    Registry& m_registry;
+    DisplayConfig& m_display;
+    Assets& m_assets;
+    Camera& m_camera;
+    TableParameters& m_tableParameters;
+};
+
+
+--- FILE: src\game\GameEngine.cpp ---
+﻿#include "GameEngine.hpp"
+#include <imgui.h>         
+#include <imgui-SFML.h>  
+#include "scenes/GameScene.hpp"
+#include "scenes/MenuScene.hpp"
+#include "systems/game/imgui/GameImGuiSystem.hpp"
+#include "display/DisplayUtils.hpp"
+#include "debug/Debug.hpp"
+GameEngine::GameEngine() {
+    // SDL_INIT_GAMECONTROLLER includes SDL_INIT_JOYSTICK
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER) < 0) {
+        // Log error: SDL_GetError()
+    }
+
+    // Set a hint to treat all joysticks as game controllers if possible
+    SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1");
+    int mappings = SDL_GameControllerAddMappingsFromFile("bin/gamecontrollerdb.txt");
+    // Force SDL to use XInput for better Windows compatibility
+    SDL_SetHint(SDL_HINT_XINPUT_ENABLED, "1");
+    if (mappings < 0) {
+        Debug::debugPrint("Warning: Could not find gamecontrollerdb.txt at bin");
+    }
+    context.window.create(
+        sf::VideoMode(context.display.windowSize.x, context.display.windowSize.y),
+        "PixelPong"
+    );
+
+    context.assets.loadFromFile("bin/assets.txt");
+    context.sceneManager.registerScene<GameScene>("game", &context);
+    context.sceneManager.registerScene<MenuScene>("menu", &context);
+    context.sceneManager.switchTo("game");
+    context.sceneManager.currentScene()->firstLoad();
+}
+
+void GameEngine::run() {
+
+    context.window.setVerticalSyncEnabled(true);
+    context.window.setFramerateLimit(0);
+
+    float accumulator = 0.f;
+    sf::Clock clock;
+
+    ImGui::SFML::Init(context.window);
+
+    while (context.window.isOpen()) {
+
+        sf::Time frameTime = clock.restart();
+        float realDt = frameTime.asSeconds();
+
+        if (realDt > MAX_ACCUM_TIME)
+            realDt = MAX_ACCUM_TIME;
+
+        accumulator += realDt;
+        if (accumulator > MAX_ACCUM_TIME)
+            accumulator = MAX_ACCUM_TIME;
+
+        context.frameStats.dt = realDt;
+
+        
+
+        sf::Event event;
+        while (context.window.pollEvent(event)) {
+            ImGui::SFML::ProcessEvent(event);
+
+            switch (event.type) {
+            case sf::Event::Closed:
+                context.window.close();
+                break;
+
+            case sf::Event::KeyPressed:
+                context.rawInput.keyStates[event.key.code] = true;
+                if (event.key.code == sf::Keyboard::F11 || event.key.code == sf::Keyboard::F)
+                    context.display.toggleFullscreen = true;
+                if (context.rawInput.frameKeyPressed.find(event.key.code) == context.rawInput.frameKeyPressed.end()) {
+                    context.rawInput.frameKeyPressed[event.key.code] = context.frameStats.tickIndex;
+                }
+                break;
+
+            case sf::Event::KeyReleased:
+                context.rawInput.keyStates[event.key.code] = false;
+                break;
+
+            case sf::Event::MouseButtonPressed:
+                context.rawInput.mouseButtonStates[event.mouseButton.button] = true;
+                break;
+
+            case sf::Event::MouseButtonReleased:
+                context.rawInput.mouseButtonStates[event.mouseButton.button] = false;
+                break;
+
+            case sf::Event::MouseMoved:
+                context.rawInput.mousePosition = {
+                    static_cast<float>(event.mouseMove.x),
+                    static_cast<float>(event.mouseMove.y)
+                };
+                break;
+            case sf::Event::LostFocus:
+                context.rawInput.keyStates.clear();
+                context.rawInput.padStates.clear();
+                context.rawInput.frameKeyPressed.clear();
+                context.rawInput.framePadPressed.clear();
+                break;
+            }
+        }
+        if (context.renderSettings.updateResolution || context.display.toggleFullscreen) {
+            context.display.isFullscreen = !context.display.isFullscreen;
+            updateResolution();
+            context.display.toggleFullscreen = false;
+        }
+
+        context.display.updateFromWindow(context.window);
+        DisplayUtils::applyLetterboxedView(&context);
+
+        ImGui::SFML::Update(context.window, frameTime);
+
+        while (accumulator >= FIXED_DT) {
+            context.frameStats.dt = FIXED_DT;
+            context.frameStats.fixedDt = FIXED_DT;
+            context.frameStats.tickIndex++;
+            context.sceneManager.update();
+            accumulator -= FIXED_DT;
+        }
+        if (context.metaInputState.returnToMainMenu) {
+            context.metaInputState.returnToMainMenu = false ;
+            context.sceneManager.requestSwitch("menu");
+            // RESET IMGUI INTERNAL STATE
+            ImGui::GetIO().ClearInputCharacters();
+            ImGui::GetIO().ClearInputKeys();
+            context.inputBlocked = false;
+        }
+        if (context.metaInputState.quit) {
+            context.window.close();
+        }
+        
+        context.frameAlpha = accumulator / FIXED_DT;
+        context.frameStats.dt = realDt;
+
+        context.window.clear();
+        context.sceneManager.render();
+        ImGui::SFML::Render(context.window);
+        context.window.display();
+
+        context.rawInput.nextFrame();
+        
+        context.sceneManager.applyPendingSwitch();
+
+    }
+
+    ImGui::SFML::Shutdown();
+}
+
+void GameEngine::handleResize(float width, float height) {
+    context.display.windowSize = { width, height };
+    context.display.updateFromWindow(context.window);
+    ImGui::GetIO().DisplaySize = ImVec2(width, height);
+}
+
+void GameEngine::updateResolution() {
+    auto& rs = context.renderSettings;
+    auto& display = context.display;
+
+    auto newRes = rs.resolutions[rs.currentResolutionIndex].second;
+    rs.updateResolution = false;
+
+    context.window.create(
+        sf::VideoMode((unsigned)newRes.x, (unsigned)newRes.y),
+        "PixelPong",
+        display.isFullscreen ? sf::Style::Fullscreen : sf::Style::Default
+    );
+
+    display.updateFromWindow(context.window);
+    DisplayUtils::applyLetterboxedView(&context);
+    ImGui::GetIO().DisplaySize = ImVec2(display.windowSize.x, display.windowSize.y);
+}
+
+
+--- FILE: src\game\GameEngine.hpp ---
+#pragma once
+#include <SFML/Graphics.hpp>
+#include "ecs/SceneManager.hpp"
+#include "display/DisplayUtils.hpp"
+#include "utils/GameContext.hpp"
+class GameEngine {
+public:
+    GameEngine();
+    GameContext context;
+    void run();
+    void handleResize(float width, float height);
+private:
+    SceneManager m_sceneManager;
+    void updateResolution();
+    const float MAX_ACCUM_TIME = 0.25f; // allow at most 250ms of catch-up
+    const float FIXED_DT = 1.f / 60.0f;  // Game logic update rate
+    const float MAX_FPS = 120.f;        // Optional render limit
+    const float TARGET_FRAME_TIME = 1.f / MAX_FPS;
+
+};
+
+--- FILE: src\game\scenes\GameScene.cpp ---
+﻿#include "GameScene.hpp"
+
+// system includes ONLY needed here
+#include "systems/InputSystem.hpp"
+#include "systems/game/intent/PlayerIntentSystem.hpp"
+#include "systems/game/action/PlayerActionSystem.hpp"
+#include "systems/game/intent/GlobalIntentSystem.hpp"
+#include "systems/game/action/GlobalActionSystem.hpp"
+#include "systems/game/intent/debug/DebugIntentSystem.hpp"
+#include "systems/game/action/debug/DebugActionSystem.hpp"
+#include "systems/groups/MovementSystemGroup.hpp"
+#include "systems/BallRemovalSystem.hpp"
+#include "systems/AnimationSystem.hpp"
+#include "systems/LogoRotationSystem.hpp"
+#include "systems/RenderLayerSystem.hpp"
+#include "systems/RenderSystem.hpp"
+#include "systems/FrameStatsSystem.hpp"
+#include "systems/game/imgui/GameImGuiSystem.hpp"
+#include "systems/game/debug/BallSpawnDebugSystem.hpp"
+#include "systems/ProceduralAnimationSystem.hpp"
+#include "systems/groups/CollisionsSystemGroup.hpp"
+#include <imgui.h>
+#include "ecs/system/TickPhase.hpp"
+GameScene::GameScene(GameContext* context)
+    : m_context(context)
+    , m_factory(context) {
+
+    m_systems = &systemGraph;
+
+    // --- System wiring ---
+    systemGraph.add<FrameStatsSystem>(m_factory, 0, TickPhase::Fixed, NotPausable);
+    systemGraph.add<BallSpawnDebugSystem>(m_factory, 5, TickPhase::Fixed, NotPausable);
+    systemGraph.add<InputSystem>(m_factory, 10, TickPhase::Fixed, NotPausable);
+    systemGraph.add<GlobalIntentSystem>(m_factory, 12, TickPhase::Fixed, NotPausable);
+    systemGraph.add<DebugIntentSystem>(m_factory, 14, TickPhase::Fixed, NotPausable);
+    systemGraph.add<GlobalActionSystem>(m_factory, 16, TickPhase::Fixed, NotPausable);
+    systemGraph.add<PlayerIntentSystem>(m_factory, 17, TickPhase::Fixed, NotPausable);
+    systemGraph.add<DebugActionSystem>(m_factory, 18, TickPhase::Fixed, NotPausable);
+    systemGraph.add<PlayerActionSystem>(m_factory, 50, TickPhase::Fixed, NotPausable);
+    systemGraph.add<MovementSystemGroup>(m_factory, 100, TickPhase::Fixed, Pausable, m_factory);
+    systemGraph.add<CollisionsSystemGroup>(m_factory, 150, TickPhase::Fixed, Pausable, m_factory);
+    systemGraph.add<BallRemovalSystem>(m_factory, 200, TickPhase::Fixed);
+    systemGraph.add<AnimationSystem>(m_factory, 300, TickPhase::Fixed);
+    systemGraph.add<LogoRotationSystem>(m_factory, 400, TickPhase::Fixed);
+    systemGraph.add<ProceduralAnimationSystem>(m_factory, 500, TickPhase::Fixed, NotPausable);
+    systemGraph.add<RenderLayerSystem>(m_factory, 900, TickPhase::Render, NotPausable);
+    systemGraph.add<RenderSystem>(m_factory, 1000, TickPhase::Render, NotPausable);
+    systemGraph.add<GameImGuiSystem>(m_factory, 1200, TickPhase::Render, NotPausable);
+}
+void GameScene::firstLoad() {
+    // --- Camera / static setup (still scene responsibility) ---
+    std::array<Vec2, 4> imagePoints = {
+        Vec2{531.f, 497.f},
+        Vec2{619.f, 231.f},
+        Vec2{842.f, 497.f},
+        Vec2{760.f, 231.f}
+    };
+
+    std::array<Vec2, 4> worldPoints = {
+        Vec2{0.f, 0.f},
+        Vec2{0.f, m_context->tableParameters.tableLength},
+        Vec2{m_context->tableParameters.tableWidth, 0.f},
+        Vec2{
+            m_context->tableParameters.tableWidth,
+            m_context->tableParameters.tableLength
+        }
+    };
+
+
+    m_context->camera.homography.calibrate(imagePoints, worldPoints);
+}
+void GameScene::onEnter() {
+    m_context->entityFactory.createBackground();
+    m_context->entityFactory.createTable();
+    m_context->entityFactory.createNet();
+    m_context->entityFactory.createPlayer();
+    m_context->entityFactory.createPlayerRacket();
+    m_context->entityFactory.createOpponent();
+    m_context->entityFactory.createOpponentRacket();
+
+}
+void GameScene::update() {
+    systemGraph.run(m_context, TickPhase::Fixed);
+}
+
+void GameScene::render() {
+    systemGraph.run(m_context, TickPhase::Render);
+}
+void GameScene::onExit() {
+    m_context->registry.removeAllEntities();
+    ImGui::SetWindowFocus(nullptr);
+}
+
+--- FILE: src\game\scenes\GameScene.hpp ---
+#pragma once
+
+#include "Scene.hpp"
+#include "../utils/GameContext.hpp"
+#include "ecs/system/SystemGraph.hpp"
+#include "ecs/system/SystemFactory.hpp"
+
+class GameScene final : public Scene {
+public:
+    explicit GameScene(GameContext* context);
+
+    void update() override;
+    void render() override;
+    void onExit() override;
+    void onEnter() override;
+    void firstLoad() override;
+
+
+private:
+    GameContext* m_context;
+    SystemFactory m_factory;
+    SystemGraph   systemGraph;
+};
+
+
+--- FILE: src\game\scenes\MenuScene.cpp ---
+#include "MenuScene.hpp"
+#include "../utils/JsonEntityLoader.hpp"
+
+// system includes ONLY needed here
+#include "systems/InputSystem.hpp"
+#include "systems/FrameStatsSystem.hpp"
+#include "systems/TextButtonSystem.hpp"
+#include "systems/menu/intent/IntentSystem.hpp"
+#include "systems/menu/action/ActionSystem.hpp"
+#include "systems/DirtyTextSystem.hpp"
+#include "systems/RenderSystem.hpp"
+#include "systems/menu/imgui/MenuImGuiSystem.hpp"
+#include "systems/TransformSaveSystem.hpp"
+#include <imgui.h>
+MenuScene::MenuScene(GameContext* context)
+    : m_context(context)
+    , m_factory(context) {
+
+    m_systems = &systemGraph;
+    // --- System wiring ---
+    systemGraph.add<FrameStatsSystem>(m_factory, 0, TickPhase::Fixed, NotPausable);
+    systemGraph.add<TransformSaveSystem>(m_factory, 5, TickPhase::Fixed, NotPausable);
+    systemGraph.add<InputSystem>(m_factory, 10, TickPhase::Fixed, NotPausable);
+    systemGraph.add<IntentSystem>(m_factory, 13, TickPhase::Fixed, NotPausable);
+    systemGraph.add<ActionSystem>(m_factory, 15, TickPhase::Fixed, NotPausable);
+    systemGraph.add<DirtyTextSystem>(m_factory, 30, TickPhase::Fixed, NotPausable);
+    systemGraph.add<TextButtonSystem>(m_factory, 40, TickPhase::Fixed, NotPausable);
+
+    systemGraph.add<RenderSystem>(m_factory, 50, TickPhase::Render, NotPausable);
+    systemGraph.add<MenuImGuiSystem>(m_factory, 60, TickPhase::Render, NotPausable);
+
+}
+
+void MenuScene::onEnter() {
+    JsonEntityLoader::loadEntitiesFromJson(m_context, "bin/scenes/menu/mainmenu.json");
+}
+void MenuScene::update() {
+    systemGraph.run(m_context, TickPhase::Fixed);
+}
+
+void MenuScene::render() {
+    systemGraph.run(m_context, TickPhase::Render);
+}
+void MenuScene::onExit() {
+    m_context->registry.removeAllEntities();
+    ImGui::SetWindowFocus(nullptr);
+}
+

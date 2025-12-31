@@ -46,7 +46,7 @@ SystemExec BallIntegrateSystem::update(GameContext* context) {
         cBall->contactingSurface = false;
         if (p.y - R <= tp.tableY + eps && !cBall->offTable) (cBall->contactSurface = ContactSurface::Table );
         if (p.y - R <= tp.floorY + eps) ( cBall->contactSurface = ContactSurface::Floor );
-
+        if (cBall->contactSurface != ContactSurface::None) { cBall->lastContactSurface = cBall->contactSurface; }
         if (cBall->offTable && p.y < 0.f) {
             cBall->hasFallen = true;
         }

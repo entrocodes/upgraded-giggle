@@ -1,0 +1,980 @@
+=== PROJECT FILE TREE ===
+PixelPong/
+├── .gitignore
+├── build-run.ps1
+├── CMakeLists.txt
+├── CMakeSettings.json
+├── configure-build-run.ps1
+├── docs
+│   ├── ARCHITECTURE.md
+│   ├── control run down.docx
+│   ├── summarizer.py
+│   ├── summary
+│   └── summary.txt
+├── freetype-build-run.ps1
+├── LICENSE
+├── README.md
+├── sprites
+│   ├── ball
+│   │   ├── shadow.aseprite
+│   │   └── topspinballFullSize.aseprite
+│   ├── ball_test.aseprite
+│   ├── everything.aseprite
+│   ├── opponent
+│   │   └── opponentstand.aseprite
+│   ├── player
+│   │   ├── player.aseprite
+│   │   ├── playerBackSwing.aseprite
+│   │   └── playerStand.aseprite
+│   ├── racket
+│   │   ├── racket.aseprite
+│   │   └── racketShadow.aseprite
+│   ├── room
+│   │   ├── tabletennistable_orange_room.aseprite
+│   │   ├── tabletennistable_orange_room_bigger.aseprite
+│   │   └── tabletennistable_orange_room_bigger_no_table.aseprite
+│   ├── table
+│   │   ├── net.aseprite
+│   │   └── table.aseprite
+│   └── tabletennistable_orange_room_with_ball.aseprite
+└── src
+    ├── CMakeLists.txt
+    ├── components
+    │   ├── CAnimation.hpp
+    │   ├── CArm.hpp
+    │   ├── CAuthorization.hpp
+    │   ├── CBall.hpp
+    │   ├── CBallShadow.hpp
+    │   ├── CBodyTableCollision.hpp
+    │   ├── CBoundingBox.hpp
+    │   ├── CBoundingBox3D.hpp
+    │   ├── CEnemy.hpp
+    │   ├── CFootworkIntent.hpp
+    │   ├── CFootworkState.hpp
+    │   ├── CInput.hpp
+    │   ├── Components.hpp
+    │   ├── CRacketHandle.hpp
+    │   ├── CRacketPhysical.hpp
+    │   ├── CRacketShadow.hpp
+    │   ├── CRacketSwing.hpp
+    │   ├── CRenderLayer.hpp
+    │   ├── CRotation3D.hpp
+    │   ├── CState.hpp
+    │   ├── CText.hpp
+    │   ├── CTextButton.hpp
+    │   ├── CTransform.hpp
+    │   ├── CTransform3D.hpp
+    │   ├── CVelocity.hpp
+    │   ├── CVelocity3D.hpp
+    │   ├── Player.hpp
+    │   └── Sprite.hpp
+    ├── debug
+    │   ├── Debug.cpp
+    │   ├── Debug.hpp
+    │   └── systems
+    │       └── Display3DBoundingBoxes.hpp
+    ├── display
+    │   ├── DisplayConfig.hpp
+    │   └── DisplayUtils.hpp
+    ├── ecs
+    │   ├── Component.hpp
+    │   ├── DrawItem.hpp
+    │   ├── Entity.hpp
+    │   ├── Registry.hpp
+    │   ├── SceneManager.hpp
+    │   └── system
+    │       ├── ISystem.hpp
+    │       ├── ISystemGroup.hpp
+    │       ├── SystemExec.hpp
+    │       ├── SystemFactory.hpp
+    │       ├── SystemGraph.cpp
+    │       ├── SystemGraph.hpp
+    │       ├── SystemGroup.hpp
+    │       ├── SystemNode.hpp
+    │       └── TickPhase.hpp
+    ├── game
+    │   ├── EntityFactory.cpp
+    │   ├── EntityFactory.hpp
+    │   ├── GameEngine.cpp
+    │   ├── GameEngine.hpp
+    │   ├── scenes
+    │   │   ├── GameScene.cpp
+    │   │   ├── GameScene.hpp
+    │   │   ├── MenuScene.cpp
+    │   │   ├── MenuScene.hpp
+    │   │   ├── Scene.cpp
+    │   │   └── Scene.hpp
+    │   └── utils
+    │       ├── Animation.cpp
+    │       ├── Animation.hpp
+    │       ├── Assets.cpp
+    │       ├── Assets.hpp
+    │       ├── BallSpawnDebug.hpp
+    │       ├── Camera.hpp
+    │       ├── GameContext.hpp
+    │       ├── JsonEntityLoader.cpp
+    │       ├── JsonEntityLoader.hpp
+    │       └── TableParameters.hpp
+    ├── helpers
+    │   ├── FileUtils.cpp
+    │   └── FileUtils.hpp
+    ├── input
+    │   ├── RawInputState.cpp
+    │   └── RawInputState.hpp
+    ├── Install.cmake
+    ├── main.cpp
+    ├── math
+    │   ├── Bounds3D.hpp
+    │   ├── Constants.hpp
+    │   ├── GridTransform.hpp
+    │   ├── MathHelpers.hpp
+    │   ├── physics
+    │   │   ├── collision
+    │   │   │   └── ObjectIntersection.hpp
+    │   │   └── forces
+    │   │       ├── BallForcesStruct.hpp
+    │   │       ├── CalculateBallDrag.hpp
+    │   │       ├── CalculateBallGravity.hpp
+    │   │       └── CalculateMagnusForce.hpp
+    │   ├── Random.hpp
+    │   ├── Rectangle.hpp
+    │   ├── TableHomography.cpp
+    │   ├── TableHomography.hpp
+    │   ├── Vec2.hpp
+    │   └── Vec3.hpp
+    ├── movement
+    │   └── Step.hpp
+    ├── PostInstall.cmake
+    └── systems
+        ├── AnimationSystem.cpp
+        ├── AnimationSystem.hpp
+        ├── BallContactSystem.cpp
+        ├── BallContactSystem.hpp
+        ├── BallForceSystem.cpp
+        ├── BallForceSystem.hpp
+        ├── BallIntegrateSystem.cpp
+        ├── BallIntegrateSystem.hpp
+        ├── BallRemovalSystem.cpp
+        ├── BallRemovalSystem.hpp
+        ├── BoundarySystem.cpp
+        ├── BoundarySystem.hpp
+        ├── DirtyTextSystem.cpp
+        ├── DirtyTextSystem.hpp
+        ├── FrameStatsSystem.hpp
+        ├── game
+        │   ├── action
+        │   │   ├── debug
+        │   │   │   ├── DebugActionSystem.cpp
+        │   │   │   └── DebugActionSystem.hpp
+        │   │   ├── GlobalActionSystem.cpp
+        │   │   ├── GlobalActionSystem.hpp
+        │   │   ├── PlayerActionSystem.cpp
+        │   │   └── PlayerActionSystem.hpp
+        │   ├── collision
+        │   │   ├── BoundingBoxUpdateSystem.cpp
+        │   │   └── BoundingBoxUpdateSystem.hpp
+        │   ├── debug
+        │   │   ├── BallSpawnDebugSystem.cpp
+        │   │   └── BallSpawnDebugSystem.hpp
+        │   ├── imgui
+        │   │   ├── GameImGuiConsole.cpp
+        │   │   ├── GameImGuiConsole.hpp
+        │   │   ├── GameImGuiSystem.cpp
+        │   │   └── GameImGuiSystem.hpp
+        │   ├── intent
+        │   │   ├── debug
+        │   │   │   ├── DebugIntentSystem.cpp
+        │   │   │   └── DebugIntentSystem.hpp
+        │   │   ├── GlobalIntentSystem.cpp
+        │   │   ├── GlobalIntentSystem.hpp
+        │   │   ├── PlayerIntentSystem.cpp
+        │   │   └── PlayerIntentSystem.hpp
+        │   ├── movement
+        │   │   ├── anatomy
+        │   │   │   ├── AnatomySystem.cpp
+        │   │   │   └── AnatomySystem.hpp
+        │   │   └── player
+        │   │       ├── BodyTableCollisionSystem.cpp
+        │   │       ├── BodyTableCollisionSystem.hpp
+        │   │       ├── footwork
+        │   │       │   ├── FootworkMovementSystem.cpp
+        │   │       │   └── FootworkMovementSystem.hpp
+        │   │       ├── VelocityIntegrationSystem.cpp
+        │   │       └── VelocityIntegrationSystem.hpp
+        │   └── racket
+        │       ├── RacketArmSystem.cpp
+        │       ├── RacketArmSystem.hpp
+        │       ├── RacketBoundingBoxSystem.cpp
+        │       ├── RacketBoundingBoxSystem.hpp
+        │       ├── RacketCollisionSystem.cpp
+        │       ├── RacketCollisionSystem.hpp
+        │       ├── RacketOrientationSystem.cpp
+        │       ├── RacketOrientationSystem.hpp
+        │       ├── RacketSwingSystem.cpp
+        │       └── RacketSwingSystem.hpp
+        ├── GridDebugSystem.cpp
+        ├── GridDebugSystem.hpp
+        ├── groups
+        │   ├── CollisionsSystemGroup.hpp
+        │   ├── MovementSystemGroup.hpp
+        │   ├── PlayerMovementSystemGroup.hpp
+        │   └── RacketMovementSystemGroup.hpp
+        ├── InputSystem.cpp
+        ├── InputSystem.hpp
+        ├── LogoRotationSystem.cpp
+        ├── LogoRotationSystem.hpp
+        ├── menu
+        │   ├── action
+        │   │   ├── ActionSystem.cpp
+        │   │   └── ActionSystem.hpp
+        │   ├── imgui
+        │   │   ├── MenuImGuiSystem.cpp
+        │   │   └── MenuImGuiSystem.hpp
+        │   └── intent
+        │       ├── IntentSystem.cpp
+        │       └── IntentSystem.hpp
+        ├── NetCollisionSystem.cpp
+        ├── NetCollisionSystem.hpp
+        ├── ProceduralAnimationSystem.cpp
+        ├── ProceduralAnimationSystem.hpp
+        ├── RenderLayerSystem.cpp
+        ├── RenderLayerSystem.hpp
+        ├── RenderSystem.cpp
+        ├── RenderSystem.hpp
+        ├── TextButtonSystem.cpp
+        ├── TextButtonSystem.hpp
+        └── TransformSaveSystem.hpp
+
+==============================
+
+--- FILE: src\main.cpp ---
+#define SDL_MAIN_HANDLED  // <--- Add this at the absolute top
+#include <SDL.h>
+#include "game/GameEngine.hpp"
+
+int main(int argc, char* argv[]) {
+    // Before calling any SDL functions, let SDL know we are handling the entry point
+    SDL_SetMainReady();
+    GameEngine engine;
+    engine.run();
+
+    return 0;
+}
+
+--- FILE: src\components\CAnimation.hpp ---
+#pragma once
+#include "game/utils/Animation.hpp"
+class CAnimation : public Component
+{
+public:
+	Animation animation;
+	Animation animation2;
+	bool repeat = false;
+	CAnimation() {}
+	CAnimation(const Animation& animation, bool r)
+		: animation(animation), repeat(r) {
+	}
+
+};
+
+--- FILE: src\components\CArm.hpp ---
+struct CArm : public Component {
+    Vec3 shoulderPos_m = { 0, 0, 0 };
+    Vec3 elbowPos_m = { 0, 0, 0 };
+    // The wrist position is effectively the Racket position
+
+    float upperArmLength = 0.30f; // 30cm
+    float lowerArmLength = 0.35f; // 35cm (includes hand/grip)
+    float maxReach_m = 0.65f;     // Total length
+
+    bool isLeftHanded = true;
+};
+
+--- FILE: src\components\CAuthorization.hpp ---
+#pragma once
+#include <unordered_map>
+#include <string>
+#include "ecs/Component.hpp"
+#include "math/Vec2.hpp"
+
+struct CAuthorization : public Component {
+	std::unordered_map<std::string, float> floatMap;
+	std::unordered_map<std::string, float> boolMap;
+	std::unordered_map<std::string, Vec2> vec2Map;
+};
+
+
+--- FILE: src\components\CBall.hpp ---
+#pragma once
+#include "ecs/Entity.hpp"
+#include "ecs/Component.hpp" // make sure Component is included
+#include "math/Vec3.hpp"
+#include "math/Bounds3D.hpp"
+#include "math/physics/forces/BallForcesStruct.hpp"
+enum class ContactSurface { None, Table, Floor, Net, Racket };
+enum class ContactState {
+    None,
+    Impact,     
+    Sliding,       
+    Rolling        
+};
+
+struct BallLogo {
+    // Spherical orientation of the logo�s center on the ball
+    // yaw   = rotation around vertical axis (sidespin)
+    // pitch = rotation around horizontal axis (top/backspin)
+    float yawDeg = 0.f;   // left-right around ball
+    float pitchDeg = 0.f;   // up-down on ball
+    float angleHoriz = 0.f;
+    float angleVert = 0.f;
+    // Derived normal (where the logo is pointing in camera space)
+    Vec3 normal = { 0.f, 0.f, 1.f }; // facing camera by default
+
+    // Shape distortion (optional but nice)
+    float squash = .7f;
+    float shear = 0.f;
+
+    // Visibility + alpha (we�ll do hard cutoff with 0 or 1)
+    float opacity = 1.f;
+    bool  visible = true;
+};
+class CBall : public Component {
+public:
+    BallLogo logo;
+    // world-space (meters)
+    float ballRadius = 0.02f; // 40mm diameter / 2
+    float radius_m = .02f;
+    BallForces bForces;
+    Vec3 spin = { 0.0f, 0.0f, 0.0f }; 
+    bool contactingTable = false;
+    bool onFloor = false;
+    bool offTable = false;
+    float restitution = 0.97f;
+    float mass = .0027f; //kg
+    bool hasFallen = false;
+    bool hitNet = false;
+    bool racketLastContact = false;
+    Entity ballShadow;
+    ContactState contactState = ContactState::None;
+    ContactSurface contactSurface = ContactSurface::None;
+    bool impactResolved = false;
+    bool contactingSurface = false;
+    CBall() = default;
+
+    explicit CBall(const Entity& shadow, Vec3 pSpin)
+        : ballShadow(shadow), spin(pSpin) {
+    }
+};
+
+
+--- FILE: src\components\CBallShadow.hpp ---
+#pragma once
+
+class CBallShadow : public Component
+{
+public:
+	CBallShadow() {}
+};
+
+--- FILE: src\components\CBodyTableCollision.hpp ---
+#pragma once
+
+#include "ecs/Component.hpp"
+
+struct CBodyTableCollision : public Component {
+    Vec3 penetration = { 0,0,0 };
+    CBodyTableCollision(const Vec3 pPenetration)
+        : penetration(pPenetration) { }
+};
+
+
+--- FILE: src\components\CBoundingBox.hpp ---
+#pragma once
+#include <SFML/Graphics.hpp>
+#include "ecs/Component.hpp"
+struct CBoundingBox : public Component {
+    sf::FloatRect box;  // could be IntRect if you prefer
+    
+    CBoundingBox() = default;
+
+    CBoundingBox(const sf::FloatRect& pRect)
+        : box(pRect) {
+    }
+
+    void setBoundingBox(const sf::FloatRect& pRect) {
+        box = pRect;
+    }
+};
+
+
+--- FILE: src\components\CBoundingBox3D.hpp ---
+#pragma once
+#include <SFML/Graphics.hpp>
+#include "ecs/Component.hpp"
+#include "math/Bounds3D.hpp"
+#include "math/Vec3.hpp"
+struct CBoundingBox3D : public Component {
+    Bounds3D box;
+    Bounds3D lastBox;
+    sf::Color color = sf::Color::Green;
+    float iter_color = 50;
+    Vec3 halfSize = { 0, 0, 0 };
+    CBoundingBox3D() = default;
+
+    CBoundingBox3D(Bounds3D pBox)
+        : box(pBox), halfSize((box.max - box.min) / 2) {
+    }
+    CBoundingBox3D(Vec3 pStartPos, Vec3 pHalfSize)
+        : box(pStartPos - pHalfSize, pStartPos + pHalfSize), halfSize(pHalfSize) {
+    } 
+    void setBoundingBox(Bounds3D pBox) {
+        box = pBox;
+    }
+    void setBoundingBox(const Vec3& pCurrent_Pos) {
+        box = Bounds3D(pCurrent_Pos - halfSize, pCurrent_Pos + halfSize);
+        lastBox = box;
+    }
+
+};
+
+
+--- FILE: src\components\CEnemy.hpp ---
+#pragma once
+
+class CEnemy : public Component
+{
+public:
+	CEnemy() {}
+};
+
+--- FILE: src\components\CFootworkIntent.hpp ---
+#pragma once
+#include "ecs/Component.hpp"
+struct CFootworkIntent : public Component {
+    Vec3 direction;  
+    float heldFrames;
+    float directionalStrength = 1.0f;
+};
+
+
+--- FILE: src\components\CFootworkState.hpp ---
+#pragma once
+#include "ecs/Component.hpp"
+#include "movement/Step.hpp"
+struct CFootworkState : public Component{
+    bool active = false;
+    int frame = 0;
+    StepProfile current;
+    Vec3 direction;
+    bool buffered = false;
+    StepRaw bufferedStep;
+    Vec3 bufferedDirection;
+    StepKind kind;
+
+};
+
+
+--- FILE: src\components\CInput.hpp ---
+#pragma once
+#include <unordered_map>
+#include <string>
+#include "ecs/Component.hpp"
+
+struct CInput : public Component {
+    std::unordered_map<std::string, float> axes;
+    std::unordered_map<std::string, bool>  actions;
+    std::unordered_map<std::string, int> holdTime;
+};
+
+
+--- FILE: src\components\CRacketHandle.hpp ---
+#pragma once
+#include "ecs/Component.hpp"
+#include "math/Vec3.hpp"
+#include "ecs/Entity.hpp"
+
+struct CRacketHandle : public Component {
+    Entity racketEntity;
+
+    // Offsets RELATIVE to shoulder
+    Vec3 pushOffset_m = { 0.f, 0.f, 0.f };
+    Vec3 freeOffset_m = { 0.f, 0.f, 0.f };   // driven by Aim stick
+    Vec3 swingOffset_m = { 0.f, 0.f, 0.f };  // driven by swing system
+    Vec3  arcStartPoint = { 0,0,0 }; // Snapshot at RT release
+    Vec3  steerVector = { 0,0,0 }; // Captured J1 during Commit Window
+
+    float strokeWeight = 0.f; // 0 = free placement, 1 = full stroke
+    float currentStrokeQuality = 1.0f; //for debug visualization, NOT FOR game output
+    CRacketHandle(){}
+    CRacketHandle(Vec3 pFreeOffset_m) 
+        : freeOffset_m(pFreeOffset_m) { }
+};
+
+
+--- FILE: src\components\CRacketPhysical.hpp ---
+#pragma once
+#include "ecs/Component.hpp"
+#include "math/Vec3.hpp"
+#include "ecs/Entity.hpp"
+
+class CRacketPhysical : public Component {
+public: // <--- Add this line
+    float restitution = 0.6f;
+    float friction = 0.50f;
+    Vec3 worldNormal;
+    Entity racketShadow;
+    bool offTable = false;
+    Vec3 localNormal = { 0.f, 0.f, 1.f };
+    bool validContact = true;
+
+    CRacketPhysical() = default;
+    explicit CRacketPhysical(const Entity& shadow)
+        : racketShadow(shadow) {
+    }
+};
+
+--- FILE: src\components\CRacketShadow.hpp ---
+#pragma once
+
+class CRacketShadow : public Component
+{
+public:
+	CRacketShadow() {}
+};
+
+--- FILE: src\components\CRacketSwing.hpp ---
+#pragma once
+#include "ecs/Component.hpp"
+enum class StrokeState {Idle, Backswing, Swing, SwingRecovery, Push, PushRecovery, BrakedBackSwing};
+
+struct CRacketSwing : public Component {
+    StrokeState strokeState = StrokeState::Idle;
+    StrokeState prevStrokeState = StrokeState::Idle;
+    float backswingTime = 0.f;
+    float maxBackswing = 0.6f;  // ~600ms max power
+    bool nowDown = false;
+    float swingSpeed = 0.f;
+    bool isCharging = false;
+    bool isSwinging = false;
+    bool stoppingPush = false;
+    bool isBraking = false;
+    bool backswingLocked = false;
+    bool swingTriggered = false;
+    float strokeTime_ms = 0.f;
+    bool wasAttackDownLastFrame = false;
+    float torsoLeftLoad = 0.0f;
+    float torsoRightLoad = 0.0f;
+    // Tuning parameters
+    float chargeAmount = 0.0f;    // 0 to 1 (Backswing depth)
+    float forwardVel = 0.0f;
+    float backswingDistance = 0.18f; // meters racket can travel backwards
+    float forwardMultiplier = 7.5f;  // converts backswingTime to speed
+};
+
+
+
+--- FILE: src\components\CRenderLayer.hpp ---
+#pragma once
+#include "ecs/Component.hpp"
+class CRenderLayer : public Component {
+public:
+    int layer = 0; // default
+
+    CRenderLayer() = default;
+    explicit CRenderLayer(int l) : layer(l) {}
+};
+
+
+--- FILE: src\components\CRotation3D.hpp ---
+#include "ecs/Component.hpp"
+
+struct CRotation3D : public Component {
+    // x = pitch (tilt), y = yaw (angle), z = roll
+    Vec3 euler_deg = { 0.f, 0.f, 0.f };
+
+    // The direction the face is actually pointing
+    Vec3 lookAt = { 0.f, 0.f, -1.f };
+};
+
+--- FILE: src\components\CState.hpp ---
+#pragma once
+#include "ecs/Component.hpp"
+class CState : public Component
+{
+public:
+	std::string state = "stand";
+
+	CState() {}
+	CState(const std::string& s) : state(s) {}
+};
+
+--- FILE: src\components\CText.hpp ---
+#pragma once
+
+#include <string>
+#include "ecs/Component.hpp"
+#include <SFML/Graphics.hpp>
+
+class CText : public Component
+{
+public:
+	sf::Text drawable;
+	std::string sString = "Hello World";
+	std::string sFont = "Tech";
+	float characterSize = 32.0f;
+	sf::Color color = sf::Color::White;
+	sf::Color defaultColor = sf::Color::White;
+	bool visible = true;
+	bool isDirty = true;
+	bool wasDirty = true;
+	CText() = default;
+	explicit CText(std::string& pString, float pCharacterSize, sf::Color pColor, const std::string& pFont) : sString(pString), characterSize(pCharacterSize), color(pColor), defaultColor(pColor), sFont(pFont) {}
+};
+
+--- FILE: src\components\CTextButton.hpp ---
+#pragma once
+
+#include <string>
+#include "ecs/Component.hpp"
+#include <SFML/Graphics.hpp>
+class CTextButton : public Component
+{
+public:
+	sf::Color hoverColor = sf::Color::Red;
+	std::string command;
+	int order = 0;
+	bool isHovered = false;
+	bool isSelected = false;
+	bool wasHovered = false;
+	bool wasSelected = false;
+	CTextButton() = default;
+	explicit CTextButton(sf::Color pHoverColor, std::string pCommand, int pOrder) : hoverColor(pHoverColor), command(pCommand), order(pOrder) {}
+
+};
+
+--- FILE: src\components\CTransform.hpp ---
+#pragma once
+#include "math/Vec2.hpp"
+#include "ecs/Component.hpp"
+
+
+struct CTransform : public Component {
+    Vec2 pos;
+    Vec2 lastPos;
+    Vec2 renderPos; 
+    Vec2 scale = { 1.f, 1.f };
+    float rotation = 0.f;
+    CTransform() = default;
+    CTransform(const Vec2 pos, const Vec2 s = { 1.f, 1.f }, float rot = 0.f)
+        : pos(pos), scale(s), rotation(rot){
+    }
+};
+
+
+--- FILE: src\components\CTransform3D.hpp ---
+#pragma once
+#include "math/Vec3.hpp"
+#include "ecs/Component.hpp"
+
+
+struct CTransform3D : public Component {
+    Vec3 pos_m = { 0.0f, 0.0f, 0.0f };
+    Vec3 lastPos_m = { 0.0f, 0.0f, 0.0f };
+    Vec3 scale_m = { 1.0f, 1.0f, 1.0f };
+    Vec3 lastScale_m = { 1.0f, 1.0f, 1.0f };
+    //this fixes that problem by taknig the height of the entity in meters and subtracting half of it from the real position
+    CTransform3D() = default;
+    CTransform3D(const Vec3 pPos_m)
+        : pos_m(pPos_m), lastPos_m(pPos_m) {
+    }
+    CTransform3D(const Vec3 pPos_m, const Vec3 pScale_m)
+        : pos_m(pPos_m), lastPos_m(pPos_m), lastScale_m(pScale_m), scale_m(pScale_m) {
+    }
+
+
+
+};
+
+
+--- FILE: src\components\CVelocity.hpp ---
+#pragma once
+#include "ecs/Component.hpp"
+#include "math/Vec2.hpp"
+
+struct CVelocity : public Component {
+    Vec2 velocity{ 0.f, 0.f }; // default stationary
+    CVelocity() = default;
+    CVelocity(const Vec2& v) : velocity(v) {}
+};
+
+
+--- FILE: src\components\CVelocity3D.hpp ---
+#pragma once
+#include "math/Vec3.hpp"
+#include "ecs/Component.hpp"
+
+
+struct CVelocity3D : public Component {
+    Vec3 vel_mps = { 0.0f, 0.0f, 0.0f };
+    CVelocity3D() = default;
+    CVelocity3D(const Vec3 pVel_mps)
+        : vel_mps(pVel_mps) {
+    }
+
+
+
+};
+
+
+--- FILE: src\components\Components.hpp ---
+#pragma once
+#include "CBoundingBox.hpp"
+#include "CBoundingBox3D.hpp"
+#include "CInput.hpp"
+#include "Player.hpp"
+#include "Sprite.hpp"
+#include "CTransform.hpp"
+#include "CVelocity.hpp"
+#include "CAnimation.hpp"
+#include "CEnemy.hpp"
+#include "CState.hpp"
+#include "CBallShadow.hpp"
+#include "CBall.hpp"
+#include "CRenderLayer.hpp"
+#include "CTransform3D.hpp"
+#include "CVelocity3D.hpp"
+#include "CRacketPhysical.hpp"
+#include "CRacketHandle.hpp"
+#include "CRacketSwing.hpp"
+#include "CArm.hpp"
+#include "CText.hpp"
+#include "CTextButton.hpp"
+#include "CFootworkIntent.hpp"
+#include "CFootworkState.hpp"
+#include "CRotation3D.hpp"
+#include "CAuthorization.hpp"
+#include "CBodyTableCollision.hpp"
+#include "CRacketShadow.hpp"
+
+--- FILE: src\components\Player.hpp ---
+#pragma once
+#include "ecs/Component.hpp"
+
+struct Player : public Component {
+    // player-specific data
+};
+
+
+--- FILE: src\components\Sprite.hpp ---
+#pragma once
+#include "ecs/Component.hpp"
+#include "math/Vec2.hpp"
+#include <SFML/Graphics/Sprite.hpp>
+#include <memory>
+
+struct Sprite : public Component {
+    sf::Sprite sprite;
+    std::shared_ptr<sf::Texture> texture; // owns the texture
+
+    // Assign a texture to the sprite
+    void setTexture(const std::shared_ptr<sf::Texture>& tex) {
+        if (!tex) return; // safety check
+        texture = tex;
+        sprite.setTexture(*texture);
+    }
+
+    // Optional: set position to match Transform
+    void setPosition(Vec2 pos) {
+        sprite.setPosition(pos.x, pos.y);
+    }
+
+    void setRotation(float rot) {
+        sprite.setRotation(rot);
+    }
+};
+
+
+--- FILE: src\debug\Debug.cpp ---
+﻿#include "Debug.hpp"
+#include "game/utils/GameContext.hpp"
+#include <iostream>
+
+namespace Debug {
+
+    std::vector<ArrowCommand> queuedArrows;
+    std::vector<LineCommand> queuedLines;
+    std::vector<SphereCommand> queuedSpheres;
+
+    void queueLine3D(const Vec3& from, const Vec3& to, const sf::Color& color) {
+        queuedLines.push_back({ from, to, color });
+    }
+
+    void queueSphere3D(const Vec3& center, float radius, const sf::Color& color) {
+        queuedSpheres.push_back({ center, radius, color });
+    }
+
+    void renderQueuedShapes(GameContext* context) {
+        // --- Render Lines ---
+        for (auto& l : queuedLines) {
+            Vec2 p1 = context->camera.homography.worldToImage(l.from);
+            Vec2 p2 = context->camera.homography.worldToImage(l.to);
+            sf::Vertex line[] = {
+                sf::Vertex(sf::Vector2f(p1.x, p1.y), l.color),
+                sf::Vertex(sf::Vector2f(p2.x, p2.y), l.color)
+            };
+            context->window.draw(line, 2, sf::Lines);
+        }
+
+        // --- Render Spheres (as Octagons for performance) ---
+        for (auto& s : queuedSpheres) {
+            Vec2 center = context->camera.homography.worldToImage(s.center);
+            // Rough screen-space radius calculation
+            Vec3 edgePoint = s.center + Vec3(s.radius, 0, 0);
+            Vec2 edge = context->camera.homography.worldToImage(edgePoint);
+            float screenRadius = std::abs(edge.x - center.x);
+
+            sf::CircleShape circle(screenRadius);
+            circle.setOrigin(screenRadius, screenRadius);
+            circle.setPosition(center.x, center.y);
+            circle.setOutlineColor(s.color);
+            circle.setOutlineThickness(1.5f);
+            circle.setFillColor(sf::Color::Transparent);
+            context->window.draw(circle);
+        }
+
+        queuedLines.clear();
+        queuedSpheres.clear();
+        renderQueuedArrows(context);
+    }
+    // ===== ARROW QUEUEING =====
+
+    void queueArrow3D(const Vec3& from, const Vec3& to, const sf::Color& color) {
+        queuedArrows.push_back({ from, to, color });
+    }
+
+    void renderQueuedArrows(GameContext* context) {
+        for (auto& cmd : queuedArrows) {
+            drawArrow3D(context, cmd.from, cmd.to, cmd.color);
+        }
+        clearArrows();
+    }
+
+    void clearArrows() {
+        queuedArrows.clear();
+    }
+
+
+    // ===== DRAWING =====
+
+    void drawArrow3D(GameContext* context, const Vec3& from, const Vec3& to, const sf::Color& color)
+    {
+        // Convert world → screen
+        Vec2 fromScreen = context->camera.homography.worldToImage(from);
+        Vec2 toScreen = context->camera.homography.worldToImage(to);
+
+        // Main line
+        sf::Vertex line[] = {
+            sf::Vertex(sf::Vector2f(fromScreen.x, fromScreen.y), color),
+            sf::Vertex(sf::Vector2f(toScreen.x,   toScreen.y),   color)
+        };
+        context->window.draw(line, 2, sf::Lines);
+
+        // Arrow head
+        Vec2 dir = toScreen - fromScreen;
+        float len = std::sqrt(dir.x * dir.x + dir.y * dir.y);
+        if (len < 0.001f) return;
+
+        Vec2 ndir = dir / len;
+        Vec2 perp = { -ndir.y, ndir.x }; // perpendicular
+
+        float headSize = 12.f;
+        Vec2 tip = toScreen;
+        Vec2 p1 = tip - ndir * headSize + perp * (headSize * 0.5f);
+        Vec2 p2 = tip - ndir * headSize - perp * (headSize * 0.5f);
+
+        sf::Vertex head[] = {
+            sf::Vertex(sf::Vector2f(tip.x, tip.y), color),
+            sf::Vertex(sf::Vector2f(p1.x,  p1.y),  color),
+            sf::Vertex(sf::Vector2f(tip.x, tip.y), color),
+            sf::Vertex(sf::Vector2f(p2.x,  p2.y),  color),
+        };
+        context->window.draw(head, 4, sf::Lines);
+    }
+
+
+    // ===== PRINT HELPERS =====
+
+    void debugPrint(std::string varName, Vec2 varValue) {
+        std::cout << varName << ": (" << varValue.x << ", " << varValue.y << ")\n";
+    }
+    void debugPrint(std::string varName, Vec3 varValue) {
+        std::cout << varName << ": (" << varValue.x << ", " << varValue.y << ", " << varValue.z << ")\n";
+    }
+    void debugPrint(std::string varName, int varValue) {
+        std::cout << varName << ": " << varValue << "\n";
+    }
+    void debugPrint(std::string varName, std::string varValue) {
+        std::cout << varName << ": " << varValue << "\n";
+    }
+    void debugPrint(std::string str) {
+        std::cout << str << "\n";
+    }
+    void debugPrint(std::string varName, const sf::Transform& transform) {
+        const float* m = transform.getMatrix();
+        std::cout << varName << ":\n";
+        std::cout << "  [" << m[0] << ", " << m[4] << ", " << m[12] << "]\n";
+        std::cout << "  [" << m[1] << ", " << m[5] << ", " << m[13] << "]\n";
+        std::cout << "  [" << m[3] << ", " << m[7] << ", " << m[15] << "]\n";
+    }
+
+} // namespace Debug
+
+
+--- FILE: src\debug\Debug.hpp ---
+#pragma once
+#include "math/Vec2.hpp"
+#include "math/Vec3.hpp"
+#include <SFML/Graphics.hpp>
+#include <vector>
+#include <string>
+#include "game/utils/GameContext.hpp"
+struct ArrowCommand {
+    Vec3 from;
+    Vec3 to;
+    sf::Color color;
+};
+struct LineCommand { Vec3 from; Vec3 to; sf::Color color; };
+struct SphereCommand { Vec3 center; float radius; sf::Color color; };
+namespace Debug {
+
+    // Stored globally for end-of-frame rendering
+    extern std::vector<ArrowCommand> queuedArrows;
+    extern std::vector<LineCommand> queuedLines;
+    extern std::vector<SphereCommand> queuedSpheres;
+
+    void queueLine3D(const Vec3& from, const Vec3& to, const sf::Color& color);
+    void queueSphere3D(const Vec3& center, float radius, const sf::Color& color);
+
+    // Call this in your render loop after renderQueuedArrows
+    void renderQueuedShapes(GameContext* context);
+    // Queue an arrow to be rendered later
+    void queueArrow3D(const Vec3& from, const Vec3& to, const sf::Color& color);
+
+    // Render all queued arrows (called in RenderSystem) and clear queue
+    void renderQueuedArrows(GameContext* context);
+
+    void clearArrows();
+
+    // Debug print helpers
+    void debugPrint(std::string varName, Vec2 varValue);
+    void debugPrint(std::string varName, Vec3 varValue);
+    void debugPrint(std::string varName, int varValue);
+    void debugPrint(std::string varName, std::string varValue);
+    void debugPrint(std::string str);
+    void debugPrint(std::string varName, const sf::Transform& transform);
+
+    // Low-level draw helper used internally
+    void drawArrow3D(GameContext* context, const Vec3& from, const Vec3& to, const sf::Color& color);
+}
+
+

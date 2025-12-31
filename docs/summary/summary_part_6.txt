@@ -1,0 +1,810 @@
+--- FILE: src\systems\BallIntegrateSystem.cpp ---
+﻿#include "BallIntegrateSystem.hpp"
+
+#include "components/Components.hpp"
+#include "debug/Debug.hpp"
+#include "math/MathHelpers.hpp"
+#include "math/Constants.hpp"
+
+#include <algorithm>
+#include <iostream>
+
+SystemExec BallIntegrateSystem::update(GameContext* context) {
+    bool didWork = false;
+
+    const float dt = context->frameStats.dt;
+    auto& tp = context->tableParameters;
+
+    for (auto eBall : context->registry.getEntitiesWith<CBall>()) {
+        auto [cBall, cBallBoundingBox3D, cBallTransform3D, cBallVelocity3D] =
+            context->registry.getComponents<CBall, CBoundingBox3D, CTransform3D, CVelocity3D>(eBall);
+
+        if (!cBall || !cBallTransform3D || !cBallVelocity3D)
+            continue;
+
+        didWork = true;
+
+        cBallTransform3D->lastPos_m = cBallTransform3D->pos_m;
+
+        // --- INTEGRATE ---
+        cBallVelocity3D->vel_mps += cBall->bForces.acceleration * dt;
+        cBallTransform3D->pos_m += cBallVelocity3D->vel_mps * dt;
+
+        const Vec3 p = cBallTransform3D->pos_m;
+        const float R = cBall->ballRadius;
+
+        // --- TABLE BOUNDS (XZ) ---
+        // If you want to treat the ball as a sphere for bounds, include R:
+        cBall->offTable =
+            (p.x < -R) || (p.x > tp.tableWidth + R) ||
+            (p.z < -R) || (p.z > tp.tableLength + R);
+
+        // --- SURFACE CONTACT FLAGS (radius-aware) ---
+        // "Touching" means the sphere intersects/penetrates the plane.
+        // Contact resolution system will decide impact vs rolling/sliding.
+        constexpr float eps = 0.001f;
+        ContactSurface surface = ContactSurface::None;
+        cBall->contactingSurface = false;
+        if (p.y - R <= tp.tableY + eps && !cBall->offTable) (cBall->contactSurface = ContactSurface::Table );
+        if (p.y - R <= tp.floorY + eps) ( cBall->contactSurface = ContactSurface::Floor );
+
+        if (cBall->offTable && p.y < 0.f) {
+            cBall->hasFallen = true;
+        }
+
+        // --- SHADOW ---
+        Entity eBallShadow = cBall->ballShadow;
+        auto [cBallShadowTransform, cBallShadowTransform3D] =
+            context->registry.getComponents<CTransform, CTransform3D>(eBallShadow);
+
+        if (cBallShadowTransform && cBallShadowTransform3D) {
+            cBallShadowTransform3D->lastPos_m = cBallShadowTransform3D->pos_m;
+            cBallShadowTransform3D->lastScale_m = cBallShadowTransform3D->scale_m;
+
+            float shadowY = cBall->offTable ? tp.floorY : tp.tableY;
+            cBallShadowTransform3D->pos_m = Vec3(p.x, shadowY, p.z);
+
+            float heightAboveSurface = p.y - shadowY;
+            float scale = std::max(0.5f, 1.5f - 0.2f * heightAboveSurface);
+            cBallShadowTransform3D->scale_m = { scale, 1.f, scale };
+        }
+
+        // --- DEBUG: SPIN / MAGNUS ---
+        if (context->physicsDebug.debugBallSpinArrows) {
+            Vec3 pos = cBallTransform3D->pos_m;
+
+            Vec3 spinAxis = cBall->spin;
+            float spinMag = spinAxis.length();
+            if (spinMag > 0.001f) {
+                Vec3 spinDir = spinAxis.normalized();
+                Debug::queueArrow3D(pos, pos + spinDir * 0.15f, sf::Color::Magenta);
+            }
+
+            Vec3 omega = cBall->spin * (2.f * 3.14159265f);
+            Vec3 magnusDir = MathHelpers::cross(omega, cBallVelocity3D->vel_mps);
+
+            if (magnusDir.lengthSq() > 1e-6f) {
+                magnusDir = magnusDir.normalized();
+                Debug::queueArrow3D(pos, pos + magnusDir * 0.15f, sf::Color::Cyan);
+            }
+
+            if (context->physicsDebug.debugBallVelocityArrows) {
+                Vec3 v = cBallVelocity3D->vel_mps;
+                if (v.lengthSq() > 1e-6f) {
+                    Vec3 vDir = v.normalized();
+                    Debug::queueArrow3D(pos, pos + vDir * 0.15f, sf::Color::Yellow);
+                }
+            }
+
+            float dotMV = MathHelpers::dot(magnusDir, cBallVelocity3D->vel_mps);
+            assert(std::abs(dotMV) < 1e-3f);
+            assert(cBall->spin.length() < 2000.f);
+        }
+    }
+
+    if (!didWork)
+        return { SystemExecResult::EarlyExit, "No balls to integrate" };
+
+    return { SystemExecResult::Ran };
+}
+
+
+--- FILE: src\systems\BallIntegrateSystem.hpp ---
+#pragma once
+#include "ecs/system/ISystem.hpp"
+#include "ecs/Entity.hpp"
+#include "game/utils/GameContext.hpp"
+class BallIntegrateSystem : public ISystem {
+public:
+    SystemExec update(GameContext* context) override;
+
+};
+
+
+--- FILE: src\systems\BallRemovalSystem.cpp ---
+#include "BallRemovalSystem.hpp"
+#include "ecs/Component.hpp"
+#include "components/Components.hpp"
+#include "ecs/Entity.hpp"
+#include "debug/Debug.hpp"
+SystemExec BallRemovalSystem::update(GameContext* context) {
+    std::vector<Entity> toRemove;
+    for (auto eBall : context->registry.getEntitiesWith<CBall>()) {
+        auto [cBallTransform, cBall] = context->registry.getComponents<CTransform, CBall>(eBall);
+        Entity eBallShadow = cBall->ballShadow;
+        Vec2& ballPos = cBallTransform->pos;
+
+        if (ballPos.y > context->display.logicalSize.y || ballPos.y < 0 || ballPos.x < 0 || ballPos.x > context->display.logicalSize.x) {
+            toRemove.push_back(eBall);
+            toRemove.push_back(eBallShadow);
+        }
+    }
+    for (auto e : toRemove) {
+        context->registry.deleteEntity(e);
+        Debug::debugPrint("Deleted off-screen ball.");
+    }
+    if (context->physicsDebug.debugRemoveAllBalls) {
+        removeAll(context);
+    }
+    if (context->physicsDebug.debugBoolKeepXBalls) {
+        keepOnlyXMostRecent(context, context->physicsDebug.debugIntKeepXBalls);
+    }
+    if (!didWork)
+        return { SystemExecResult::EarlyExit, "No balls to remove" };
+
+    return { SystemExecResult::Ran };
+
+
+}
+void BallRemovalSystem::removeAll(GameContext* context) {
+    std::vector<Entity> toRemove;
+    for (auto eBall : context->registry.getEntitiesWith<CBall>()) {
+        auto [cBallTransform, cBall] = context->registry.getComponents<CTransform, CBall>(eBall);
+        Entity shadowEntity = cBall->ballShadow;
+        Vec2& ballPos = cBallTransform->pos;
+        toRemove.push_back(eBall);
+        toRemove.push_back(shadowEntity);
+
+    }
+    for (auto e : toRemove) {
+        context->registry.deleteEntity(e);
+        Debug::debugPrint("Deleted all balls.");
+    }
+}
+void BallRemovalSystem::keepOnlyXMostRecent(GameContext* context, int countToKeep) {
+    auto ballEntities = context->registry.getEntitiesWith<CBall>();
+
+    if (ballEntities.size() <= (size_t)countToKeep) return;
+
+    // 1. Sort balls by ID descending (Highest ID = newest)
+    std::sort(ballEntities.begin(), ballEntities.end(), [](const Entity& a, const Entity& b) {
+        return a.id > b.id;
+        });
+
+    // 2. Identify balls to remove (those beyond the countToKeep index)
+    std::vector<Entity> toDelete;
+    for (size_t i = countToKeep; i < ballEntities.size(); ++i) {
+        Entity eBall = ballEntities[i];
+        toDelete.push_back(eBall);
+
+        // Don't forget the shadow!
+        if (auto* cBall = context->registry.getComponent<CBall>(eBall)) {
+            toDelete.push_back(cBall->ballShadow);
+        }
+    }
+
+    // 3. Batch delete
+    for (auto& e : toDelete) {
+        context->registry.deleteEntity(e);
+    }
+
+    Debug::debugPrint("Pruned ball count down to " + std::to_string(countToKeep));
+}
+
+--- FILE: src\systems\BallRemovalSystem.hpp ---
+#pragma once
+#include "game/utils/GameContext.hpp"
+#include "ecs/system/ISystem.hpp"
+class BallRemovalSystem : public ISystem {
+public:
+    SystemExec update(GameContext* context);
+    void removeAll(GameContext* context);
+    void keepOnlyXMostRecent(GameContext* context, int countToKeep);
+private:
+    bool didWork = true;
+};
+
+
+--- FILE: src\systems\BoundarySystem.cpp ---
+#include "BoundarySystem.hpp"
+#include "math/GridTransform.hpp"
+SystemExec BoundarySystem::update(GameContext* context) {
+
+    return { SystemExecResult::Ran };
+}
+
+
+
+--- FILE: src\systems\BoundarySystem.hpp ---
+#pragma once
+#include "game/utils/GameContext.hpp"
+#include "ecs/system/ISystem.hpp"
+class BoundarySystem : public ISystem {
+public:
+    SystemExec update(GameContext* context);
+};
+
+
+--- FILE: src\systems\DirtyTextSystem.cpp ---
+#include "DirtyTextSystem.hpp"
+
+#include <SFML/Graphics.hpp>
+
+SystemExec DirtyTextSystem::update(GameContext* context) {
+    float alpha = context->frameAlpha;
+
+    for (Entity eText : context->registry.getEntitiesWith<CText, CTransform>()) {
+        auto [cTextText, cTextTransform] = context->registry.getComponents<CText, CTransform>(eText);
+
+        // 1. Update visual state ONLY if dirty
+        cTextText->wasDirty = cTextText->isDirty;
+        if (cTextText->isDirty) {
+            const sf::Font& font = context->assets.getFont(cTextText->sFont);
+            cTextText->drawable.setFont(font);
+            cTextText->drawable.setString(cTextText->sString);
+            cTextText->drawable.setCharacterSize(cTextText->characterSize);
+            cTextText->drawable.setFillColor(cTextText->color);
+
+            // Re-center origin because text bounds changed
+            sf::FloatRect textRect = cTextText->drawable.getLocalBounds();
+            cTextText->drawable.setOrigin(textRect.left + textRect.width / 2.0f,
+                textRect.top + textRect.height / 2.0f);
+
+            cTextText->isDirty = false;
+        }
+
+        // 2. ALWAYS update position (Interpolation)
+        // This ensures that even if the text doesn't change, it follows the CTransform
+        cTextTransform->renderPos = cTextTransform->lastPos * (1.f - alpha) + cTextTransform->pos * alpha;
+        cTextText->drawable.setPosition(cTextTransform->renderPos.toVector2f());
+    }
+    return { SystemExecResult::Ran };
+}
+
+--- FILE: src\systems\DirtyTextSystem.hpp ---
+#pragma once
+#include "components/Components.hpp"
+#include "game/utils/GameContext.hpp"
+#include "ecs/system/ISystem.hpp"
+class DirtyTextSystem : public ISystem {
+public:
+    SystemExec update(GameContext* context);
+};
+
+
+--- FILE: src\systems\FrameStatsSystem.hpp ---
+#pragma once
+#include "ecs/system/ISystem.hpp"
+
+class FrameStatsSystem final : public ISystem {
+public:
+    SystemExec update(GameContext* context) override {
+        auto& fs = context->frameStats;
+
+        fs.accumulator += fs.dt;
+        fs.frames++;
+
+        if (fs.accumulator >= 1.0f) {
+            fs.fps = fs.frames / fs.accumulator;
+            fs.frames = 0;
+            fs.accumulator = 0.f;
+        }
+        return {SystemExecResult::Ran};
+    }
+};
+
+
+--- FILE: src\systems\GridDebugSystem.cpp ---
+#include "GridDebugSystem.hpp"
+
+
+
+SystemExec GridDebugSystem::update(GameContext* context) const {
+    if (context->physicsDebug.drawGrid) {
+        DisplayConfig& display = context->display;
+        sf::RenderWindow& window = context->window;
+        const float cellSize = Grid::cellSize(display); // new helper based on logical width / cols
+        const int cols = static_cast<int>(display.logicalSize.x / cellSize);
+        const int rows = static_cast<int>(display.logicalSize.y / cellSize);
+
+        sf::VertexArray lines(sf::Lines);
+
+        // --- Draw vertical grid lines ---
+        for (int x = 0; x <= cols; ++x) {
+            float xpos = x * cellSize;
+            lines.append(sf::Vertex(sf::Vector2f(xpos, 0.f), sf::Color(0, 255, 0, 80)));
+            lines.append(sf::Vertex(sf::Vector2f(xpos, display.logicalSize.y), sf::Color(0, 255, 0, 80)));
+        }
+
+        // --- Draw horizontal grid lines ---
+        for (int y = 0; y <= rows; ++y) {
+            float ypos = window.getSize().y - (y * cellSize);
+            lines.append(sf::Vertex(sf::Vector2f(0.f, ypos), sf::Color(0, 255, 0, 80)));
+            lines.append(sf::Vertex(sf::Vector2f(display.logicalSize.x, ypos), sf::Color(0, 255, 0, 80)));
+        }
+
+        window.draw(lines);
+
+        // --- Optional coordinate labels ---
+        sf::Font font;
+        if (!font.loadFromFile("bin/assets/fonts/tech.ttf"))
+            return { SystemExecResult::Ran };
+
+        for (int y = 0; y < rows; ++y) {
+            for (int x = 0; x < cols; ++x) {
+                sf::Text text;
+                text.setFont(font);
+                text.setCharacterSize(10);
+                text.setFillColor(sf::Color(0, 255, 0, 160));
+                text.setString("(" + std::to_string(x) + "," + std::to_string(y) + ")");
+
+                // Keep text inside logical bounds
+                float xpos = x * cellSize + 2.f;
+                float ypos = window.getSize().y - (y * cellSize) + 2.f;
+                text.setPosition(xpos, ypos);
+
+                window.draw(text);
+            }
+        }
+    }
+    return { SystemExecResult::Ran };
+    
+}
+
+
+--- FILE: src\systems\GridDebugSystem.hpp ---
+#pragma once
+#include <SFML/Graphics.hpp>
+#include "math/GridTransform.hpp"
+#include "display/DisplayConfig.hpp"
+#include "game/utils/GameContext.hpp"
+#include "ecs/system/ISystem.hpp"
+class GridDebugSystem : public ISystem {
+public:
+    bool drawGrid = false;
+
+    // Now takes display info so it can scale properly
+    SystemExec update(GameContext* context) const;
+};
+
+
+
+--- FILE: src\systems\InputSystem.cpp ---
+#include "InputSystem.hpp"
+#include "math/Vec2.hpp"
+#include "debug/Debug.hpp"
+#include <SFML/Window/Joystick.hpp>
+#include <SDL.h>
+SystemExec InputSystem::update(GameContext* context)
+{
+    RawInputState& raw = context->rawInput;
+    int tick = context->frameStats.tickIndex;
+
+    // -------------------------------------------------
+    // 1. Controller discovery
+    // -------------------------------------------------
+    if (!raw.controllerHandle) {
+        for (int i = 0; i < SDL_NumJoysticks(); ++i) {
+            if (SDL_IsGameController(i)) {
+                raw.controllerHandle = SDL_GameControllerOpen(i);
+                break;
+            }
+        }
+    }
+
+    // -------------------------------------------------
+    // 2. SDL Event Pump (CONTROLLER ONLY)
+    // -------------------------------------------------
+    SDL_Event ev;
+    while (SDL_PollEvent(&ev)) {
+        switch (ev.type) {
+
+        case SDL_CONTROLLERDEVICEADDED:
+            if (!raw.controllerHandle) {
+                raw.controllerHandle = SDL_GameControllerOpen(ev.cdevice.which);
+            }
+            break;
+
+        case SDL_CONTROLLERDEVICEREMOVED:
+            if (raw.controllerHandle) {
+                SDL_JoystickID id =
+                    SDL_JoystickInstanceID(
+                        SDL_GameControllerGetJoystick(raw.controllerHandle));
+                if (ev.cdevice.which == id) {
+                    SDL_GameControllerClose(raw.controllerHandle);
+                    raw.controllerHandle = nullptr;
+                }
+            }
+            break;
+
+        default:
+            break;
+        }
+    }
+
+    // -------------------------------------------------
+    // 3. Mouse (SFML)
+    // -------------------------------------------------
+    raw.mousePosition = Vec2(
+        (float)sf::Mouse::getPosition(context->window).x,
+        (float)sf::Mouse::getPosition(context->window).y
+    );
+
+    // -------------------------------------------------
+    // 4. Gamepad polling (SDL)
+    // -------------------------------------------------
+    if (raw.controllerHandle &&
+        SDL_GameControllerGetAttached(raw.controllerHandle)) {
+        for (int i = 0; i < SDL_CONTROLLER_BUTTON_MAX; ++i) {
+            bool isDown = SDL_GameControllerGetButton(raw.controllerHandle, (SDL_GameControllerButton)i);
+
+            // Detect "Just Pressed" to record the start tick
+            // Check if it's down now AND it wasn't down in the previous frame
+            if (isDown && !raw.prevPadStates[i]) {
+                raw.framePadPressed[i] = tick;
+            }
+
+            // If it's released, you can optionally erase it (though getButtonHoldDuration 
+            // will return 0 anyway if the check in RawInputState is robust)
+            if (!isDown) {
+                raw.framePadPressed.erase(i);
+            }
+
+            raw.padStates[i] = isDown;
+        }
+        for (int i = 0; i < SDL_CONTROLLER_BUTTON_MAX; ++i) {
+            raw.padStates[i] =
+                SDL_GameControllerGetButton(
+                    raw.controllerHandle,
+                    (SDL_GameControllerButton)i);
+        }
+
+        auto getAxis = [&](SDL_GameControllerAxis axis) {
+            float v = SDL_GameControllerGetAxis(raw.controllerHandle, axis) / 32767.f;
+            return (std::abs(v) < 0.15f) ? 0.f : v;
+            };
+
+        raw.axes["LT"] = SDL_GameControllerGetAxis(
+            raw.controllerHandle, SDL_CONTROLLER_AXIS_TRIGGERLEFT) / 32767.f;
+        raw.axes["RT"] = SDL_GameControllerGetAxis(
+            raw.controllerHandle, SDL_CONTROLLER_AXIS_TRIGGERRIGHT) / 32767.f;
+
+        raw.axes["J1X"] = getAxis(SDL_CONTROLLER_AXIS_LEFTX);
+        raw.axes["J1Y"] = getAxis(SDL_CONTROLLER_AXIS_LEFTY);
+        raw.axes["J2X"] = getAxis(SDL_CONTROLLER_AXIS_RIGHTX);
+        raw.axes["J2Y"] = getAxis(SDL_CONTROLLER_AXIS_RIGHTY);
+    }
+    else {
+        // Controller disconnected �� neutral state
+        raw.axes.clear();
+        raw.padStates.clear();
+    }
+
+    // -------------------------------------------------
+    // 5. Keyboard polling (SFML ONLY)
+    // -------------------------------------------------
+    //for (int k = sf::Keyboard::A; k < sf::Keyboard::KeyCount; ++k) {
+    //    auto key = static_cast<sf::Keyboard::Key>(k);
+    //    raw.keyStates[key] = sf::Keyboard::isKeyPressed(key);
+
+    //    if (raw.keyStates[key] && !raw.prevKeyStates[key]) {
+    //        raw.frameKeyPressed[key] = tick;
+    //    }
+    //}
+
+    return { SystemExecResult::Ran };
+}
+
+
+--- FILE: src\systems\InputSystem.hpp ---
+#pragma once
+#include <SFML/Graphics.hpp>
+#include "game/utils/GameContext.hpp"
+#include "ecs/system/ISystem.hpp"
+class InputSystem : public ISystem{
+public:
+    SystemExec update(GameContext* context);
+};
+
+
+--- FILE: src\systems\LogoRotationSystem.cpp ---
+﻿#include "LogoRotationSystem.hpp"
+#include <cmath>
+#include "debug/Debug.hpp"
+#include "math/Constants.hpp"
+
+static inline float degToRad(float d) { return d * (PI / 180.f); }
+static inline float radToDeg(float r) { return r * (180.f / PI); }
+
+// spin → angular velocity scaling (tune to taste)
+static constexpr float YAW_SPIN_SCALE = 200.f;  // how strongly sidespin affects yaw
+static constexpr float PITCH_SPIN_SCALE = 200.f;  // how strongly topspin affects pitch
+
+SystemExec LogoRotationSystem::update(GameContext* context) {
+
+    for (auto eBall : context->registry.getEntitiesWith<CBall, CTransform3D>()) {
+
+        auto [cBall, cBallTransform3D] =
+            context->registry.getComponents<CBall, CTransform3D>(eBall);
+        if (!cBall || !cBallTransform3D) continue;
+
+        auto& logo = cBall->logo;
+        Vec3  spin = cBall->spin;
+
+        // 1) Integrate orientation from spin
+        //    y = sidespin → rotates around vertical axis (yaw)
+        //    x = top/backspin → rotates around horizontal axis (pitch)
+        float yawVelDegPerSec = spin.y * YAW_SPIN_SCALE;
+        float pitchVelDegPerSec = spin.x * PITCH_SPIN_SCALE;
+
+        logo.yawDeg += yawVelDegPerSec * context->frameStats.dt;
+        logo.pitchDeg += pitchVelDegPerSec * context->frameStats.dt;
+
+        // Keep angles in [-180,180] for sanity
+        auto wrap = [](float a) {
+            while (a > 180.f)  a -= 360.f;
+            while (a < -180.f) a += 360.f;
+            return a;
+            };
+        logo.yawDeg = wrap(logo.yawDeg);
+        logo.pitchDeg = wrap(logo.pitchDeg);
+
+        // 2) Compute normal from yaw/pitch (like spherical coordinates)
+        // yaw   around Y axis
+        // pitch around X axis
+        float yawRad = degToRad(logo.yawDeg);
+        float pitchRad = degToRad(logo.pitchDeg);
+
+        // Camera looks along +Z toward the ball
+        float cy = std::cos(pitchRad);
+        logo.normal.x = cy * std::sin(yawRad);
+        logo.normal.y = std::sin(pitchRad);
+        logo.normal.z = cy * std::cos(yawRad);
+
+        // 3) Hard cutoff: only draw when the normal faces camera (z > 0)
+        if (logo.normal.z <= 0.f) {
+            logo.visible = false;
+            logo.opacity = 0.f;      // sharp edge
+        }
+        else {
+            logo.visible = true;
+            logo.opacity = 1.f;
+        }
+
+        // 4) Simple distortion approximation (optional)
+        //    More tilt → more squash; sidespin → shear
+        float tilt = std::acos(std::max(-1.f, std::min(1.f, logo.normal.z))); // 0..pi
+        float tiltNorm = tilt / (PI * 0.5f); // 0 at front, 1 at horizon (~90°)
+
+        logo.squash = std::max(context->logoDebug.minSquash, 1.f - 0.4f * tiltNorm * context->logoDebug.squashScale); // flattens near edge
+        logo.shear = spin.y * 0.3f * context->logoDebug.shearScale;                         // sidespin = sideways smear
+    }
+    return { SystemExecResult::Ran };
+}
+
+
+--- FILE: src\systems\LogoRotationSystem.hpp ---
+#pragma once
+
+#include "game/utils/GameContext.hpp"
+#include "components/Components.hpp"
+#include "ecs/Component.hpp"
+#include "ecs/system/ISystem.hpp"
+class LogoRotationSystem : public ISystem {
+public:
+	SystemExec update(GameContext* context);
+};
+
+--- FILE: src\systems\NetCollisionSystem.cpp ---
+﻿#include "NetCollisionSystem.hpp"
+#include "math/Vec2.hpp"
+#include "math/Vec3.hpp"
+#include "math/physics/collision/ObjectIntersection.hpp"
+#include "components/Components.hpp"
+#include "ecs/Entity.hpp"
+#include "debug/Debug.hpp"
+#include "math/Random.hpp"
+
+
+SystemExec NetCollisionSystem::update(GameContext* context) {
+    Entity* eNet = context->registry.getEntity("net");
+    if (!eNet) return {SystemExecResult::EarlyExit};
+
+    auto* cNetBoundingBox3D =
+        context->registry.getComponent<CBoundingBox3D>(*eNet);
+
+    if (!cNetBoundingBox3D) return {SystemExecResult::EarlyExit};
+
+    for (auto eBall : context->registry.getEntitiesWith<CBall>()) {
+        resolveNetContact(context, eBall);
+    }
+    return {SystemExecResult::Ran};
+}
+
+
+void NetCollisionSystem::resolveNetContact(GameContext* context, Entity eBall)
+{
+    auto [cBall, cBallTransform3D, cBallBoundingBox3D, cBallVelocity3D] = context->registry.getComponents<CBall, CTransform3D, CBoundingBox3D, CVelocity3D>(eBall);
+
+    if (!cBall || !cBallTransform3D || !cBallBoundingBox3D || !cBallVelocity3D) return;
+
+    Vec3& pos_m = cBallTransform3D->pos_m;
+    Vec3& vel_mps = cBallVelocity3D->vel_mps;
+    Vec3& spin = cBall->spin;
+
+    Entity* eNet = context->registry.getEntity("net");
+    auto cNetBoundingBox3D = context->registry.getComponent<CBoundingBox3D>(*eNet);
+
+    if (!ObjectIntersection::intersects(cBallBoundingBox3D->box, cNetBoundingBox3D->box))
+    {
+        cBall->hitNet = false; // reset when clear
+        return;
+    }
+
+    if (cBall->hitNet)
+        return; // avoid constant flipping
+
+    cBall->hitNet = true;
+    vel_mps.z *= -(1.f - context->tableParameters.netDamping);   // reverse and reduce forward motion
+
+    // Spin to trajectory (filthy net clips)
+
+    // Topspin: ball dives downward after net
+    vel_mps.y -= spin.x * context->tableParameters.netSpinKick;
+
+    // Sidespin: curve after grazing net
+    vel_mps.x += spin.z * context->tableParameters.netSpinKick;
+    // Spin reduction — net grabs rotation
+    const float spinLoss = 0.35f;
+    spin *= (1.f - context->tableParameters.netSpinLoss);
+    // Randomized cloth chaos 
+    // detect grazing
+    float penetrationDepth = (cBallBoundingBox3D->box.max.z - cNetBoundingBox3D->box.min.z);
+
+    if (penetrationDepth < 0.01f) // Net graze only
+    {
+        float chaos = context->tableParameters.netRandomChaos;
+        vel_mps.x += Math::Random::range(-chaos, chaos);
+        vel_mps.z += Math::Random::range(-chaos, chaos * 0.33f); // less in Z
+        Debug::debugPrint("Chaos Triggered", penetrationDepth);
+    }
+
+    // Vertical pop if hit net top
+    float netTop = cNetBoundingBox3D->box.max.y;
+    if (pos_m.y > netTop - 0.01f)
+        Debug::debugPrint("Hit net top", pos_m.y);
+        vel_mps.y = std::abs(vel_mps.y) + 0.3f; // slight upward deflection
+
+    // Debug arrows (optional)
+    if (context->physicsDebug.debugShapes) {
+        Debug::queueArrow3D(pos_m, pos_m + vel_mps.normalized() * 0.2f, sf::Color::Red);
+    }
+}
+
+
+
+--- FILE: src\systems\NetCollisionSystem.hpp ---
+#pragma once
+#include "game/utils/GameContext.hpp"
+#include "math/Bounds3D.hpp"
+#include "ecs/system/ISystem.hpp"
+class NetCollisionSystem : public ISystem{
+public:
+    SystemExec update(GameContext* context);
+private:
+    void resolveNetContact(GameContext* context, Entity eBall);
+};
+
+
+--- FILE: src\systems\ProceduralAnimationSystem.cpp ---
+#include "ProceduralAnimationSystem.hpp"
+
+#include "components/Components.hpp"
+#include "math/Constants.hpp"
+SystemExec ProceduralAnimationSystem::update(GameContext* context) {
+    auto ePlayer = context->registry.getEntity("player");
+    auto [cPlayerRotation, cPlayerTransform, cPlayerRacketHandle] = context->registry.getComponents<CRotation3D, CTransform, CRacketHandle>(*ePlayer);
+
+    //if (cPlayerRotation && cPlayerTransform) {
+    //    cPlayerTransform->rotation = cPlayerRotation->euler_deg.y;
+
+    //    float twistRad = cPlayerRotation->euler_deg.y * DEG2RAD;
+    //    cPlayerTransform->scale.x = std::cos(twistRad);
+
+    //}
+    auto eRacket = cPlayerRacketHandle->racketEntity;
+    auto* cRacketRotation = context->registry.getComponent<CRotation3D>(eRacket);
+    auto* cRacketTransform = context->registry.getComponent<CTransform>(eRacket);
+
+    if (cRacketRotation && cRacketTransform) {
+        // 1. J2 X (Yaw) rotates the sprite normally
+        cRacketTransform->rotation = cRacketRotation->euler_deg.y;
+
+        // 2. J2 Y (Pitch/Tilt) "squashes" the sprite vertically.
+        // If the blade is perfectly closed (flat), the height should be near 0.
+        float pitchRad = cRacketRotation->euler_deg.x * DEG2RAD;
+        float heightScale = std::abs(std::cos(pitchRad));
+
+        // Clamp so it doesn't disappear entirely
+        cRacketTransform->scale.y = std::max(heightScale, 0.15f);
+
+        // 3. Flip the sprite if the pitch goes past 90 (showing the back of the rubber)
+        if (std::cos(pitchRad) < 0) {
+            cRacketTransform->scale.y *= -1.0f; // Shows the "back" side
+        }
+    }
+    return { SystemExecResult::Ran };
+}
+
+--- FILE: src\systems\ProceduralAnimationSystem.hpp ---
+#pragma once
+#include "game/utils/GameContext.hpp"
+#include "ecs/system/ISystem.hpp"
+
+class ProceduralAnimationSystem : public ISystem {
+public:
+    SystemExec update(GameContext* context);
+
+};
+
+
+--- FILE: src\systems\RenderLayerSystem.cpp ---
+#include "RenderLayerSystem.hpp"
+#include "components/Components.hpp"
+#include "game/utils/GameContext.hpp"
+#include "debug/Debug.hpp"
+
+SystemExec RenderLayerSystem::update(GameContext* context) {
+    Entity* eNet = context->registry.getEntity("net");
+    if (!eNet) {
+        return { SystemExecResult::EarlyExit, "Net entity not found!" };
+    }
+
+    auto* cNetTransform3D = context->registry.getComponent<CTransform3D>(*eNet);
+    if (!cNetTransform3D) {
+        return { SystemExecResult::EarlyExit, "Net missing CTransform3D!" };
+    }
+
+    float netZ = cNetTransform3D->pos_m.z;
+
+    for (auto eBall : context->registry.getEntitiesWith<CRenderLayer, CBall, CTransform3D>()) {
+        auto [cBall, cBallRenderLayer, cBallTransform3D] = context->registry.getComponents<CBall, CRenderLayer, CTransform3D>(eBall);
+        auto eBallShadow = cBall->ballShadow;
+        auto cBallShadowRenderLayer = context->registry.getComponent<CRenderLayer>(eBallShadow);
+        cBallRenderLayer->layer = 80;
+        //if ball is above net on Z axis, render the net after the ball
+        if (cBallTransform3D->pos_m.z > netZ) {
+            cBallRenderLayer->layer = 50;
+        }
+        //if ball is off the table (towards the opponent) render it after the table.
+        if (cBallTransform3D->pos_m.z > context->tableParameters.tableLength) {
+            cBallRenderLayer->layer = 20;
+        }
+        cBallShadowRenderLayer->layer = cBallRenderLayer->layer - 1;
+    }
+    return { SystemExecResult::Ran };
+}
+
+
+--- FILE: src\systems\RenderLayerSystem.hpp ---
+#pragma once
+#include "game/utils/GameContext.hpp"
+#include "ecs/system/ISystem.hpp"
+
+class RenderLayerSystem : public ISystem{
+public:
+    SystemExec update(GameContext* context);
+
+};
+
+

@@ -1,0 +1,730 @@
+--- FILE: src\systems\game\intent\debug\DebugIntentSystem.cpp ---
+#include "DebugIntentSystem.hpp"
+#include "input/RawInputState.hpp"
+#include "game/utils/GameContext.hpp"
+
+SystemExec DebugIntentSystem::update(GameContext* context) {
+    if (context->inputBlocked) return { SystemExecResult::EarlyExit };
+
+    auto& ctxDebugIntent = context->debugIntent;
+    ctxDebugIntent = {}; // clear per-frame
+
+    static bool leftWasDown = false;
+    bool leftIsDown = context->rawInput.isMouseButtonDown(sf::Mouse::Left);
+
+    if (leftIsDown && !leftWasDown) {
+        ctxDebugIntent.clickSpawnRequested = true;
+        ctxDebugIntent.clickScreenPos = context->rawInput.mousePosition;
+    }
+
+    leftWasDown = leftIsDown;
+
+    return { SystemExecResult::Ran };
+}
+
+
+--- FILE: src\systems\game\intent\debug\DebugIntentSystem.hpp ---
+#pragma once
+
+#include "ecs/system/ISystem.hpp"
+
+
+class DebugIntentSystem : public ISystem {
+public:
+    SystemExec update(GameContext* context);
+};
+
+
+--- FILE: src\systems\game\movement\anatomy\AnatomySystem.cpp ---
+#include "AnatomySystem.hpp"
+#include "debug/Debug.hpp"
+#include "components/Components.hpp"
+SystemExec AnatomySystem::update(GameContext* context) {
+    
+    auto entities = context->registry.getEntitiesWith<CArm, CRacketHandle, CTransform3D>();
+
+    for (auto e : entities) {
+        auto [cArm, cRacketHandle, cTransform3D, cAuthorization, cRacketSwing] = context->registry.getComponents<CArm, CRacketHandle, CTransform3D, CAuthorization, CRacketSwing>(e);
+
+        // --- 1. CALCULATE ACTUAL SHOULDER (With Twist & Crouch) ---
+        float twistLoad = (cAuthorization->floatMap["TorsoRightLoad"] - cAuthorization->floatMap["TorsoLeftLoad"]) * 0.005f;
+        float twistAngle = twistLoad * context->playerMovement.bodyMovement.twistFactor;
+
+        float shoulderSideMult = cArm->isLeftHanded ? -1.0f : 1.0f;
+        float shoulderRadius = 0.2f;
+
+        Vec3 shoulderLocal(
+            std::cos(twistAngle) * (shoulderRadius * shoulderSideMult),
+            0.45f,
+            std::sin(twistAngle) * (shoulderRadius * -shoulderSideMult) // Swapped for correct rotation
+        );
+
+        float maxLeanDistance = .15f;
+
+        Vec3 reachVec = (cRacketSwing->swingTriggered) ? cRacketHandle->swingOffset_m : cRacketHandle->freeOffset_m;
+        Vec3 bodyLean = reachVec * context->playerMovement.bodyMovement.leanIntensity;
+        // CLAMP THE LEAN: Prevents "infinite" stretching
+        if (bodyLean.length() > maxLeanDistance) {
+            bodyLean = bodyLean.normalized() * maxLeanDistance;
+        }
+        if (reachVec.y < 0) {
+            float rawCrouch = reachVec.y * context->playerMovement.bodyMovement.crouchIntensity;
+            float minHeight = -0.35f;
+            float crouch = std::max(rawCrouch, minHeight);
+
+            cArm->shoulderPos_m = cTransform3D->pos_m + shoulderLocal + bodyLean;
+            cArm->shoulderPos_m.y += crouch;
+        }
+        else {
+            // Don't forget to set the position if they aren't crouching!
+            cArm->shoulderPos_m = cTransform3D->pos_m + shoulderLocal + bodyLean;
+        }
+        // --- 2. SOLVE IK (Use the shared position) ---
+        Vec3 racketPos = context->registry.getComponent<CTransform3D>(cRacketHandle->racketEntity)->pos_m;
+        Vec3 towardRacket = racketPos - cArm->shoulderPos_m;
+        float dist = towardRacket.length();
+
+        // Clamp to arm length
+        float totalLength = cArm->upperArmLength + cArm->lowerArmLength;
+        if (dist > totalLength * 0.98f) {
+            dist = totalLength * 0.98f;
+            towardRacket = towardRacket.normalized() * dist;
+        }
+
+        // Law of Cosines
+        float a = cArm->upperArmLength;
+        float b = cArm->lowerArmLength;
+        float c = dist;
+        float cosAlpha = (a * a + c * c - b * b) / (2.0f * a * c);
+        float alpha = std::acos(std::clamp(cosAlpha, -1.0f, 1.0f));
+
+        // --- 3. STABLE ELBOW HINGE ---
+        // Instead of cross(up), use a vector that points "out" from the ribs
+        Vec3 ribsOut = cArm->isLeftHanded ? Vec3(-1, -0.5f, 0) : Vec3(1, -0.5f, 0);
+
+        // Orthogonalize ribsOut to towardRacket to find the true hinge
+        Vec3 binormal = towardRacket.cross(ribsOut).normalized();
+        Vec3 hinge = binormal.cross(towardRacket).normalized();
+
+        // Position Elbow
+        cArm->elbowPos_m = cArm->shoulderPos_m +
+            (towardRacket.normalized() * std::cos(alpha) * a) +
+            (hinge * std::sin(alpha) * a);
+
+        // --- DEBUG RENDERING ---
+        if (context->renderSettings.debugDrawPlayerBody) {
+            Debug::queueSphere3D(cArm->shoulderPos_m, 0.04f, sf::Color::Green);
+            Debug::queueSphere3D(cArm->elbowPos_m, 0.03f, sf::Color::Yellow);
+            Debug::queueLine3D(cArm->shoulderPos_m, cArm->elbowPos_m, sf::Color::Green);
+            Debug::queueLine3D(cArm->elbowPos_m, racketPos, sf::Color::Green);
+            Debug::queueSphere3D(cTransform3D->pos_m, 0.04f, sf::Color::Blue); // body core
+            Debug::queueLine3D(cTransform3D->pos_m, cArm->shoulderPos_m, sf::Color(150, 150, 150)); //core to shoulder
+        }
+    }
+    return { SystemExecResult::Ran };
+}
+
+--- FILE: src\systems\game\movement\anatomy\AnatomySystem.hpp ---
+#pragma once
+#include "ecs/system/ISystem.hpp"
+class AnatomySystem : public ISystem {
+public:
+    SystemExec update(GameContext* context);
+
+};
+
+
+--- FILE: src\systems\game\movement\player\BodyTableCollisionSystem.cpp ---
+#include "BodyTableCollisionSystem.hpp"
+#include "math/physics/collision/ObjectIntersection.hpp"
+#include "components/Components.hpp"
+#include "debug/Debug.hpp"
+#include "systems/game/imgui/GameImGuiConsole.hpp"
+SystemExec BodyTableCollisionSystem::update(GameContext* context)
+{
+    Entity* eTable = context->registry.getEntity("table");
+    auto [cTableBox] = context->registry.getComponents<CBoundingBox3D>(*eTable);
+
+    for (auto eBody : context->registry.getEntitiesWith<CFootworkState, CBoundingBox3D, CTransform3D>())
+    {
+        auto [cBodyBox, cBodyTransfrom3D] = context->registry.getComponents<CBoundingBox3D, CTransform3D>(eBody);
+
+        // 1. Only proceed if there is an actual 3D intersection
+        if (ObjectIntersection::intersects(cBodyBox->box, cTableBox->box)) {
+
+            // Calculate potential penetration for both X and Z
+            // For X (Sides)
+            float pushRight = cTableBox->box.max.x - cBodyBox->box.min.x;
+            float pushLeft = cBodyBox->box.max.x - cTableBox->box.min.x;
+            float penX = (pushRight < pushLeft) ? pushRight : -pushLeft;
+
+            // For Z (Front/Back)
+            float pushForward = cTableBox->box.max.z - cBodyBox->box.min.z;
+            float pushBack = cBodyBox->box.max.z - cTableBox->box.min.z;
+            float penZ = (pushForward < pushBack) ? pushForward : -pushBack;
+
+            Vec3 correction(0, 0, 0);
+
+            // 2. Resolve only the SHORTEST axis (Minimum Translation Vector)
+            // This prevents the player from "warping" to the wrong side of the table
+            if (std::abs(penX) < std::abs(penZ)) {
+                // Hitting the side of the table
+                cBodyTransfrom3D->pos_m.x += penX; // Note: Use += to apply the push
+                correction.x = penX;
+            }
+            else {
+                // Hitting the front or back of the table
+                cBodyTransfrom3D->pos_m.z += penZ;
+                correction.z = -penZ;
+            }
+
+            // 3. Add/Update collision component
+            context->registry.getOrAddComponent<CBodyTableCollision>(eBody, correction);
+
+
+        }
+    }
+
+    return { SystemExecResult::Ran };
+}
+
+
+--- FILE: src\systems\game\movement\player\BodyTableCollisionSystem.hpp ---
+#pragma once
+#include "game/utils/GameContext.hpp"
+#include "ecs/system/ISystem.hpp"
+class BodyTableCollisionSystem : public ISystem {
+public:
+    SystemExec update(GameContext* context);
+};
+
+
+--- FILE: src\systems\game\movement\player\VelocityIntegrationSystem.cpp ---
+#include "VelocityIntegrationSystem.hpp"
+#include "components/Components.hpp"
+SystemExec VelocityIntegrationSystem::update(GameContext* context) {
+	for (auto entity : context->registry.getEntitiesWith<CTransform3D, CVelocity3D, CFootworkState>()) {
+		auto [cTransform3D, cVelocity3D] = context->registry.getComponents<CTransform3D, CVelocity3D>(entity);
+		cTransform3D->lastPos_m = cTransform3D->pos_m;
+		cTransform3D->pos_m += cVelocity3D->vel_mps * context->frameStats.fixedDt;
+	}
+	return { SystemExecResult::Ran };
+}
+
+--- FILE: src\systems\game\movement\player\VelocityIntegrationSystem.hpp ---
+#pragma once
+#include "game/utils/GameContext.hpp"
+#include "ecs/system/ISystem.hpp"
+class VelocityIntegrationSystem : public ISystem {
+public:
+    SystemExec update(GameContext* context);
+
+};
+
+
+--- FILE: src\systems\game\movement\player\footwork\FootworkMovementSystem.cpp ---
+﻿#include "FootworkMovementSystem.hpp"
+#include "math/Vec3.hpp"
+#include "components/Components.hpp"
+#include "math/Constants.hpp"
+#include <cmath>
+
+SystemExec FootworkMovementSystem::update(GameContext* context) {
+	for (auto entity : context->registry.getEntitiesWith<CFootworkState, CVelocity3D>()) {
+		auto [cFootworkIntent, cFootworkState, cVelocity3D] = context->registry.getComponents<CFootworkIntent, CFootworkState, CVelocity3D>(entity);
+		if (cFootworkIntent) {
+			if (cFootworkIntent->direction.z < 0) {
+
+			}
+			StepRaw rawStep{};
+			float s = cFootworkIntent->directionalStrength;
+			if (cFootworkIntent->heldFrames < context->playerMovement.footworkMovement.tapFrameLimit) {
+				rawStep.kind = StepKind::Tap;
+				rawStep.strength = context->playerMovement.footworkMovement.tapStrength;
+			}
+			else if (cFootworkIntent->heldFrames < context->playerMovement.footworkMovement.hopFrameLimit) { //change to double tap later
+				rawStep.kind = StepKind::Hop;
+				rawStep.strength = (cFootworkIntent->heldFrames / context->playerMovement.footworkMovement.hopFrameFactor) * context->playerMovement.footworkMovement.hopStrength;
+			}
+			else {
+				rawStep.kind = StepKind::Leap;
+				rawStep.strength = (std::min(context->playerMovement.footworkMovement.maxLeapStrength, cFootworkIntent->heldFrames / context->playerMovement.footworkMovement.leapFrameFactor)) * context->playerMovement.footworkMovement.leapStrength;
+			}
+			rawStep.strength *= cFootworkIntent->directionalStrength;
+			StepProfile step = convertStepFromRaw(rawStep);
+			if (!cFootworkState->active) {
+				cFootworkState->active = true;
+				cFootworkState->frame = 0;
+				cFootworkState->current = step;
+				cFootworkState->direction = cFootworkIntent->direction;
+
+
+			}
+			else {
+				// buffer one step only
+				cFootworkState->buffered = true;
+				cFootworkState->bufferedStep = rawStep;
+				cFootworkState->bufferedDirection = cFootworkIntent->direction;
+			}
+			context->registry.removeComponent<CFootworkIntent>(entity);
+		}
+		if (cFootworkState->active) {
+			if (cFootworkState->frame < cFootworkState->current.totalFrames) {
+
+				float t = float(cFootworkState->frame) /
+					float(cFootworkState->current.totalFrames);
+
+				float speed =
+					cFootworkState->current.maxSpeed_mps *
+					std::sin(t * PI);
+
+				cVelocity3D->vel_mps =
+					cFootworkState->direction * speed;
+			}
+			else {
+				// recovery frames → no movement
+				cVelocity3D->vel_mps = { 0.f, 0.f, 0.f };
+			}
+
+			cFootworkState->frame++;
+
+			if (cFootworkState->frame >=
+				cFootworkState->current.totalFrames +
+				cFootworkState->current.recoveryFrames) {
+
+				if (cFootworkState->buffered) {
+					cFootworkState->current =
+						convertStepFromRaw(cFootworkState->bufferedStep);
+					cFootworkState->direction = cFootworkState->bufferedDirection;
+					cFootworkState->frame = 0;
+					cFootworkState->buffered = false;
+				}
+				else {
+					cFootworkState->active = false;
+				}
+			}
+		}
+		else {
+			cVelocity3D->vel_mps = { 0.f, 0.f, 0.f };
+		}
+
+		return { SystemExecResult::Ran };
+	}
+	
+}
+
+StepProfile FootworkMovementSystem::convertStepFromRaw(const StepRaw& rawStep) {
+
+	StepProfile stepProfile{};
+	stepProfile.kind = rawStep.kind;
+	if (rawStep.kind == StepKind::Tap) {
+		stepProfile.totalFrames = 5;
+		stepProfile.recoveryFrames = 7;
+		stepProfile.maxSpeed_mps = rawStep.strength;
+		stepProfile.staminaCost = 5;
+	}
+	else if (rawStep.kind == StepKind::Hop) {
+		stepProfile.totalFrames = 10;
+		stepProfile.recoveryFrames = 15;
+		stepProfile.maxSpeed_mps = rawStep.strength;
+		stepProfile.staminaCost = 12;
+	}
+	else {
+		stepProfile.totalFrames = 18;
+		stepProfile.recoveryFrames = 24;
+		stepProfile.maxSpeed_mps = rawStep.strength;
+		stepProfile.staminaCost = 20;
+	}
+	return stepProfile;
+}
+
+--- FILE: src\systems\game\movement\player\footwork\FootworkMovementSystem.hpp ---
+#pragma once
+
+#include "game/utils/GameContext.hpp"
+#include "ecs/system/ISystem.hpp"
+#include "movement/Step.hpp"
+class FootworkMovementSystem : public ISystem {
+public:
+    SystemExec update(GameContext* context);
+private:
+    StepProfile convertStepFromRaw(const StepRaw& rawStep);
+};
+
+
+--- FILE: src\systems\game\racket\RacketArmSystem.cpp ---
+#include "RacketArmSystem.hpp"
+#include "components/Components.hpp"
+#include "debug/Debug.hpp"
+#include <cmath>
+#include <algorithm>
+
+SystemExec RacketArmSystem::update(GameContext* context) {
+    for (auto entity : context->registry.getEntitiesWith<CAuthorization, CArm, CRacketHandle, CTransform3D, CRacketSwing>()) {
+        auto [cAuth, cArm, cHandle, cPos, cSwing] = context->registry.getComponents<CAuthorization, CArm, CRacketHandle, CTransform3D, CRacketSwing>(entity);
+
+        auto eRacket = cHandle->racketEntity;
+        auto [cRacketPhysical, cRacketTransform3D, cRacketVel, cRacketBoundingBox3D] = context->registry.getComponents<CRacketPhysical, CTransform3D, CVelocity3D, CBoundingBox3D>(eRacket);
+
+        float dt = context->frameStats.dt;
+        Vec3 lastPos = cRacketTransform3D->pos_m;
+
+        // Body Lean: Moves the anchor based on where the player is reaching
+        Vec3 reachVec = (cSwing->swingTriggered) ? cHandle->swingOffset_m : cHandle->freeOffset_m;
+        Vec3 bodyLean = reachVec * context->playerMovement.bodyMovement.leanIntensity;
+
+        // --- 2. REACH & QUALITY CONSTRAINTS ---
+        float currentReachDist = reachVec.length();
+        float reachRatio = std::clamp(currentReachDist / cArm->maxReach_m, 0.0f, 1.1f);
+
+        // Quality mapping: Penalize power/control at the edge of reach
+        if (reachRatio < 0.85f) {
+            cHandle->currentStrokeQuality = 1.0f;
+        }
+        else {
+            float penalty = (reachRatio - 0.85f) / 0.15f;
+            cHandle->currentStrokeQuality = std::clamp(1.0f - (penalty * 0.9f), 0.1f, 1.0f);
+        }
+
+        // --- FINAL POSITIONING ---
+        Vec3 targetOffset = (cHandle->swingOffset_m * cHandle->strokeWeight) +
+            (cHandle->freeOffset_m * (1.0f - cHandle->strokeWeight)) + cHandle->pushOffset_m; //consider reworking this logic later
+
+        // Final Hard Constraint: Arm cannot physically leave the socket
+        if (targetOffset.length() > cArm->maxReach_m) {
+            targetOffset = targetOffset.normalized() * cArm->maxReach_m;
+        }
+
+        Vec3 finalPos = cArm->shoulderPos_m + targetOffset;
+
+        // --- 4. PHYSICS COMMIT ---
+        cRacketTransform3D->lastPos_m = lastPos;
+        cRacketTransform3D->pos_m = finalPos;
+
+        // Velocity calculation (Smoothed for collision detection)
+        Vec3 instantVel = (finalPos - lastPos) / dt;
+        cRacketVel->vel_mps = (instantVel * 0.5f) + (cRacketVel->vel_mps * 0.5f);
+
+
+        if (cSwing->strokeState == StrokeState::Swing) {
+            Debug::queueLine3D(cArm->shoulderPos_m, finalPos, sf::Color::Yellow);
+        }
+        // Shadow
+        auto eTable = context->registry.getEntity("table");
+        auto cTableBox3D = context->registry.getComponent<CBoundingBox3D>(*eTable);
+        // Check if the racket is within the table boundaries (X and Z plane)
+        bool xOverlap = (cRacketBoundingBox3D->box.min.x <= cTableBox3D->box.max.x) &&
+            (cRacketBoundingBox3D->box.max.x >= cTableBox3D->box.min.x);
+
+        bool zOverlap = (cRacketBoundingBox3D->box.min.z <= cTableBox3D->box.max.z) &&
+            (cRacketBoundingBox3D->box.max.z >= cTableBox3D->box.min.z);
+
+        // If it overlaps both X and Z, it is OVER the table. 
+        // If it doesn't, it is OFF the table.
+        cRacketPhysical->offTable = !(xOverlap && zOverlap);
+        // --- SHADOW ---
+
+        auto tp = context->tableParameters;
+        auto p = cRacketTransform3D->pos_m;
+        Entity eRacketShadow = cRacketPhysical->racketShadow;
+        auto [cRacketShadowTransform, cRacketShadowTransform3D] =
+            context->registry.getComponents<CTransform, CTransform3D>(eRacketShadow);
+
+        if (cRacketShadowTransform && cRacketShadowTransform3D) {
+            cRacketShadowTransform3D->lastPos_m = cRacketShadowTransform3D->pos_m;
+            cRacketShadowTransform3D->lastScale_m = cRacketShadowTransform3D->scale_m;
+
+            float shadowY = cRacketPhysical->offTable ? tp.floorY : tp.tableY;
+            cRacketShadowTransform3D->pos_m = Vec3(p.x, shadowY, p.z);
+
+            float heightAboveSurface = p.y - shadowY;
+            float scale = std::max(0.5f, 1.5f - 0.2f * heightAboveSurface);
+            cRacketShadowTransform3D->scale_m = { scale, 1.f, scale };
+        }
+    }
+        
+
+
+    return { SystemExecResult::Ran };
+}
+
+--- FILE: src\systems\game\racket\RacketArmSystem.hpp ---
+#pragma once
+
+#include "game/utils/GameContext.hpp"
+#include "ecs/system/ISystem.hpp"
+
+class RacketArmSystem : public ISystem {
+public:
+    SystemExec update(GameContext* context);
+
+private:
+    static constexpr float FreeMoveSpeed = 1.2f; // m/s
+};
+
+
+--- FILE: src\systems\game\racket\RacketBoundingBoxSystem.cpp ---
+#include "RacketBoundingBoxSystem.hpp"
+#include "components/Components.hpp"
+#include "game/utils/GameContext.hpp"
+SystemExec RacketBoundingBoxSystem::update(GameContext* context) {
+
+    for (auto eRacket : context->registry.getEntitiesWith<CRacketPhysical, CTransform, CTransform3D>()) {
+        auto [cRacketBoundingBox3D, cRacketTransform3D] = context->registry.getComponents<CBoundingBox3D, CTransform3D>(eRacket);
+        cRacketBoundingBox3D->setBoundingBox(cRacketTransform3D->pos_m);
+        cRacketBoundingBox3D->iter_color++;
+        if (cRacketBoundingBox3D->iter_color == 5) {
+            cRacketBoundingBox3D->color = sf::Color::Green;
+        }
+    }
+    return { SystemExecResult::Ran };
+}
+
+
+--- FILE: src\systems\game\racket\RacketBoundingBoxSystem.hpp ---
+#pragma once
+#include "game/utils/GameContext.hpp"
+#include "ecs/system/ISystem.hpp"
+class RacketBoundingBoxSystem : public ISystem {
+public:
+    SystemExec update(GameContext* context);
+
+};
+
+
+--- FILE: src\systems\game\racket\RacketCollisionSystem.cpp ---
+// RacketCollisionSystem.cpp
+#include "RacketCollisionSystem.hpp"
+
+#include "components/Components.hpp"
+#include "math/Vec3.hpp"
+#include "math/Constants.hpp" // expects PI, DEG2RAD, etc.
+#include "math/physics/collision/ObjectIntersection.hpp"
+#include "debug/Debug.hpp"
+#include "systems/game/imgui/GameImGuiConsole.hpp"
+#include <algorithm>
+#include <cmath>
+
+namespace {
+    inline void clampSpinRevPerSec(Vec3& spinRevPerSec, float maxRevPerSec) {
+        float s = spinRevPerSec.length();
+        if (s > maxRevPerSec && s > 1e-6f) {
+            spinRevPerSec *= (maxRevPerSec / s);
+        }
+    }
+
+    inline float safeLength(const Vec3& v) {
+        float l = v.length();
+        return (l < 1e-8f) ? 0.f : l;
+    }
+}
+
+SystemExec RacketCollisionSystem::update(GameContext* context)
+{
+    for (auto entity : context->registry.getEntitiesWith<CRacketHandle, CRacketSwing>()) {
+        auto [cRacketHandle, cRacketSwing] =
+            context->registry.getComponents<CRacketHandle, CRacketSwing>(entity);
+
+        Entity eRacket = cRacketHandle->racketEntity;
+
+        auto [cRacketPhysical, cRacketTransform3D, cRacketBoundingBox3D, cRacketVelocity3D] =
+            context->registry.getComponents<CRacketPhysical, CTransform3D, CBoundingBox3D, CVelocity3D>(eRacket);
+
+        if (!cRacketPhysical || !cRacketTransform3D || !cRacketBoundingBox3D || !cRacketVelocity3D)
+            continue;
+
+        // Face normal (world), must point OUT of the rubber face
+        Vec3 n = cRacketPhysical->worldNormal.normalized();
+
+        for (auto eBall : context->registry.getEntitiesWith<CBall, CTransform3D, CVelocity3D>()) {
+            auto [cBall, cBallTransform3D, cBallVelocity3D, cBallBoundingBox3D] =
+                context->registry.getComponents<CBall, CTransform3D, CVelocity3D, CBoundingBox3D>(eBall);
+
+            if (!cBall || !cBallTransform3D || !cBallVelocity3D || !cBallBoundingBox3D)
+                continue;
+
+            checkIntersection(context, cRacketTransform3D, cBallTransform3D);
+            if (cBall->racketLastContact) continue;
+            const float spinBefore = cBall->spin.length();
+
+            // --- Broad phase ---
+            Vec3 toBall = cBallTransform3D->pos_m - cRacketTransform3D->pos_m;
+            float distSq = toBall.lengthSq();
+            float combinedRadius = 0.25f; // approx racket size + ball radius
+            if (distSq > combinedRadius * combinedRadius) continue;
+
+            // --- Plane distance (signed) ---
+            float distFromPlane = toBall.dot(n);
+            float R = cBall->ballRadius;
+            if (std::abs(distFromPlane) > R) continue;
+
+            // --- Radial (in-plane) check ---
+            Vec3 pointOnPlane = toBall - (n * distFromPlane);
+            if (pointOnPlane.lengthSq() > 0.0225f) continue; // 0.15m radius squared
+
+            // --- Relative velocity (racket treated kinematic) ---
+            Vec3 relVel = cBallVelocity3D->vel_mps - cRacketVelocity3D->vel_mps;
+
+            // Must be moving toward the face
+            float vN = relVel.dot(n);
+            if (vN >= 0.f) continue;
+
+            // --- Coefficients ---
+            float e = cRacketPhysical->restitution * cBall->restitution; // restitution
+            float mu = cRacketPhysical->friction;                            // Coulomb coefficient
+            float m = cBall->mass;
+
+            // --- Contact lever arm (approx center -> contact point) ---
+            // Contact point on the face in direction -n
+            Vec3 r = -n * R;
+
+            // --- Slip velocity at contact ---
+            // IMPORTANT: spin is in REV/S (world). Convert to RAD/S for �ء�r.
+            Vec3 omega = cBall->spin * (2.f * PI); // rad/s
+            Vec3 vSpinAtContact = omega.cross(r);      // m/s
+            Vec3 vRelAtContact = relVel + vSpinAtContact;
+
+            // Decompose contact-relative velocity
+            float vNc = vRelAtContact.dot(n);           // should be < 0
+            if (vNc >= 0.f) continue;                   // if spin makes it separating, skip
+            Vec3 vTc = vRelAtContact - n * vNc;         // tangential slip at contact
+
+            // --- Normal impulse magnitude (kinematic racket) ---
+            // Jn = -(1+e) * vNc * m   (kg*m/s), vNc is negative -> Jn positive
+            float Jn = -(1.f + e) * vNc * m;
+
+            // --- Tangential impulse (Coulomb limited) ---
+            // Desire: cancel tangential slip (simple approximation): Jt_des = -m * vTc
+            Vec3 Jt_des = -vTc * m * context->physicsDebug.slipKillFactor;
+            
+            float racketSpeed = cRacketVelocity3D->vel_mps.length();
+            float muEff = mu;
+
+            if (racketSpeed < 0.3f) {
+                muEff *= 0.5f;
+            }
+            // Clamp by Coulomb: |Jt| <= mu * Jn
+            float maxJt = muEff * Jn;
+
+            float normalSpeed = -vNc; // positive
+            float spinGate = std::clamp(normalSpeed / 3.0f, 0.f, 1.f);
+            Jt_des *= spinGate;
+
+            // Sweet spot scaling (kept from your original intent)
+            float distFromCenterSq = pointOnPlane.lengthSq();
+            float maxRadiusSq = 0.0225f;
+            float normalizedDist = distFromCenterSq / maxRadiusSq;
+            float sweetSpotFactor = std::clamp(1.0f - (normalizedDist * 0.6f), 0.4f, 1.0f);
+
+            maxJt *= sweetSpotFactor;
+
+            Vec3 Jt = Jt_des;
+            float JtMag = safeLength(Jt);
+            if (JtMag > maxJt && JtMag > 1e-8f) {
+                Jt *= (maxJt / JtMag);
+            }
+
+            // --- Apply impulses to LINEAR velocity ---
+            Vec3 J = n * Jn + Jt;                 // total impulse on ball
+            cBallVelocity3D->vel_mps += J / m;    // v += J/m
+
+            // --- Apply impulse to SPIN ---
+            // Angular impulse: ��L = r �� Jt
+            Vec3 deltaL = r.cross(Jt);            // kg*m^2/s
+
+            // Sphere inertia: I = 2/5 m R^2
+            float I = (2.f / 5.f) * m * R * R;
+
+            Vec3 deltaOmega = (I > 1e-8f) ? (deltaL / I) : Vec3(0, 0, 0); // rad/s
+            Vec3 deltaSpinRev = deltaOmega / (2.f * PI);                 // rev/s
+
+            // Damping + grip
+            cBall->spin =
+                (cBall->spin * 0.3f) +
+                (deltaSpinRev * context->physicsDebug.racketGripFactor);
+
+            // Clamp spin
+            clampSpinRevPerSec(cBall->spin, context->physicsDebug.maxBallSpin_revps);
+
+            // --- Anti-tunneling position correction ---
+            // penetration depth (how far inside plane along normal)
+            float penetrationDepth = R - std::abs(distFromPlane);
+            float side = (distFromPlane >= 0.f) ? 1.f : -1.f;
+            cBallTransform3D->pos_m += n * (side * (penetrationDepth + 1e-4f));
+
+            // Debug colors
+            cBallBoundingBox3D->color = sf::Color::Red;
+            cRacketBoundingBox3D->color = sf::Color::Red;
+            
+            cBall->racketLastContact = true;
+            if (context->physicsDebug.logImpulses) {
+
+                // After you update cBall->spin and clamp it:
+                const float spinAfter = cBall->spin.length();
+
+                ImGuiConsoleQueue(
+                    "[RacketContact] vNc=" + std::to_string(vNc) +
+                    " |vTc|=" + std::to_string(vTc.length()) +
+                    " Jn=" + std::to_string(Jn) +
+                    " |Jt|=" + std::to_string(Jt.length()) +
+                    " maxJt=" + std::to_string(maxJt) +
+                    " spin " + std::to_string(spinBefore) + "->" + std::to_string(spinAfter) + " rev/s"
+                );
+            }
+
+             if (context->physicsDebug.debugDrawImpulses) {
+                 Vec3 pos = cBallTransform3D->pos_m;
+                 Debug::queueArrow3D(pos, pos + (n * 0.15f), sf::Color::Cyan);
+                 Vec3 jtDir = (Jt.length() > 1e-6f) ? Jt.normalized() : Vec3(0,0,0);
+                 Debug::queueArrow3D(pos, pos + jtDir * 0.15f, sf::Color::Magenta);
+             }
+
+        }
+    }
+
+    return { SystemExecResult::Ran };
+}
+
+void RacketCollisionSystem::checkIntersection(GameContext* context,
+    const CTransform3D* cRacketTransform3D,
+    const CTransform3D* cBallTransform3D)
+{
+    float ballZ_prev = cBallTransform3D->lastPos_m.z;
+    float ballZ_curr = cBallTransform3D->pos_m.z;
+    float racketZ = cRacketTransform3D->pos_m.z;
+
+    // Debug-only: did the ball cross the racket's Z plane this frame?
+    if ((ballZ_prev > racketZ && ballZ_curr <= racketZ) ||
+        (ballZ_prev < racketZ && ballZ_curr >= racketZ))
+    {
+        float denom = ballZ_curr - ballZ_prev;
+        float t = (std::abs(denom) > 0.0001f) ? (racketZ - ballZ_prev) / denom : 0.0f;
+
+        float intersectY =
+            cBallTransform3D->lastPos_m.y +
+            (cBallTransform3D->pos_m.y - cBallTransform3D->lastPos_m.y) * t;
+
+        float intersectX =
+            cBallTransform3D->lastPos_m.x +
+            (cBallTransform3D->pos_m.x - cBallTransform3D->lastPos_m.x) * t;
+
+        context->physicsDebug.yAtPlaneContact = intersectY - cRacketTransform3D->pos_m.y;
+        //context->physicsDebug.xAtPlaneContact = intersectX - cRacketTransform3D->pos_m.x;
+    }
+}
+
+
+--- FILE: src\systems\game\racket\RacketCollisionSystem.hpp ---
+#pragma once
+#include "ecs/system/ISystem.hpp"
+#include "math/Vec3.hpp"
+#include "game/utils/GameContext.hpp"
+#include "components/CTransform3D.hpp"
+class RacketCollisionSystem : public ISystem{
+public:
+    SystemExec update(GameContext* context);
+private:
+    void checkIntersection(GameContext* context, const CTransform3D* cRacketTransform3D, const CTransform3D* cBallTransform3D);
+};
+
+

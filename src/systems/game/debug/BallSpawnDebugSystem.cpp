@@ -58,16 +58,16 @@ void BallSpawnDebugSystem::spawnDebugBall(GameContext* context) {
         Vec3 vel = -out * speed;
 
         Entity ball = context->entityFactory.createBall(spawnPos, vel);
-        if (auto* v = context->registry.getComponent<CVelocity3D>(ball)) {
-            ImGuiConsoleQueue(
-                "[Spawn] vel = " +
-                std::to_string(v->vel_mps.x) + ", " +
-                std::to_string(v->vel_mps.y) + ", " +
-                std::to_string(v->vel_mps.z)
-            );
-            ImGuiConsoleQueue("[Spawn] out = " + std::to_string(out.x) + ", " + std::to_string(out.y) + ", " + std::to_string(out.z));
-            ImGuiConsoleQueue("[Spawn] speed = " + std::to_string(speed));
-        }
+        //if (auto* v = context->registry.getComponent<CVelocity3D>(ball)) {
+        //    ImGuiConsoleQueue(
+        //        "[Spawn] vel = " +
+        //        std::to_string(v->vel_mps.x) + ", " +
+        //        std::to_string(v->vel_mps.y) + ", " +
+        //        std::to_string(v->vel_mps.z)
+        //    );
+        //    ImGuiConsoleQueue("[Spawn] out = " + std::to_string(out.x) + ", " + std::to_string(out.y) + ", " + std::to_string(out.z));
+        //    ImGuiConsoleQueue("[Spawn] speed = " + std::to_string(speed));
+        //}
     }
 
 

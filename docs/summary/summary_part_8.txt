@@ -1,3 +1,4 @@
+--- FILE: src\systems\game\imgui\GameImGuiSystem.cpp ---
 ﻿#include "GameImGuiSystem.hpp"
 #include <imgui.h>         
 #include <imgui-SFML.h>   
@@ -8,7 +9,6 @@
 #include "ecs/system/ISystemGroup.hpp"
 #include "debug/Debug.hpp"
 #include <cmath>
-#include <imgui_internal.h>
 #include "GameImGuiConsole.hpp"
 SystemExec GameImGuiSystem::update(GameContext* context) {
     if (context->renderSettings.hideImGui) {
@@ -252,13 +252,13 @@ void GameImGuiSystem::drawRacketDebug(GameContext* context) {
         return;
     }
 
-    auto [cPlayerHandle, cPlayerState, cPlayerInput, cPlayerArm, cPlayerAuthorization, cPlayerTransform3D] =
-        context->registry.getComponents<CRacketHandle, CState, CInput, CArm, CAuthorization, CTransform3D>(*ePlayer);
+    auto [cPlayerSwing, cPlayerHandle, cPlayerState, cPlayerInput, cPlayerArm, cPlayerAuthorization, cPlayerTransform3D] =
+        context->registry.getComponents<CRacketSwing, CRacketHandle, CState, CInput, CArm, CAuthorization, CTransform3D>(*ePlayer);
 
     if (cPlayerHandle) {
         auto eRacket = cPlayerHandle->racketEntity;
-        auto [cRacketSwing, cRacketPhysical, cRacketTransform3D, cRacketRotation3D] =
-            context->registry.getComponents<CRacketSwing, CRacketPhysical, CTransform3D, CRotation3D>(eRacket);
+        auto [cRacketPhysical, cRacketTransform3D, cRacketRotation3D] =
+            context->registry.getComponents<CRacketPhysical, CTransform3D, CRotation3D>(eRacket);
         if (cPlayerAuthorization) {
             if (ImGui::CollapsingHeader("Racket Position")) {
                 ImGui::Text("Player Position: %.2f, %.2f, %.2f", cPlayerTransform3D->pos_m.x, cPlayerTransform3D->pos_m.y, cPlayerTransform3D->pos_m.z);
@@ -272,7 +272,7 @@ void GameImGuiSystem::drawRacketDebug(GameContext* context) {
         if (cRacketPhysical && cRacketRotation3D) {
             // ================= ORIENTATION WIDGET =================
             if (ImGui::CollapsingHeader("Live Orientation")) {
-                ImGui::Columns(3, "OrientationCols", false);
+                ImGui::Columns(2, "OrientationCols", false);
                 ImGui::SetColumnWidth(0, 120.0f);
 
                 drawRacketOrientationWidget(cRacketPhysical->worldNormal);
@@ -282,21 +282,13 @@ void GameImGuiSystem::drawRacketDebug(GameContext* context) {
                 ImGui::Text("X: %.2f", cRacketPhysical->worldNormal.x);
                 ImGui::Text("Y: %.2f", cRacketPhysical->worldNormal.y);
                 ImGui::Text("Z: %.2f", cRacketPhysical->worldNormal.z);
-                ImGui::NextColumn();
-                ImGui::Text("Yaw, Pitch, Roll:");
-                ImGui::Text("Yaw: %.2f", cRacketRotation3D->yaw);
-                ImGui::Text("Pitch: %.2f", cRacketRotation3D->pitch);
-                ImGui::Text("Roll: %.2f", cRacketRotation3D->roll);
+
 
                 ImGui::Separator();
                 ImGui::Text("Euler (deg):");
                 ImGui::Text("P: %.1f", cRacketRotation3D->euler_deg.x);
                 ImGui::Text("Y: %.1f", cRacketRotation3D->euler_deg.y);
                 ImGui::Columns(1);
-            }
-            if (ImGui::CollapsingHeader("Orientation Settings")) {
-                ImGui::SliderFloat("Max Y Degrees", &context->physicsDebug.racketOrientation.max_euler_y, 15.0f, 75.0f);
-                ImGui::SliderFloat("Max X Degrees", &context->physicsDebug.racketOrientation.max_euler_x, 15.0f, 75.0f);
             }
 
             // ================= SURFACE PHYSICS =================
@@ -310,37 +302,37 @@ void GameImGuiSystem::drawRacketDebug(GameContext* context) {
             }
         }
 
-        if (cRacketSwing && cPlayerState) {
+        if (cPlayerSwing && cPlayerState) {
             if (ImGui::CollapsingHeader("Stroke Lifecycle")) {
                 // 1. Display the Current State Name
                 const char* stateNames[] = { "Idle", "Backswing", "Swing", "Swing Recovery", "Push", "Push Recovery", "Braked Backswing"};
-                int currentStateIdx = (int)cRacketSwing->strokeState;
+                int currentStateIdx = (int)cPlayerSwing->strokeState;
                 ImGui::Text("CURRENT STATE: %s", stateNames[currentStateIdx]);
-                ImGui::Text("Braking: %s", cRacketSwing->isBraking ? "Yes" : "No");
-                // 2. Specialized Feedback per Phase
-                float ms = cRacketSwing->strokeTime_ms;
+                //ImGui::Text("Braking: %s", cPlayerSwing->isBraking ? "Yes" : "No");
+                //// 2. Specialized Feedback per Phase
+                //float ms = cPlayerSwing->strokeTime_ms;
 
-                if (cRacketSwing->strokeState == StrokeState::Swing) {
-                    if (ms < 80.0f)
-                        ImGui::TextColored(ImVec4(0, 1, 1, 1), "PHASE: COMMIT WINDOW (Steer Enabled)");
-                    else if (ms < 180.0f)
-                        ImGui::TextColored(ImVec4(1, 0.5f, 0, 1), "PHASE: ACCELERATION");
-                    else
-                        ImGui::Text("PHASE: FOLLOW-THROUGH");
+                //if (cPlayerSwing->strokeState == StrokeState::Swing) {
+                //    if (ms < 80.0f)
+                //        ImGui::TextColored(ImVec4(0, 1, 1, 1), "PHASE: COMMIT WINDOW (Steer Enabled)");
+                //    else if (ms < 180.0f)
+                //        ImGui::TextColored(ImVec4(1, 0.5f, 0, 1), "PHASE: ACCELERATION");
+                //    else
+                //        ImGui::Text("PHASE: FOLLOW-THROUGH");
 
-                    // Progress toward end of swing (300ms)
-                    ImGui::ProgressBar(ms / 300.0f, ImVec2(-1, 0), (std::to_string((int)ms) + " / 300 ms").c_str());
-                }
-                else if (cRacketSwing->strokeState == StrokeState::Backswing) {
-                    float chargePct = cRacketSwing->backswingTime / cRacketSwing->maxBackswing;
-                    ImGui::ProgressBar(chargePct, ImVec2(-1, 0), "CHARGING BACKSWING");
-                }
-                else if (cRacketSwing->strokeState == StrokeState::Push) {
-                    ImGui::TextColored(ImVec4(0.5f, 1.0f, 0.5f, 1.0f), "MANUAL PUSH ACTIVE");
-                }
-                else {
-                    ImGui::TextDisabled("System Ready...");
-                }
+                //    // Progress toward end of swing (300ms)
+                //    ImGui::ProgressBar(ms / 300.0f, ImVec2(-1, 0), (std::to_string((int)ms) + " / 300 ms").c_str());
+                //}
+                //else if (cPlayerSwing->strokeState == StrokeState::Backswing) {
+                //    float chargePct = cPlayerSwing->backswingTime / cPlayerSwing->maxBackswing;
+                //    ImGui::ProgressBar(chargePct, ImVec2(-1, 0), "CHARGING BACKSWING");
+                //}
+                //else if (cPlayerSwing->strokeState == StrokeState::Push) {
+                //    ImGui::TextColored(ImVec4(0.5f, 1.0f, 0.5f, 1.0f), "MANUAL PUSH ACTIVE");
+                //}
+                //else {
+                //    ImGui::TextDisabled("System Ready...");
+                //}
 
                 // 3. Weight Monitoring (For Smoothing Debug)
                 ImGui::Separator();
@@ -348,13 +340,10 @@ void GameImGuiSystem::drawRacketDebug(GameContext* context) {
             }
 
             if (ImGui::CollapsingHeader("Ability & Reach", ImGuiTreeNodeFlags_DefaultOpen)) {
-                float currentExt = cRacketSwing->swingDelta_m.length();
+                float currentExt = cPlayerHandle->swingOffset_m.length();
                 float reachRatio = currentExt / (cPlayerArm ? cPlayerArm->maxReach_m : 1.0f);
                 ImGui::ProgressBar(cPlayerHandle->currentStrokeQuality, ImVec2(-1, 0), "Stroke Quality");
                 ImGui::Text("Extension: %.2fm", currentExt);
-            }
-            if (ImGui::CollapsingHeader("Stroke Settings")) {
-                ImGui::SliderFloat("Stroke Speed", &context->physicsDebug.strokeSettings.swingSpeedFactor, .50f, 15.0f);
             }
         }
         if (cRacketPhysical) {
@@ -390,51 +379,18 @@ void GameImGuiSystem::drawRacketOrientationWidget(const Vec3& normal) {
     ImDrawList* drawList = ImGui::GetWindowDrawList();
     ImVec2 p = ImGui::GetCursorScreenPos();
     float size = 100.0f;
-    float radius = size / 2.0f;
-    ImVec2 center = ImVec2(p.x + radius, p.y + radius);
+    ImVec2 center = ImVec2(p.x + size / 2.0f, p.y + size / 2.0f);
 
-    // 1. Background Grid
-    drawList->AddCircleFilled(center, radius, IM_COL32(40, 40, 40, 255));
-    drawList->AddCircle(center, radius, IM_COL32(100, 100, 100, 255), 32, 1.0f);
+    drawList->AddCircleFilled(center, size / 2.0f, IM_COL32(50, 50, 50, 255));
+    drawList->AddCircle(center, size / 2.0f, IM_COL32(200, 200, 200, 255), 32, 2.0f);
+    drawList->AddLine(ImVec2(center.x - size / 2, center.y), ImVec2(center.x + size / 2, center.y), IM_COL32(100, 100, 100, 150));
+    drawList->AddLine(ImVec2(center.x, center.y - size / 2), ImVec2(center.x, center.y + size / 2), IM_COL32(100, 100, 100, 150));
 
-    // 2. Perspective Math
-    // angle is the 2D direction of the handle/normal
-    float angle = atan2f(-normal.y, normal.x);
+    float tipX = center.x + (normal.x * (size / 2.0f));
+    float tipY = center.y - (normal.y * (size / 2.0f));
 
-    // Foreshortening: How "thin" the racket looks based on Z depth
-    // We use a small epsilon so it never perfectly disappears into a 0-width line
-    float foreshortening = ImMax(0.1f, fabsf(normal.z));
-    float racketRadius = radius * 0.75f;
-
-    // 3. Generate Racket Face Vertices (The Plane)
-    const int segments = 32;
-    ImVec2 points[segments];
-    for (int i = 0; i < segments; i++) {
-        float theta = (i / (float)segments) * 2.0f * 3.14159f;
-
-        // Ellipse points in local space
-        float lx = cosf(theta) * racketRadius;
-        float ly = sinf(theta) * racketRadius * foreshortening;
-
-        // Rotate points to be perpendicular to the normal direction
-        // Swapping the rotation logic to face the player
-        float rotX = lx * cosf(angle + 1.57f) - ly * sinf(angle + 1.57f);
-        float rotY = lx * sinf(angle + 1.57f) + ly * cosf(angle + 1.57f);
-
-        points[i] = ImVec2(center.x + rotX, center.y + rotY);
-    }
-
-    // 4. Draw the Plane (Behind)
-    drawList->AddConvexPolyFilled(points, segments, IM_COL32(60, 120, 255, 120));
-    drawList->AddPolyline(points, segments, IM_COL32(180, 200, 255, 255), ImDrawFlags_Closed, 2.0f);
-
-    // 5. Draw the Normal Vector (In Front)
-    // We use the raw normal.x and normal.y to draw the direction line
-    float tipX = center.x + (normal.x * radius);
-    float tipY = center.y - (normal.y * radius); // ImGui Y flip
-
-    drawList->AddLine(center, ImVec2(tipX, tipY), IM_COL32(255, 255, 0, 255), 2.5f);
-    drawList->AddCircleFilled(ImVec2(tipX, tipY), 4.0f, IM_COL32(255, 50, 50, 255));
+    drawList->AddLine(center, ImVec2(tipX, tipY), IM_COL32(255, 255, 0, 255), 3.0f);
+    drawList->AddCircleFilled(ImVec2(tipX, tipY), 5.0f, IM_COL32(255, 50, 50, 255));
 
     ImGui::Dummy(ImVec2(size, size));
 }
@@ -493,3 +449,209 @@ void GameImGuiSystem::drawSystemNodeRecursive(const SystemNode& node, int depth)
     }
     ImGui::Unindent(depth * 14.0f);
 }
+
+--- FILE: src\systems\game\imgui\GameImGuiSystem.hpp ---
+#pragma once
+#include "ecs/system/ISystem.hpp"
+#include "ecs/system/SystemNode.hpp"
+#include "math/Vec3.hpp"
+class GameImGuiSystem : public ISystem {
+public:
+    SystemExec update(GameContext* context) override;
+
+private:
+    void drawDeveloperPanel(GameContext* context);
+    void drawRacketDebug(GameContext* context);
+    void drawControllerDebug(GameContext* context);
+    void drawSystemExecution(GameContext* context);
+    void drawRacketOrientationWidget(const Vec3& normal);
+    static void drawSystemNodeRecursive(const SystemNode& node, int depth = 0);
+};
+
+
+--- FILE: src\systems\game\intent\GlobalIntentSystem.cpp ---
+#include "GlobalIntentSystem.hpp"
+#include "game/utils/GameContext.hpp"
+#include "debug/Debug.hpp"
+SystemExec GlobalIntentSystem::update(GameContext* context) {
+    if (context->inputBlocked) return {SystemExecResult::EarlyExit};
+
+    auto& ctxGlobalIntent = context->globalIntent;
+    ctxGlobalIntent = {}; // clear per-frame
+
+    // Quit on Escape
+    static bool escWasDown = false;
+    bool escIsDown = context->rawInput.isKeyDown(sf::Keyboard::Escape);
+
+    if (escIsDown && !escWasDown) {
+        ctxGlobalIntent.quit = true;
+    }
+    escWasDown = escIsDown;
+
+    // Pause toggle (edge-trigger)
+    static bool pWasDown = false;
+    bool pIsDown = context->rawInput.isKeyDown(sf::Keyboard::P);
+
+    if (pIsDown && !pWasDown) {
+        ctxGlobalIntent.paused = true;
+    }
+    pWasDown = pIsDown;
+
+    if (context->rawInput.isKeyDown(sf::Keyboard::LControl) && context->rawInput.isKeyJustPressed(sf::Keyboard::D)) {
+        Debug::debugPrint("HideImGui:", context->renderSettings.hideImGui);
+        context->renderSettings.hideImGui = !context->renderSettings.hideImGui;
+    }
+    return {SystemExecResult::Ran};
+}
+
+
+--- FILE: src\systems\game\intent\GlobalIntentSystem.hpp ---
+#pragma once
+#include <SFML/Graphics.hpp>
+#include "ecs/system/ISystem.hpp"
+
+
+class GlobalIntentSystem : public ISystem {
+public:
+    SystemExec update(GameContext* context);
+};
+
+
+--- FILE: src\systems\game\intent\PlayerIntentSystem.cpp ---
+﻿#include "PlayerIntentSystem.hpp"
+
+#include <algorithm>
+
+#include "components/Components.hpp"
+#include "game/utils/GameContext.hpp"
+#include "input/RawInputState.hpp"
+
+SystemExec PlayerIntentSystem::update(GameContext* context)
+{
+    if (context->inputBlocked)
+        return { SystemExecResult::EarlyExit };
+
+    RawInputState& raw = context->rawInput;
+    int currentTick = context->frameStats.tickIndex;
+
+    for (auto e : context->registry.getEntitiesWith<Player, CInput>()) {
+        auto cInput = context->registry.getComponent<CInput>(e);
+        if (!cInput) continue;
+
+        // -------------------------------------------------
+        // Helper: merge controller + keyboard
+        // -------------------------------------------------
+        auto mapHold = [&](SDL_GameControllerButton btn, sf::Keyboard::Key key, const std::string& action) {
+            bool btnDown = raw.isButtonDown(btn);
+            bool keyDown = raw.isKeyDown(key);
+
+            bool btnReleased = raw.isButtonJustReleased(btn);
+            bool keyReleased = raw.isKeyReleased(key);
+
+            bool isDown = btnDown || keyDown;
+            bool isReleased = btnReleased || keyReleased;
+
+            if (isDown) {
+                // If it's a controller, we can use the raw duration
+                if (btnDown) {
+                    cInput->holdTime[action] = raw.getButtonHoldDuration(btn, currentTick);
+                }
+                // If it's a keyboard, increment manually or set a flag
+                else {
+                    cInput->holdTime[action] = raw.getKeyHoldDuration(key, currentTick);
+                }
+            }
+            else if (!isReleased) {
+                // Only reset to 0 if it wasn't JUST released this frame
+                cInput->holdTime[action] = 0;
+            }
+
+            // This will be true ONLY on the frame the button is let go
+            cInput->actions[action] = isReleased;
+        };
+
+        // -------------------------------------------------
+        // Movement
+        // -------------------------------------------------
+        mapHold(SDL_CONTROLLER_BUTTON_LEFTSHOULDER,
+            sf::Keyboard::Left,
+            "MoveLeft");
+
+        mapHold(SDL_CONTROLLER_BUTTON_RIGHTSHOULDER,
+            sf::Keyboard::Right,
+            "MoveRight");
+
+        mapHold(SDL_CONTROLLER_BUTTON_Y,
+            sf::Keyboard::Up,
+            "MoveForward");
+
+        mapHold(SDL_CONTROLLER_BUTTON_A,
+            sf::Keyboard::Down,
+            "MoveBackward");
+
+        // Optional torso rotation
+        mapHold(SDL_CONTROLLER_BUTTON_X,
+            sf::Keyboard::Comma,
+            "TorsoLeft");
+
+        mapHold(SDL_CONTROLLER_BUTTON_B,
+            sf::Keyboard::Period,
+            "TorsoRight");
+
+        // -------------------------------------------------
+        // Analog axes
+        // -------------------------------------------------
+        cInput->axes["ReachZ"] = raw.getAxis("LT");
+        cInput->axes["J1X"] = raw.getAxis("J1X");
+        cInput->axes["J1Y"] = raw.getAxis("J1Y");
+        cInput->axes["J2X"] = raw.getAxis("J2X");
+        cInput->axes["J2Y"] = raw.getAxis("J2Y");
+        // -------------------------------------------------
+        // Semantic attack states
+        // -------------------------------------------------
+        cInput->actions["StartBackswing"] = raw.isAxisJustPressed("LT");
+        cInput->actions["EnableBackswing"] = raw.isAxisDown("RT");
+        cInput->actions["StartAttack"] = raw.isAxisReleased("LT");
+        cInput->actions["StopPush"] = raw.isAxisReleased("LT");
+        cInput->actions["StopBackswing"] = raw.isAxisReleased("RT");
+
+        if (raw.isKeyReleased(sf::Keyboard::A)) {
+            cInput->axes["J1X"] -= 5;
+        }
+        if (raw.isKeyReleased(sf::Keyboard::D)) {
+            cInput->axes["J1X"] += 5;
+        }
+        if (raw.isKeyReleased(sf::Keyboard::W)) {
+            cInput->axes["J1Y"] -= 5;
+        }
+        if (raw.isKeyReleased(sf::Keyboard::S)) {
+            cInput->axes["J1Y"] += 5;
+        }
+        if (raw.isKeyReleased(sf::Keyboard::I)) {
+            cInput->axes["J2X"] -= 5;
+        }
+        if (raw.isKeyReleased(sf::Keyboard::K)) {
+            cInput->axes["J2X"] += 5;
+        }
+        if (raw.isKeyReleased(sf::Keyboard::J)) {
+            cInput->axes["J2Y"] -= 5;
+        }
+        if (raw.isKeyReleased(sf::Keyboard::L)) {
+            cInput->axes["J2Y"] += 5;
+        }
+    }
+
+    return { SystemExecResult::Ran };
+}
+
+
+--- FILE: src\systems\game\intent\PlayerIntentSystem.hpp ---
+#pragma once
+
+#include "ecs/system/ISystem.hpp"
+class PlayerIntentSystem : public ISystem{
+public:
+    SystemExec update(GameContext* context);
+};
+
+

@@ -9,7 +9,7 @@ SystemExec PlayerActionSystem::update(GameContext* context) {
     auto entities = context->registry.getEntitiesWith<Player, CInput, CAuthorization>();
 
     for (auto e : entities) {
-        auto [cPlayerInput, cPlayerAuthorization, CPlayerRacketSwing] = context->registry.getComponents<CInput, CAuthorization, CRacketSwing>(e);
+        auto [cPlayerInput, cPlayerAuthorization] = context->registry.getComponents<CInput, CAuthorization>(e);
 
         // 1. Authorize Footwork (Translation Logic)
         auto authorizeFootwork = [&](const std::string& key, Vec3 dir) {

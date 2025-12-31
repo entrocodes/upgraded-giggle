@@ -24,5 +24,16 @@ struct CRacketSwing : public Component {
     float forwardVel = 0.0f;
     float backswingDistance = 0.18f; // meters racket can travel backwards
     float forwardMultiplier = 7.5f;  // converts backswingTime to speed
+    Vec3 swingBaseOffset_m = { 0,0,0 };
+    Vec3 backswingOffset_m = { 0,0,0 };
+    Vec3 swingDelta_m = { 0,0,0 };
+    Vec2 steerIntent;
+    bool requestBackswing;
+    bool requestReleaseSwing;
+    bool requestStopBackswing;
+    bool requestPush;
+    bool requestStopPush;
+    float strokeBlend = 0.0f;
+    float manualReachZ;
 };
 

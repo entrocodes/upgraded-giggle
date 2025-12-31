@@ -1,0 +1,763 @@
+--- FILE: src\systems\RenderSystem.cpp ---
+﻿#include "RenderSystem.hpp"
+#include "systems/GridDebugSystem.hpp"
+#include "components/Components.hpp"
+#include "debug/Debug.hpp"
+#include "math/MathHelpers.hpp"
+#include "ecs/DrawItem.hpp"
+#include <cmath>
+#include <algorithm>
+
+SystemExec RenderSystem::update(GameContext* context) {
+    std::vector<DrawItem> drawList;
+
+    // Sprites
+    for (auto e : context->registry.getEntitiesWith<CTransform, CAnimation, CRenderLayer>()) {
+        auto [cTransform, cAnimation, cRenderLayer] = context->registry.getComponents<CTransform, CAnimation, CRenderLayer>(e);
+        if (!cTransform || !cAnimation || !cRenderLayer) continue;
+
+        CTransform3D* cTransform3D = context->registry.getComponent<CTransform3D>(e);
+        bool isShadow = context->registry.hasComponent<CBallShadow>(e);
+
+        drawList.push_back({ cRenderLayer->layer, e, DrawType::Sprite, cTransform3D, cTransform, cAnimation, nullptr, nullptr, isShadow });
+    }
+
+    // Logos — drawn on ball
+    for (auto eBall : context->registry.getEntitiesWith<CBall, CTransform3D, CTransform, CRenderLayer>()) {
+        auto [cBall, cBallTransform3D, cBallTransform, cBallRenderLayer] = context->registry.getComponents<CBall, CTransform3D, CTransform, CRenderLayer>(eBall);
+        if (!cBall || !cBallTransform3D || !cBallTransform || !cBallRenderLayer) continue;
+        if (!cBall->logo.visible || cBall->logo.opacity <= 0.f) continue;
+
+        drawList.push_back({ cBallRenderLayer->layer, eBall, DrawType::Logo, cBallTransform3D, cBallTransform, nullptr, cBall, nullptr, false });
+    }
+
+    // Text
+    for (auto eText : context->registry.getEntitiesWith<CText, CTransform, CRenderLayer>()) {
+        auto [cTextText, cTextTransform, cTextRenderLayer] = context->registry.getComponents<CText, CTransform, CRenderLayer>(eText);
+        if (!cTextText || !cTextTransform || !cTextRenderLayer) continue;
+        if (!cTextText->visible) continue;
+
+        drawList.push_back({ cTextRenderLayer->layer, eText, DrawType::Text, nullptr, cTextTransform, nullptr, nullptr, cTextText, false });
+    }
+
+    std::sort(drawList.begin(), drawList.end(),
+        [](const DrawItem& a, const DrawItem& b) {
+            return a.layer < b.layer;
+        });
+
+    for (auto& item : drawList) {
+        if (item.type == DrawType::Sprite) {
+            auto& aAnimation = item.cAnimation->animation;
+            aAnimation.update();
+            sf::Sprite& sprite = aAnimation.getSprite();
+
+            if (item.cTransform3D) {
+                sync3Dto2D(context, item.entity, item.cTransform, item.cTransform3D, item.isShadow);
+            }
+            else {
+                float alpha = context->frameAlpha;
+                item.cTransform->renderPos = item.cTransform->lastPos * (1.f - alpha) + item.cTransform->pos * alpha;
+            }
+
+            const auto& renderPos = item.cTransform->renderPos;
+            sprite.setPosition(renderPos.x, renderPos.y);
+            sprite.setRotation(item.cTransform->rotation);
+            sprite.setScale(item.cTransform->scale.x, item.cTransform->scale.y);
+
+            context->window.draw(sprite);
+        }
+        else if (item.type == DrawType::Logo) {
+            drawBallLogo(context, item.cBall, item.cTransform, item.cTransform3D);
+        }
+        else if (item.type == DrawType::Text) {
+            float alpha = context->frameAlpha;
+            Vec2 renderPos = item.cTransform->lastPos * (1.f - alpha) + item.cTransform->pos * alpha;
+            item.cText->drawable.setPosition(renderPos.x, renderPos.y);
+            context->window.draw(item.cText->drawable);
+        }
+    }
+
+    if (context->camera.homography.drawGrid) {
+        context->camera.homography.drawDebugGrid(context->window, 10, 5);
+    }
+    if (context->renderSettings.draw3DBoundingBoxes) {
+        display3DBoundingBoxes.render(context);
+    }
+    else {
+        context->camera.homography.printDebug = true;
+    }
+    if (context->physicsDebug.debugShapes) {
+        Debug::renderQueuedShapes(context);
+    }
+    return { SystemExecResult::Ran };
+}
+
+void RenderSystem::drawBallLogo(GameContext* context, CBall* cBall, CTransform* cBallTransform, CTransform3D* cBallTransform3D)
+{
+    constexpr int GRID = 8;
+    auto& logo = cBall->logo;
+    if (!logo.visible || logo.opacity <= 0.f) return;
+
+    sf::Texture& assetTexture = context->assets.getTexture("TexBallLogo");
+    sf::Vector2f assetTextureSize(static_cast<float>(assetTexture.getSize().x), static_cast<float>(assetTexture.getSize().y));
+
+    float alpha = context->frameAlpha;
+    Vec3 interp3D = cBallTransform3D->lastPos_m * (1.f - alpha) + cBallTransform3D->pos_m * alpha;
+    cBallTransform->renderPos = context->camera.homography.worldToImage(interp3D);
+
+    sf::Vector2f ballCenter(cBallTransform->renderPos.x, cBallTransform->renderPos.y);
+    float ballRadiusPx = context->tableParameters.pixelsPerMeter * cBall->ballRadius + 3.5f;
+
+    Vec3 n = logo.normal;
+    Vec3 up = { 0.f, -1.f, 0.f };
+    if (std::fabs(up.x * n.x + up.y * n.y + up.z * n.z) > 0.9f) {
+        up = { 1.f, 0.f, 0.f };
+    }
+
+    auto cross = [](const Vec3& a, const Vec3& b) {
+        return Vec3{ a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x };
+        };
+    auto normalize = [](const Vec3& v) {
+        float len = std::sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+        return len == 0.f ? Vec3{ 0,0,0 } : Vec3{ v.x / len, v.y / len, v.z / len };
+        };
+
+    Vec3 tangent = normalize(cross(up, n));
+    Vec3 bitan = cross(n, tangent);
+    float logoRadiusPx = ballRadiusPx * context->logoDebug.radiusFactor;
+
+    sf::RenderStates states;
+    states.texture = &assetTexture;
+    sf::Color tint(255, 255, 255, static_cast<sf::Uint8>(logo.opacity * 255.f));
+
+    for (int iy = 0; iy < GRID; ++iy) {
+        for (int ix = 0; ix < GRID; ++ix) {
+            float u0 = -1.f + 2.f * (float(ix) / GRID);
+            float v0 = -1.f + 2.f * (float(iy) / GRID);
+            float u1 = -1.f + 2.f * (float(ix + 1) / GRID);
+            float v1 = -1.f + 2.f * (float(iy + 1) / GRID);
+
+            auto distort = [&](float u, float v) {
+                u += logo.shear * v;
+                v *= logo.squash;
+                return std::pair<float, float>(u, v);
+                };
+
+            auto [du0, dv0] = distort(u0, v0);
+            auto [du1, dv1] = distort(u1, v1);
+
+            auto pointOnSphere = [&](float du, float dv) -> Vec3 {
+                Vec3 offset = {
+                    tangent.x * du * logoRadiusPx + bitan.x * dv * logoRadiusPx,
+                    tangent.y * du * logoRadiusPx + bitan.y * dv * logoRadiusPx,
+                    tangent.z * du * logoRadiusPx + bitan.z * dv * logoRadiusPx
+                };
+                return Vec3{ n.x * ballRadiusPx + offset.x, n.y * ballRadiusPx + offset.y, n.z * ballRadiusPx + offset.z };
+                };
+
+            Vec3 p00 = pointOnSphere(du0, dv0);
+            Vec3 p10 = pointOnSphere(du1, dv0);
+            Vec3 p11 = pointOnSphere(du1, dv1);
+            Vec3 p01 = pointOnSphere(du0, dv1);
+
+            if (p00.z <= 0.f && p10.z <= 0.f && p11.z <= 0.f && p01.z <= 0.f) continue;
+
+            auto proj = [&](const Vec3& p) -> sf::Vector2f {
+                return sf::Vector2f(ballCenter.x + p.x, ballCenter.y - p.y);
+                };
+
+            sf::VertexArray quad(sf::Quads, 4);
+            quad[0].position = proj(p00);
+            quad[1].position = proj(p10);
+            quad[2].position = proj(p11);
+            quad[3].position = proj(p01);
+
+            auto insideBall = [&](const sf::Vector2f& pos) {
+                float dx = pos.x - ballCenter.x;
+                float dy = pos.y - ballCenter.y;
+                return (dx * dx + dy * dy) <= (ballRadiusPx * ballRadiusPx);
+                };
+
+            if (!insideBall(quad[0].position) && !insideBall(quad[1].position) &&
+                !insideBall(quad[2].position) && !insideBall(quad[3].position)) continue;
+
+            float tu0 = (float(ix) / GRID) * assetTextureSize.x;
+            float tv0 = (float(iy) / GRID) * assetTextureSize.y;
+            float tu1 = (float(ix + 1) / GRID) * assetTextureSize.x;
+            float tv1 = (float(iy + 1) / GRID) * assetTextureSize.y;
+
+            quad[0].texCoords = { tu0, tv0 };
+            quad[1].texCoords = { tu1, tv0 };
+            quad[2].texCoords = { tu1, tv1 };
+            quad[3].texCoords = { tu0, tv1 };
+
+            for (int i = 0; i < 4; ++i) quad[i].color = tint;
+            context->window.draw(quad, states);
+        }
+    }
+}
+
+void RenderSystem::sync3Dto2D(GameContext* context, Entity e, CTransform* cTransform, CTransform3D* cTransform3D, bool isShadow) {
+    float alpha = context->frameAlpha;
+
+    // 1. Interpolate Position
+    Vec3 interpPos3D = cTransform3D->lastPos_m * (1.f - alpha) + cTransform3D->pos_m * alpha;
+
+    // 2. Interpolate Base Scale
+    Vec3 interpScale3D = cTransform3D->lastScale_m * (1.f - alpha) + cTransform3D->scale_m * alpha;
+
+    // 3. Apply Procedural Visual Effects from CRotation3D
+    // Use the specific entity 'e' passed into the function
+    auto* cRotation3D = context->registry.getComponent<CRotation3D>(e);
+    float visualScaleX = 1.0f;
+    float visualScaleY = 1.0f;
+
+    if (cRotation3D && !isShadow) {
+        float pitchRad = cRotation3D->euler_deg.x * (3.14159f / 180.f);
+        float yawRad = cRotation3D->euler_deg.y * (3.14159f / 180.f);
+
+        if (e.name == "player") {
+            // Player thins out as they twist (RT)
+            visualScaleX = std::abs(std::cos(yawRad));
+        }
+        else if (e.name == "racket") { // Be specific so balls don't rotate like rackets
+            // Racket flattens as it tilts (J2 Pitch)
+            visualScaleY = std::abs(std::cos(pitchRad));
+            // Racket rotates based on J2 Yaw
+            cTransform->rotation = cRotation3D->euler_deg.y;
+        }
+    }
+
+    // 4. Combine Base Scale with Visual Multipliers
+    cTransform->scale.x = interpScale3D.x * visualScaleX;
+    cTransform->scale.y = interpScale3D.y * visualScaleY;
+
+    if (isShadow) {
+        // Shadows shouldn't jump in height during interpolation
+        interpPos3D.y = cTransform3D->pos_m.y;
+    }
+
+    cTransform->renderPos = context->camera.homography.worldToImage(interpPos3D);
+}
+
+--- FILE: src\systems\RenderSystem.hpp ---
+#pragma once
+#include <SFML/Graphics.hpp>
+#include "game/utils/GameContext.hpp"
+#include "debug/systems/Display3DBoundingBoxes.hpp"
+#include "ecs/system/ISystem.hpp"
+struct RenderSystem  : public ISystem{
+
+public:
+    SystemExec update(GameContext* context);
+private:
+    Display3DBoundingBoxes display3DBoundingBoxes;
+    void drawBallLogo(GameContext* context, CBall* cBall, CTransform* cBallTransform, CTransform3D* cBallTransform3D);
+    void sync3Dto2D(GameContext* context, Entity e, CTransform* cTransform, CTransform3D* cTransform3D , bool isShadow = false);
+};
+
+
+--- FILE: src\systems\TextButtonSystem.cpp ---
+#include "TextButtonSystem.hpp"
+#include "components/components.hpp"
+#include "game/utils/GameContext.hpp"
+#include <SFML/System/Vector2.hpp>
+#include <SFML/Graphics/Rect.hpp>
+
+    // --- Corrected runFunctionFromString Signature ---
+    void TextButtonSystem::runFunctionFromString(GameContext* context, const std::string& command) {
+        if (command == "startCampaign") {
+            context->sceneManager.requestSwitch("game");
+        }
+        else if (command == "quitGame") {
+            context->window.close();
+        }
+        else if (command == "openSettings") {
+            // to be implemented
+        }
+    }
+
+
+SystemExec TextButtonSystem::update(GameContext* context) {
+    for (Entity eTextButton : context->registry.getEntitiesWith<CText, CTextButton, CBoundingBox, CTransform>()) {
+        auto [cTextText, cTextTextButton, cTextBoundingBox, cTextTransform] = context->registry.getComponents<CText, CTextButton, CBoundingBox, CTransform>(eTextButton);
+
+        // --- Bounding Box Setup (D) & (C) ---
+        // 1. Check if the text was modified (DirtyTextSystem ran)
+        if (cTextText->wasDirty || cTextBoundingBox->box.width == 0) {
+            sf::FloatRect textDrawableBounds = cTextText->drawable.getLocalBounds();
+
+            // Use renderPos so the "hitbox" matches where the user actually SEES the text
+            cTextBoundingBox->box = sf::FloatRect(
+                cTextTransform->renderPos.x - (textDrawableBounds.width / 2.0f),
+                cTextTransform->renderPos.y - (textDrawableBounds.height / 2.0f),
+                textDrawableBounds.width,
+                textDrawableBounds.height
+            );
+        }
+        if (cTextTextButton->isHovered) {
+            // Apply hover color if currently hovered
+            cTextText->drawable.setFillColor(cTextTextButton->hoverColor);
+        }
+        else {
+            cTextText->drawable.setFillColor(cTextText->defaultColor);
+        }
+
+
+        if (cTextTextButton->isSelected) {
+            cTextTextButton->isSelected = false;
+            TextButtonSystem::runFunctionFromString(context, cTextTextButton->command);
+        }
+    }
+    return { SystemExecResult::Ran };
+}
+
+--- FILE: src\systems\TextButtonSystem.hpp ---
+#pragma once
+
+#include "ecs/system/ISystem.hpp"
+#include "game/utils/GameContext.hpp"
+#include <string>
+class TextButtonSystem : public ISystem {
+	SystemExec update(GameContext* context);
+private:
+	void runFunctionFromString(GameContext* context, const std::string& command);
+};
+
+--- FILE: src\systems\TransformSaveSystem.hpp ---
+#pragma once
+
+#include "ecs/system/ISystem.hpp"
+#include "game/utils/GameContext.hpp"
+#include "components/Components.hpp"
+class TransformSaveSystem : public ISystem {
+public:
+    SystemExec update(GameContext* context) override {
+        for (auto e : context->registry.getEntitiesWith<CTransform>()) {
+            auto* t = context->registry.getComponent<CTransform>(e);
+            t->lastPos = t->pos;
+        }
+        return { SystemExecResult::Ran };
+    }
+};
+
+
+--- FILE: src\systems\game\action\GlobalActionSystem.cpp ---
+#include "GlobalActionSystem.hpp"
+#include "game/utils/GameContext.hpp"
+SystemExec GlobalActionSystem::update(GameContext* context) {
+    auto& intent = context->globalIntent;
+    auto& metaState = context->metaInputState;
+
+
+    if (intent.quit) {
+        metaState.returnToMainMenu = true;
+    }
+    if (intent.paused) {
+        metaState.paused = true;
+    }
+    return { SystemExecResult::Ran };
+}
+
+--- FILE: src\systems\game\action\GlobalActionSystem.hpp ---
+#pragma once
+
+#include "ecs/system/ISystem.hpp"
+class GlobalActionSystem : public ISystem {
+public:
+    SystemExec update(GameContext* context);
+
+};
+
+
+--- FILE: src\systems\game\action\PlayerActionSystem.cpp ---
+#include "PlayerActionSystem.hpp"
+#include "components/Components.hpp"
+#include "debug/Debug.hpp"
+#include "game/utils/GameContext.hpp"
+#include <cmath>
+#include <algorithm>
+
+SystemExec PlayerActionSystem::update(GameContext* context) {
+    auto entities = context->registry.getEntitiesWith<Player, CInput, CAuthorization>();
+
+    for (auto e : entities) {
+        auto [cPlayerInput, cPlayerAuthorization, CPlayerRacketSwing] = context->registry.getComponents<CInput, CAuthorization, CRacketSwing>(e);
+
+        // 1. Authorize Footwork (Translation Logic)
+        auto authorizeFootwork = [&](const std::string& key, Vec3 dir) {
+            // Only trigger when the button is RELEASED
+            if (cPlayerInput->actions[key]) {
+                auto& footwork = context->registry.addComponent<CFootworkIntent>(e);
+                footwork.direction = dir;
+
+                // Ensure holdTime[key] hasn't been wiped yet by the InputSystem
+                footwork.heldFrames = cPlayerInput->holdTime[key];
+                if (key == "MoveLeft") {
+                    context->playerMovement.footworkMovement.debugFootworkIntent.leftHoldTime = cPlayerInput->holdTime[key];
+                }
+                if (key == "MoveRight") {
+                    context->playerMovement.footworkMovement.debugFootworkIntent.rightHoldTime = cPlayerInput->holdTime[key];
+                }
+                footwork.directionalStrength = (dir.z != 0) ? 0.3f : 1.0f;
+                context->playerMovement.moveTriggered = true;
+            }
+            };
+
+        authorizeFootwork("MoveLeft", { -1, 0, 0 });
+        authorizeFootwork("MoveRight", { 1, 0, 0 });
+        authorizeFootwork("MoveForward", { 0, 0, 1 }); // Forward is Z
+        authorizeFootwork("MoveBackward", { 0, 0, -1 });
+
+        // 2. Authorize Racket/Torso State
+        cPlayerAuthorization->floatMap["TorsoLeftLoad"] = static_cast<float>(cPlayerInput->holdTime["TorsoLeft"]);
+        cPlayerAuthorization->floatMap["TorsoRightLoad"] = static_cast<float>(cPlayerInput->holdTime["TorsoRight"]);
+
+        // The "Three Gear" Authorization
+        cPlayerAuthorization->floatMap["ManualReachZ"] = cPlayerInput->axes["ReachZ"];
+
+        // 3. Authorize Attack Phase
+        cPlayerAuthorization->boolMap["RequestReleaseSwing"] = false;
+        cPlayerAuthorization->boolMap["RequestStopBackswing"] = false;
+        cPlayerAuthorization->boolMap["RequestBackswing"] = false;
+        cPlayerAuthorization->boolMap["RequestStopPush"] = false;
+        cPlayerAuthorization->boolMap["RequestPush"] = false;
+
+        if (cPlayerInput->actions["StartBackswing"] && cPlayerInput->actions["EnableBackswing"]) {
+            cPlayerAuthorization->boolMap["RequestBackswing"] = true;
+        }
+        if (!cPlayerInput->actions["EnableBackswing"] && cPlayerAuthorization->floatMap["ManualReachZ"] > 0) {
+            cPlayerAuthorization->boolMap["RequestPush"] = true;
+        }
+        if (cPlayerInput->actions["StartAttack"]) cPlayerAuthorization->boolMap["RequestReleaseSwing"] = true;
+        if (cPlayerInput->actions["StopBackswing"]) cPlayerAuthorization->boolMap["RequestStopBackswing"] = true;
+        if (cPlayerInput->actions["StopPush"]) cPlayerAuthorization->boolMap["RequestStopPush"] = true;
+        // Inside PlayerActionSystem::update
+        cPlayerAuthorization->vec2Map["SteerIntent"] = Vec2(cPlayerInput->axes["J1X"], cPlayerInput->axes["J1Y"]);
+        cPlayerAuthorization->vec2Map["BladeOrientation"] = Vec2(cPlayerInput->axes["J2X"] * 100, cPlayerInput->axes["J2Y"] * 100);
+    }
+
+    return { SystemExecResult::Ran };
+}
+
+--- FILE: src\systems\game\action\PlayerActionSystem.hpp ---
+#pragma once
+#include "ecs/system/ISystem.hpp"
+class PlayerActionSystem : public ISystem {
+public:
+    SystemExec update(GameContext* context);
+};
+
+
+--- FILE: src\systems\game\action\debug\DebugActionSystem.cpp ---
+#include "DebugActionSystem.hpp"
+
+#include "debug/Debug.hpp"
+#include "math/GridTransform.hpp"
+#include "math/Vec3.hpp"
+#include "math/Vec2.hpp"
+#include "display/DisplayUtils.hpp"
+#include "game/utils/GameContext.hpp"
+SystemExec DebugActionSystem::update(GameContext* context) {
+    auto& intent = context->debugIntent;
+    auto& debug = context->physicsDebug;
+
+    // --- Click spawn ---
+    if (intent.clickSpawnRequested && debug.clickToSpawn) {
+        Vec2 logicalMouse = DisplayUtils::windowToLogical(
+            intent.clickScreenPos,
+            context->display
+        );
+
+        Vec2 posXY_m =
+            context->camera.homography.imageToWorld(logicalMouse);
+
+        Vec3 pos_m(
+            posXY_m.x,
+            debug.debugBallHeight,
+            posXY_m.y
+        );
+
+        if (debug.debugSpinEnabled) {
+            context->entityFactory.createBall(
+                pos_m,
+                debug.debugBallVelocity,
+                debug.debugBallSpin
+            );
+        }
+        else {
+            context->entityFactory.createBall(
+                pos_m,
+                debug.debugBallVelocity
+            );
+        }
+    }
+
+	return { SystemExecResult::Ran };
+}
+
+--- FILE: src\systems\game\action\debug\DebugActionSystem.hpp ---
+#pragma once
+
+#include "ecs/system/ISystem.hpp"
+
+
+class DebugActionSystem : public ISystem {
+public:
+    SystemExec update(GameContext* context);
+};
+
+
+--- FILE: src\systems\game\collision\BoundingBoxUpdateSystem.cpp ---
+#include "BoundingBoxUpdateSystem.hpp"
+
+#include "components/Components.hpp"
+
+SystemExec BoundingBoxUpdateSystem::update(GameContext* context) {
+	for (auto entity : context->registry.getEntitiesWith<CBoundingBox3D, CTransform3D>()) {
+		if (entity.name == "table") continue;
+		auto [cBoundingBox3D, cTransform3D] = context->registry.getComponents<CBoundingBox3D, CTransform3D>(entity);
+		cBoundingBox3D->lastBox = cBoundingBox3D->box;
+		Vec3 pos_m = cTransform3D->pos_m;
+		Vec3 halfSize = cBoundingBox3D->halfSize;
+		cBoundingBox3D->box = Bounds3D(pos_m - halfSize, pos_m + halfSize);
+
+	}
+	return { SystemExecResult::Ran };
+}
+
+--- FILE: src\systems\game\collision\BoundingBoxUpdateSystem.hpp ---
+#pragma once
+#include "ecs/system/ISystem.hpp"
+#include "game/utils/GameContext.hpp"
+class BoundingBoxUpdateSystem : public ISystem {
+public:
+    SystemExec update(GameContext* context) override;
+
+};
+
+
+--- FILE: src\systems\game\debug\BallSpawnDebugSystem.cpp ---
+#include "BallSpawnDebugSystem.hpp"
+#include "systems/game/imgui/GameImGuiConsole.hpp"
+SystemExec BallSpawnDebugSystem::update(GameContext * context) {
+    // --- Auto ball spawn ---
+    auto& debug = context->ballSpawnDebug;
+    if (debug.autoSpawn) {
+        debug.timer += context->frameStats.dt;
+        if (debug.timer >= debug.interval) {
+            debug.timer = 0.f;
+            spawnDebugBall(context);
+        }
+    }
+    return { SystemExecResult::Ran };
+   
+}
+void BallSpawnDebugSystem::spawnDebugBall(GameContext* context) {
+    auto& debug = context->ballSpawnDebug;
+    const float speed = debug.feedSpeed;
+    // Mode 1 ?Toward Racket
+    Entity eRacket;
+
+    // Mode: Toward racket (player or opponent)
+    if (debug.mode == BallSpawnMode::TowardRacket ||
+        debug.mode == BallSpawnMode::TowardOpponentRacket)
+    {
+        if (debug.mode == BallSpawnMode::TowardRacket) {
+            auto* ePlayer = context->registry.getEntity("player");
+            if (!ePlayer) return;
+
+            auto* handle = context->registry.getComponent<CRacketHandle>(*ePlayer);
+            if (!handle) return;
+
+            eRacket = handle->racketEntity;
+        }
+        else {
+            auto* eOpponent = context->registry.getEntity("opponent");
+            if (!eOpponent) return;
+
+            auto* handle = context->registry.getComponent<CRacketHandle>(*eOpponent);
+            if (!handle) return;
+
+            eRacket = handle->racketEntity;
+        }
+
+        auto* cRacketPhysical = context->registry.getComponent<CRacketPhysical>(eRacket);
+        auto* cRacketTransform3D = context->registry.getComponent<CTransform3D>(eRacket);
+        if (!cRacketPhysical || !cRacketTransform3D) return;
+
+        // Invariants
+        Vec3 outgoing = cRacketPhysical->worldNormal;   // post-contact
+        Vec3 incoming = -outgoing;           // pre-contact
+
+        Vec3 out = cRacketPhysical->worldNormal.normalized();
+
+        float offset = .4f; // always positive
+        Vec3 spawnPos = cRacketTransform3D->pos_m + out * offset;
+        spawnPos.y += speed * context->physicsDebug.towardsRacketHeightDebugFactor;
+        Vec3 vel = -out * speed;
+
+        Entity ball = context->entityFactory.createBall(spawnPos, vel);
+        if (auto* v = context->registry.getComponent<CVelocity3D>(ball)) {
+            ImGuiConsoleQueue(
+                "[Spawn] vel = " +
+                std::to_string(v->vel_mps.x) + ", " +
+                std::to_string(v->vel_mps.y) + ", " +
+                std::to_string(v->vel_mps.z)
+            );
+            ImGuiConsoleQueue("[Spawn] out = " + std::to_string(out.x) + ", " + std::to_string(out.y) + ", " + std::to_string(out.z));
+            ImGuiConsoleQueue("[Spawn] speed = " + std::to_string(speed));
+        }
+    }
+
+
+    // Mode 2 ?Fixed Position
+    if (debug.mode == BallSpawnMode::FixedPosition) {
+        Vec3 spawnPos(
+            debug.fixedPosLeft.x,
+            context->physicsDebug.debugBallHeight,
+            debug.fixedPosLeft.z
+        );
+
+        context->entityFactory.createBall(
+            spawnPos,
+            context->physicsDebug.debugBallVelocity,
+            context->physicsDebug.debugBallSpin
+        );
+        return;
+    }
+
+    // Mode 3 ?Alternate L / R
+    if (debug.mode == BallSpawnMode::AlternateLeftRight) {
+        debug.spawnLeftLast = !debug.spawnLeftLast;
+
+        const Vec3& src = debug.spawnLeftLast
+            ? debug.fixedPosLeft
+            : debug.fixedPosRight;
+
+        Vec3 spawnPos(
+            src.x,
+            context->physicsDebug.debugBallHeight,
+            src.z
+        );
+
+        Entity ball = context->entityFactory.createBall(
+            spawnPos,
+            context->physicsDebug.debugBallVelocity,
+            context->physicsDebug.debugBallSpin
+        );
+
+        return;
+    }
+
+
+}
+
+--- FILE: src\systems\game\debug\BallSpawnDebugSystem.hpp ---
+#pragma once
+#include "components/Components.hpp"
+#include "game/utils/GameContext.hpp"
+#include "ecs/system/ISystem.hpp"
+class BallSpawnDebugSystem : public ISystem {
+public:
+    SystemExec update(GameContext* context);
+    void spawnDebugBall(GameContext* context);
+};
+
+
+--- FILE: src\systems\game\imgui\GameImGuiConsole.cpp ---
+#include "GameImGuiConsole.hpp"
+#include <imgui.h>
+#include <deque>
+#include <mutex>
+
+namespace {
+    std::deque<std::string> g_lines;
+    size_t g_maxLines = 500;
+    bool g_autoScroll = true;
+
+    std::mutex g_mutex;
+}
+
+void ImGuiConsoleQueue(const std::string& msg)
+{
+    std::lock_guard<std::mutex> lock(g_mutex);
+
+    g_lines.push_back(msg);
+
+    if (g_lines.size() > g_maxLines)
+        g_lines.pop_front();
+}
+void ImGuiConsoleQueue(const std::string& varName, const float& varValue)
+{
+    std::lock_guard<std::mutex> lock(g_mutex);
+    std::string msg = varName + ": " + std::to_string(varValue);
+    g_lines.push_back(msg);
+
+    if (g_lines.size() > g_maxLines)
+        g_lines.pop_front();
+}
+void ImGuiConsoleClear()
+{
+    std::lock_guard<std::mutex> lock(g_mutex);
+    g_lines.clear();
+}
+
+void ImGuiConsoleSetMaxLines(size_t maxLines)
+{
+    g_maxLines = maxLines;
+}
+
+void ImGuiConsoleDraw(bool* pOpen)
+{
+    if (!ImGui::Begin("Output / Debug Console", pOpen)) {
+        ImGui::End();
+        return;
+    }
+
+    // Controls
+    if (ImGui::Button("Clear"))
+        ImGuiConsoleClear();
+
+    ImGui::SameLine();
+    ImGui::Checkbox("Auto-scroll", &g_autoScroll);
+
+    ImGui::Separator();
+
+    // Scrollable region
+    ImGui::BeginChild("ConsoleScrollRegion",
+        ImVec2(0, 0),
+        false,
+        ImGuiWindowFlags_HorizontalScrollbar);
+
+    {
+        std::lock_guard<std::mutex> lock(g_mutex);
+
+        for (const auto& line : g_lines) {
+            ImGui::TextUnformatted(line.c_str());
+        }
+
+        if (g_autoScroll && ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
+            ImGui::SetScrollHereY(1.0f);
+    }
+
+    ImGui::EndChild();
+    ImGui::End();
+}
+
+
+--- FILE: src\systems\game\imgui\GameImGuiConsole.hpp ---
+#pragma once
+#include <string>
+
+// Queue a line of text to the ImGui console
+void ImGuiConsoleQueue(const std::string& msg);
+void ImGuiConsoleQueue(const std::string& varName, const float& varValue);
+// Draw the ImGui console window (call once per frame)
+void ImGuiConsoleDraw(bool* pOpen = nullptr);
+
+// Optional helpers
+void ImGuiConsoleClear();
+void ImGuiConsoleSetMaxLines(size_t maxLines);
+
+

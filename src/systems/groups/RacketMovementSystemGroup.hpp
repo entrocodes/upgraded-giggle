@@ -1,9 +1,11 @@
 #pragma once
 
 #include "game/utils/GameContext.hpp"
+#include "systems/game/racket/RacketInputSystem.hpp"
+#include "systems/game/racket/RacketPoseSystem.hpp"
 #include "systems/game/racket/RacketOrientationSystem.hpp"
-#include "systems/game/racket/RacketArmSystem.hpp"
-#include "systems/game/racket/RacketSwingSystem.hpp"
+#include "systems/game/racket/RacketReachSystem.hpp"
+#include "systems/game/racket/RacketStrokeSystem.hpp"
 #include "systems/game/racket/RacketBoundingBoxSystem.hpp"
 #include "ecs/system/ISystemGroup.hpp"
 
@@ -12,9 +14,11 @@ public:
     explicit RacketMovementSystemGroup(SystemFactory& factory)
         : m_factory(factory)
     {
-        m_graph.add<RacketSwingSystem>(m_factory, 0, TickPhase::Fixed);
-        m_graph.add<RacketArmSystem>(m_factory, 100, TickPhase::Fixed);
-        m_graph.add<RacketOrientationSystem>(m_factory, 200, TickPhase::Fixed);
+        m_graph.add<RacketInputSystem>(m_factory, 0, TickPhase::Fixed);
+        m_graph.add<RacketOrientationSystem>(m_factory, 25, TickPhase::Fixed);
+        m_graph.add<RacketStrokeSystem>(m_factory, 50, TickPhase::Fixed);
+        m_graph.add<RacketReachSystem>(m_factory, 100, TickPhase::Fixed);
+        m_graph.add<RacketPoseSystem>(m_factory, 150, TickPhase::Fixed);
         m_graph.add<RacketBoundingBoxSystem>(m_factory, 300, TickPhase::Fixed);
     }
 

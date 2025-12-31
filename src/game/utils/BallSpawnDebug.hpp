@@ -12,7 +12,7 @@ struct BallSpawnDebug {
     float interval = 1.0f;
     float timer = 0.0f;
 
-    BallSpawnMode mode = BallSpawnMode::TowardRacket;
+    BallSpawnMode mode = BallSpawnMode::FixedPosition;
 
     Vec3 fixedPosLeft = Vec3(0.5f, 0.f, 1.0f); // example table location
     Vec3 fixedPosRight = Vec3(1.0f, 0.f, 1.0f); // example table location

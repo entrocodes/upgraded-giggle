@@ -11,7 +11,7 @@ public:
     Vec3 calculateForceMagnus(
         const Vec3& spinRevPerSec, // world-space spin (rev/s)
         const Vec3& vel,
-        float kMagnus = 0.0001f     // tune this
+        float kMagnus = 0.0005     // tune this
     ) {
         float speed = vel.length();
         if (speed < 0.01f) return { 0,0,0 };

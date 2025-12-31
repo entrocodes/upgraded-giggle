@@ -3,7 +3,7 @@
 #include "game/utils/GameContext.hpp"
 #include "ecs/system/ISystem.hpp"
 
-class RacketArmSystem : public ISystem {
+class RacketReachSystem : public ISystem {
 public:
     SystemExec update(GameContext* context);
 

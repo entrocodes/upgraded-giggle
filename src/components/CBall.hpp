@@ -46,10 +46,11 @@ public:
     float mass = .0027f; //kg
     bool hasFallen = false;
     bool hitNet = false;
-    bool racketLastContact = false;
+    
     Entity ballShadow;
     ContactState contactState = ContactState::None;
     ContactSurface contactSurface = ContactSurface::None;
+    ContactSurface lastContactSurface = ContactSurface::None;
     bool impactResolved = false;
     bool contactingSurface = false;
     CBall() = default;

@@ -2,7 +2,7 @@
 #include <imgui.h>
 #include <deque>
 #include <mutex>
-
+#include "math/Vec3.hpp"
 namespace {
     std::deque<std::string> g_lines;
     size_t g_maxLines = 500;
@@ -24,6 +24,15 @@ void ImGuiConsoleQueue(const std::string& varName, const float& varValue)
 {
     std::lock_guard<std::mutex> lock(g_mutex);
     std::string msg = varName + ": " + std::to_string(varValue);
+    g_lines.push_back(msg);
+
+    if (g_lines.size() > g_maxLines)
+        g_lines.pop_front();
+}
+void ImGuiConsoleQueue(const std::string& varName, const Vec3& varValue)
+{
+    std::lock_guard<std::mutex> lock(g_mutex);
+    std::string msg = varName + ": (" + std::to_string(varValue.x) + ", " + std::to_string(varValue.y) + ", " + std::to_string(varValue.z) + ")";
     g_lines.push_back(msg);
 
     if (g_lines.size() > g_maxLines)

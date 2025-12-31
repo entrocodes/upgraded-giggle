@@ -77,7 +77,17 @@ struct MainMenuIntent {
     Vec2 mouseClickPos = { 0, 0 };
     MenuDirection menuSelectionInput = MenuDirection::None;
 };
+struct RacketOrientation {
+    float max_euler_y = 35;
+    float max_euler_x = 45;
+
+};
+struct StrokeSettings {
+    float swingSpeedFactor = 1.6f;
+};
 struct PhysicsDebugSettings {
+    RacketOrientation racketOrientation;
+    StrokeSettings strokeSettings;
     Vec3 debugBallSpin = { 0.0f, 0.0f, 0.0f };
     float debugBallHeight = 1.0f;
     Vec3 debugBallVelocity = { 0.0f,0.0f,-1.5f };
@@ -105,6 +115,7 @@ struct PhysicsDebugSettings {
     float towardsRacketHeightDebugFactor = .15f;
 
 };
+
 struct MetaInputState {
     bool quit = false;
     bool paused = false;
