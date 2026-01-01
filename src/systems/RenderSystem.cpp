@@ -18,7 +18,7 @@ SystemExec RenderSystem::update(GameContext* context) {
         CTransform3D* cTransform3D = context->registry.getComponent<CTransform3D>(e);
         bool isShadow = context->registry.hasComponent<CBallShadow>(e);
 
-        drawList.push_back({ cRenderLayer->layer, e, DrawType::Sprite, cTransform3D, cTransform, cAnimation, nullptr, nullptr, isShadow });
+        drawList.push_back({ cRenderLayer->layer, e, DrawType::Sprite, cTransform3D, cTransform, cRenderLayer, cAnimation, nullptr, nullptr, isShadow });
     }
 
     // Logos — drawn on ball
@@ -27,7 +27,7 @@ SystemExec RenderSystem::update(GameContext* context) {
         if (!cBall || !cBallTransform3D || !cBallTransform || !cBallRenderLayer) continue;
         if (!cBall->logo.visible || cBall->logo.opacity <= 0.f) continue;
 
-        drawList.push_back({ cBallRenderLayer->layer, eBall, DrawType::Logo, cBallTransform3D, cBallTransform, nullptr, cBall, nullptr, false });
+        drawList.push_back({ cBallRenderLayer->layer, eBall, DrawType::Logo, cBallTransform3D, cBallTransform, cBallRenderLayer, nullptr, cBall, nullptr, false });
     }
 
     // Text
@@ -36,7 +36,7 @@ SystemExec RenderSystem::update(GameContext* context) {
         if (!cTextText || !cTextTransform || !cTextRenderLayer) continue;
         if (!cTextText->visible) continue;
 
-        drawList.push_back({ cTextRenderLayer->layer, eText, DrawType::Text, nullptr, cTextTransform, nullptr, nullptr, cTextText, false });
+        drawList.push_back({ cTextRenderLayer->layer, eText, DrawType::Text, nullptr, cTextTransform, cTextRenderLayer, nullptr, nullptr, cTextText, false });
     }
 
     std::sort(drawList.begin(), drawList.end(),
@@ -51,7 +51,7 @@ SystemExec RenderSystem::update(GameContext* context) {
             sf::Sprite& sprite = aAnimation.getSprite();
 
             if (item.cTransform3D) {
-                sync3Dto2D(context, item.entity, item.cTransform, item.cTransform3D, item.isShadow);
+                sync3Dto2D(context, item.entity, item.cTransform, item.cTransform3D, item.cRenderLayer, item.isShadow);
             }
             else {
                 float alpha = context->frameAlpha;
@@ -105,7 +105,7 @@ void RenderSystem::drawBallLogo(GameContext* context, CBall* cBall, CTransform* 
     cBallTransform->renderPos = context->camera.homography.worldToImage(interp3D);
 
     sf::Vector2f ballCenter(cBallTransform->renderPos.x, cBallTransform->renderPos.y);
-    float ballRadiusPx = context->tableParameters.pixelsPerMeter * cBall->ballRadius + 3.5f;
+    float ballRadiusPx = context->renderSettings.pixelsPerMeter * cBall->ballRadius + 3.5f;
 
     Vec3 n = logo.normal;
     Vec3 up = { 0.f, -1.f, 0.f };
@@ -196,7 +196,7 @@ void RenderSystem::drawBallLogo(GameContext* context, CBall* cBall, CTransform* 
     }
 }
 
-void RenderSystem::sync3Dto2D(GameContext* context, Entity e, CTransform* cTransform, CTransform3D* cTransform3D, bool isShadow) {
+void RenderSystem::sync3Dto2D(GameContext* context, Entity e, CTransform* cTransform, CTransform3D* cTransform3D, CRenderLayer* cRenderLayer, bool isShadow) {
     float alpha = context->frameAlpha;
 
     // 1. Interpolate Position
@@ -236,5 +236,33 @@ void RenderSystem::sync3Dto2D(GameContext* context, Entity e, CTransform* cTrans
         interpPos3D.y = cTransform3D->pos_m.y;
     }
 
-    cTransform->renderPos = context->camera.homography.worldToImage(interpPos3D);
+    if (cRenderLayer->renderSpace == RenderSpace::WorldHomography) {
+        cTransform->renderPos =
+            context->camera.homography.worldToImage(interpPos3D);
+    }
+    else { // LocalPPM
+        auto [cLocalPPM] = context->registry.getComponents<CLocalPPM>(e);
+        Entity anchor = cLocalPPM->anchorEntity;
+        auto [cAnchorTransform3D] = context->registry.getComponents<CTransform3D>(anchor);
+        Vec3 anchorWorld_m = cAnchorTransform3D->pos_m;
+        Vec3 entityWorld_m = cTransform3D->pos_m;
+
+        // Step 1: project anchor once
+        Vec2 anchorPx = context->camera.homography.worldToImage(anchorWorld_m);
+
+        // Step 2: compute real world offset
+        Vec3 offset_m = entityWorld_m - anchorWorld_m;
+
+        // Step 3: convert offset without perspective
+        Vec2 offsetPx = {
+            offset_m.x * context->renderSettings.pixelsPerMeter,
+            offset_m.y * context->renderSettings.pixelsPerMeter
+        };
+
+        // Step 4: final screen position
+        cTransform->renderPos = anchorPx + offsetPx;
+
+    }
+
+
 }

@@ -15,7 +15,7 @@ Entity EntityFactory::createBackground() {
 
     const Animation& aRoom = m_assets.getAnimation("OrangeRoom");
     auto& cBackgroundAnimation = m_registry.addComponent<CAnimation>(eBackground, aRoom, false);
-    m_registry.addComponent<CRenderLayer>(eBackground, 0);
+    m_registry.addComponent<CRenderLayer>(eBackground, 0, RenderSpace::WorldHomography);
     // Ensure sprite origin is set and bounding box uses the animation sprite
     sf::Sprite& s = cBackgroundAnimation.animation.getSprite();
     s.setOrigin(s.getLocalBounds().width / 2.f, s.getLocalBounds().height / 2.f);
@@ -50,7 +50,7 @@ Entity EntityFactory::createTable() {
     auto& cTableAnimation =
         m_registry.addComponent<CAnimation>(eTable, aTable, false);
 
-    m_registry.addComponent<CRenderLayer>(eTable, 30);
+    m_registry.addComponent<CRenderLayer>(eTable, 30, RenderSpace::WorldHomography);
 
     // Ensure sprite origin is set
     sf::Sprite& s = cTableAnimation.animation.getSprite();
@@ -88,7 +88,7 @@ Entity EntityFactory::createNet() {
     auto& cNetAnimation = m_registry.addComponent<CAnimation>(eNet, aNet, false);
     auto& cNetTransform3D = m_registry.addComponent<CTransform3D>(eNet, netPos_m);
     auto& cBoundingBox3D = m_registry.addComponent<CBoundingBox3D>(eNet, Bounds3D(netPos_m - netSize_m / 2, netPos_m + netSize_m / 2));
-    m_registry.addComponent<CRenderLayer>(eNet, 60);
+    m_registry.addComponent<CRenderLayer>(eNet, 60, RenderSpace::WorldHomography);
     // Ensure sprite origin is set and bounding box uses the animation sprite
     sf::Sprite& s = cNetAnimation.animation.getSprite();
     s.setOrigin(s.getLocalBounds().width / 2.f, s.getLocalBounds().height / 2.f);
@@ -96,9 +96,9 @@ Entity EntityFactory::createNet() {
 
 
     // Center in camera space
-    Vec2 initialPos = m_camera.homography.worldToImage(cNetTransform3D.pos_m);
-    cNetTransform.pos = initialPos;
-    cNetTransform.lastPos = initialPos;
+    //Vec2 initialPos = m_camera.homography.worldToImage(cNetTransform3D.pos_m);
+    //cNetTransform.pos = initialPos;
+    //cNetTransform.lastPos = initialPos;
     return eNet;
 }
 
@@ -110,14 +110,15 @@ Entity EntityFactory::createPlayer() {
     m_registry.addComponent<Player>(ePlayer);
     m_registry.addComponent<CInput>(ePlayer);
     m_registry.addComponent<CState>(ePlayer, "stand");
-
+    m_registry.addComponent<CPose>(ePlayer);
     // --- Transform ---
     auto& cPlayerTransform3D = m_registry.addComponent<CTransform3D>(ePlayer);
     m_registry.addComponent<CVelocity3D>(ePlayer);
     m_registry.addComponent<CTransform>(ePlayer);
     m_registry.addComponent<CAuthorization>(ePlayer);
     // --- Render ---
-    m_registry.addComponent<CRenderLayer>(ePlayer, 90);
+    m_registry.addComponent<CRenderLayer>(ePlayer, 90, RenderSpace::LocalPPM);
+    m_registry.addComponent<CLocalPPM>(ePlayer, ePlayer);
     m_registry.addComponent<CBoundingBox3D>(ePlayer, Bounds3D(startPlayerPos_m - playerSize_m / 2, startPlayerPos_m + playerSize_m / 2));
     // --- Animation ---
     const Animation& aStand = m_assets.getAnimation("PlayerStand");
@@ -159,7 +160,7 @@ Entity EntityFactory::createPlayerRacket() {
     // Attach to player
     Entity* ePlayer = m_registry.getEntity("player");
     auto& cPlayerRacketHandle = m_registry.addComponent<CRacketHandle>(*ePlayer);
-
+    m_registry.addComponent<CLocalPPM>(eRacketShadow, *ePlayer);
     cPlayerRacketHandle.racketEntity = eRacket;
     cPlayerRacketHandle.freeOffset_m = Vec3(-.25f, -0.2f, 0.0f); // neutral ready position
 
@@ -171,15 +172,13 @@ Entity EntityFactory::createPlayerRacket() {
     auto& cPlayerRacketTransform3D = m_registry.addComponent<CTransform3D>(eRacket, startPos);
     m_registry.addComponent<CVelocity3D>(eRacket, Vec3());
     auto& cPlayerRacketTransform = m_registry.addComponent<CTransform>(eRacket);
-    Vec2 screenPos = m_camera.homography.worldToImage(cPlayerRacketTransform3D.pos_m);
-    cPlayerRacketTransform.pos = screenPos;
-    cPlayerRacketTransform.lastPos = screenPos; // Snap interpolation
     // Bounding volume from center
     const Vec3 halfSize = { 0.076f, 0.095f, 0.005f }; // bad place for this
     m_registry.addComponent<CBoundingBox3D>(eRacket, startPos, halfSize);
     const Animation& aRacket = m_assets.getAnimation("Racket");
     auto& cBallAnimation = m_registry.addComponent<CAnimation>(eRacket, aRacket, true);
-    m_registry.addComponent<CRenderLayer>(eRacket, 85);
+    m_registry.addComponent<CRenderLayer>(eRacket, 85, RenderSpace::LocalPPM);
+    m_registry.addComponent<CLocalPPM>(eRacket, *ePlayer);
     sf::Sprite& s = cBallAnimation.animation.getSprite();
     s.setOrigin(s.getLocalBounds().width / 2.f, s.getLocalBounds().height / 2.f);
     m_registry.addComponent<CRotation3D>(eRacket);
@@ -198,8 +197,8 @@ Entity EntityFactory::createOpponent() {
     m_registry.addComponent<CAuthorization>(eOpponent);
     m_registry.addComponent<CFootworkState>(eOpponent);
     // --- Render ---
-    m_registry.addComponent<CRenderLayer>(eOpponent, 20);
-
+    m_registry.addComponent<CRenderLayer>(eOpponent, 20, RenderSpace::LocalPPM);
+    m_registry.addComponent<CLocalPPM>(eOpponent, eOpponent);
     // --- Animation ---
     const Animation& aStand = m_assets.getAnimation("OpponentStand");
     auto& cOpponentAnimation = m_registry.addComponent<CAnimation>(eOpponent, aStand, false);
@@ -260,15 +259,14 @@ Entity EntityFactory::createOpponentRacket() {
     auto& cOpponentRacketTransform3D = m_registry.addComponent<CTransform3D>(eRacket, startPos);
     m_registry.addComponent<CVelocity3D>(eRacket, Vec3());
     auto& cOpponentRacketTransform = m_registry.addComponent<CTransform>(eRacket);
-    Vec2 screenPos = m_camera.homography.worldToImage(cOpponentRacketTransform3D.pos_m);
-    cOpponentRacketTransform.pos = screenPos;
-    cOpponentRacketTransform.lastPos = screenPos; // Snap interpolation
     // Bounding volume from center
     const Vec3 halfSize = { 0.076f, 0.095f, 0.005f }; // bad place for this
     m_registry.addComponent<CBoundingBox3D>(eRacket, startPos, halfSize);
     const Animation& aRacket = m_assets.getAnimation("Racket");
     auto& cBallAnimation = m_registry.addComponent<CAnimation>(eRacket, aRacket, true);
-    m_registry.addComponent<CRenderLayer>(eRacket, 85);
+    m_registry.addComponent<CRenderLayer>(eRacket, 85, RenderSpace::LocalPPM);
+    m_registry.addComponent<CLocalPPM>(eRacket, *eOpponent);
+    m_registry.addComponent<CLocalPPM>(eRacketShadow, *eOpponent);
     sf::Sprite& s = cBallAnimation.animation.getSprite();
     s.setOrigin(s.getLocalBounds().width / 2.f, s.getLocalBounds().height / 2.f);
     m_registry.addComponent<CRotation3D>(eRacket);
@@ -294,7 +292,7 @@ Entity EntityFactory::createBall(const Vec3& pos_m, const Vec3& vel_mps, const V
     // animation
     const Animation& aBall = m_assets.getAnimation("Ball");
     auto& cBallAnimation = m_registry.addComponent<CAnimation>(eBall, aBall, true);
-    m_registry.addComponent<CRenderLayer>(eBall, 40);
+    m_registry.addComponent<CRenderLayer>(eBall, 40, RenderSpace::WorldHomography);
     sf::Sprite& s = cBallAnimation.animation.getSprite();
     s.setOrigin(s.getLocalBounds().width / 2.f, s.getLocalBounds().height / 2.f);
 
@@ -307,7 +305,7 @@ Entity EntityFactory::createBallShadow(const Vec3& shadowPos_m) {
     // animation
     const Animation& aShadow = m_assets.getAnimation("BallShadow");
     auto& cBallShadowAnimation = m_registry.addComponent<CAnimation>(eBallShadow, aShadow, false);
-    m_registry.addComponent<CRenderLayer>(eBallShadow, 30);
+    m_registry.addComponent<CRenderLayer>(eBallShadow, 30, RenderSpace::WorldHomography);
     m_registry.addComponent<CTransform3D>(eBallShadow, shadowPos_m);
     sf::Sprite& s = cBallShadowAnimation.animation.getSprite();
     s.setOrigin(s.getLocalBounds().width / 2.f, s.getLocalBounds().height / 2.f);
@@ -316,13 +314,14 @@ Entity EntityFactory::createBallShadow(const Vec3& shadowPos_m) {
     return eBallShadow;
 }
 Entity EntityFactory::createRacketShadow() {
+    
     Entity eRacketShadow = m_registry.createEntity("racketShadow");
-    auto& cBallShadowTransform = m_registry.addComponent<CTransform>(eRacketShadow);
+    auto& cRacketShadowTransform = m_registry.addComponent<CTransform>(eRacketShadow);
 
     // animation
     const Animation& aShadow = m_assets.getAnimation("RacketShadow");
     auto& cBallShadowAnimation = m_registry.addComponent<CAnimation>(eRacketShadow, aShadow, false);
-    m_registry.addComponent<CRenderLayer>(eRacketShadow, 31);
+    m_registry.addComponent<CRenderLayer>(eRacketShadow, 31, RenderSpace::LocalPPM);
     m_registry.addComponent<CTransform3D>(eRacketShadow);
     m_registry.addComponent<CRacketShadow>(eRacketShadow);
     sf::Sprite& s = cBallShadowAnimation.animation.getSprite();
@@ -335,6 +334,6 @@ Entity EntityFactory::createText(std::string pString, float pCharacterSize, sf::
     Entity eText = m_registry.createEntity("text");
     m_registry.addComponent<CText>(eText, pString, pCharacterSize, pColor, pFont);
     m_registry.addComponent<CTransform>(eText, pPos);
-    m_registry.addComponent<CRenderLayer>(eText, 0);
+    m_registry.addComponent<CRenderLayer>(eText, 0, RenderSpace::WorldHomography);
     return eText;
 }

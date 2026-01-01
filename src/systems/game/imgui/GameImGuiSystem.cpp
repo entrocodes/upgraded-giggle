@@ -48,6 +48,7 @@ void GameImGuiSystem::drawDeveloperPanel(GameContext* context) {
     }
 
     if (ImGui::CollapsingHeader("Display")) {
+        ImGui::SliderFloat("PPM", &context->renderSettings.pixelsPerMeter, 90.0f, 500.0f);
         ImGui::Text("Resolution: %.0fx%.0f",
             context->display.windowSize.x,
             context->display.windowSize.y);
@@ -88,7 +89,7 @@ void GameImGuiSystem::drawDeveloperPanel(GameContext* context) {
     if (ImGui::CollapsingHeader("Ball Debug")) {
         ImGui::SliderFloat("Ball Height", &context->physicsDebug.debugBallHeight, 0.f, 3.f);
         ImGui::SliderFloat3("Velocity", &context->physicsDebug.debugBallVelocity.x, -5.f, 5.f);
-        ImGui::SliderFloat3("Spin", &context->physicsDebug.debugBallSpin.x, -2.f, 2.f);
+        ImGui::SliderFloat3("Spin", &context->physicsDebug.debugBallSpin.x, -20.f, 20.f);
         ImGui::Checkbox("Show Spin Arrows", &context->physicsDebug.debugBallSpinArrows);
         ImGui::Checkbox("Show Velocity Arrows", &context->physicsDebug.debugBallVelocityArrows);
         if (ImGui::Button("Reset Spin & Velocity")) {
@@ -295,14 +296,17 @@ void GameImGuiSystem::drawRacketDebug(GameContext* context) {
                 ImGui::Columns(1);
             }
             if (ImGui::CollapsingHeader("Orientation Settings")) {
-                ImGui::SliderFloat("Max Y Degrees", &context->physicsDebug.racketOrientation.max_euler_y, 15.0f, 75.0f);
-                ImGui::SliderFloat("Max X Degrees", &context->physicsDebug.racketOrientation.max_euler_x, 15.0f, 75.0f);
+                ImGui::SliderFloat("Max Y Degrees", &context->physicsDebug.racketOrientation.max_euler_y, 10.0f, 75.0f);
+                ImGui::SliderFloat("Max X Degrees", &context->physicsDebug.racketOrientation.max_euler_x, 10.0f, 75.0f);
             }
 
             // ================= SURFACE PHYSICS =================
             if (ImGui::CollapsingHeader("Surface Physics")) {
                 ImGui::SliderFloat("Rubber Friction (Grab)", &cRacketPhysical->friction, 0.0f, 2.0f, "%.2f");
                 ImGui::SliderFloat("Restitution (Bounciness)", &cRacketPhysical->restitution, 0.1f, 1.2f, "%.2f");
+                ImGui::SliderFloat("Spin Resistance", &context->physicsDebug.kSpinResistance, 1.f, 6.f, "%.1f");
+                ImGui::SliderFloat("jN Min", &context->physicsDebug.jnMin, .1f, .4f, "%.1f");
+                ImGui::SliderFloat("jN Max", &context->physicsDebug.jnMax, .5f, 1.f, "%.1f");
                 if (ImGui::Button("Reset to Standard Paddle")) {
                     cRacketPhysical->friction = 0.5f;
                     cRacketPhysical->restitution = 0.8f;

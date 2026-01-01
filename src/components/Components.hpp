@@ -26,3 +26,5 @@
 #include "CAuthorization.hpp"
 #include "CBodyTableCollision.hpp"
 #include "CRacketShadow.hpp"
+#include "CPose.hpp"
+#include "CLocalPPM.hpp"

@@ -138,6 +138,27 @@ public:
             return *c;
         return addComponent<T>(e, std::forward<Args>(args)...);
     }
+
+    template <typename... Components>
+    using EntityComponentsTuple = std::tuple<Entity, Components*...>;
+    template <typename... Components>
+    std::vector<EntityComponentsTuple<Components...>>
+        getEntitiesWithComponents() const {
+        std::vector<EntityComponentsTuple<Components...>> result;
+
+        for (const auto& e : m_entities) {
+            if (!hasAllComponents<Components...>(e))
+                continue;
+
+            result.emplace_back(
+                e,
+                getComponent<Components>(e)...   // safe because we checked
+            );
+        }
+
+        return result;
+    }
+
 private:
     std::uint32_t m_nextEntityId = 0;
     std::vector<Entity> m_entities;

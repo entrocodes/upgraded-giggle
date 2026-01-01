@@ -1,7 +1,6 @@
 #pragma once
 
 #include "game/utils/GameContext.hpp"
-#include "systems/BoundarySystem.hpp"
 #include "systems/groups/PlayerMovementSystemGroup.hpp"
 #include "systems/TransformSaveSystem.hpp"
 #include "ecs/system/ISystemGroup.hpp"

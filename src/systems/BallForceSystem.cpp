@@ -15,7 +15,7 @@ SystemExec BallForceSystem::update(GameContext* context) {
         if (!cBall || !cBallVelocity3D || !cBallTransform3D) continue;
 
         cBall->bForces.forceGravity = calcBallGrav.calculateForceGravity(cBall->mass);
-        cBall->bForces.forceMagnus = calcMagnus.calculateForceMagnus(cBall->spin, cBallVelocity3D->vel_mps);
+        cBall->bForces.forceMagnus = calcMagnus.calculateForceMagnus(cBall->spin, cBallVelocity3D->vel_mps, cBall->mass);
         cBall->bForces.forceDrag = calcBallDrag.calculateForceDrag(cBallVelocity3D->vel_mps);
 
 

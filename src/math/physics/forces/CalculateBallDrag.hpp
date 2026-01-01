@@ -5,7 +5,7 @@
 class CalculateBallDrag {
 public:
     const float airDensity = 1.2f;     // kg/m³
-    const float kDrag = 0.47f;     // sphere Cd
+    const float kDrag = 0.55f;     // sphere Cd
     const float radius = 0.02f;        // 40 mm ball
     const float area = 3.14159f * radius * radius; // m²
 

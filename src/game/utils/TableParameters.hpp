@@ -1,7 +1,6 @@
 ﻿#pragma once
 
 struct TableParameters {
-    float pixelsPerMeter = 90; // tune this to match table/asset scale
     const float tableBottomY = 504.f; // pixels
     const float tableLength = 2.74f;     // meters (Z)
     const float tableWidth = 1.525f;    // meters (Y)

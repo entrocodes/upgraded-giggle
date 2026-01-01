@@ -10,6 +10,7 @@ struct DrawItem {
     DrawType type;
     CTransform3D* cTransform3D;
     CTransform* cTransform;
+    CRenderLayer* cRenderLayer;
     CAnimation* cAnimation; // only for Sprite
     CBall* cBall;           // only for Logo
     CText* cText;

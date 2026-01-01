@@ -78,19 +78,20 @@ struct MainMenuIntent {
     MenuDirection menuSelectionInput = MenuDirection::None;
 };
 struct RacketOrientation {
-    float max_euler_y = 35;
-    float max_euler_x = 45;
+    float max_euler_y = 25;
+    float max_euler_x = 18;
 
 };
 struct StrokeSettings {
-    float swingSpeedFactor = 1.6f;
+    float swingSpeedFactor = 6.0f;
 };
 struct PhysicsDebugSettings {
     RacketOrientation racketOrientation;
     StrokeSettings strokeSettings;
-    Vec3 debugBallSpin = { 0.0f, 0.0f, 0.0f };
-    float debugBallHeight = 1.0f;
-    Vec3 debugBallVelocity = { 0.0f,0.0f,-1.5f };
+    // X is back/top, Y is Cork, Z is side
+    Vec3 debugBallSpin = { -6.0, 0.0f, 0.0f };
+    float debugBallHeight = .5f;
+    Vec3 debugBallVelocity = { 0.0f,0.0f, -2.25f };
     bool debugRemoveAllBalls = false;
     bool debugDrawImpulses = false;
     bool debugSpinEnabled = true;
@@ -113,7 +114,9 @@ struct PhysicsDebugSettings {
     float maxBallSpin_revps = 180.0f;
     float slipKillFactor = .25f;
     float towardsRacketHeightDebugFactor = .15f;
-
+    float kSpinResistance = 4.f;
+    float jnMin = .2f;
+    float jnMax = .8f;
 };
 
 struct MetaInputState {
@@ -149,6 +152,8 @@ struct RenderSettings {
     bool debugDrawTorsoIndicator = false;
     bool debugDrawArcPath = false;
     bool debugDrawReachStiffness = false;
+
+    float pixelsPerMeter = 212.f;
 };
 
 
@@ -193,6 +198,6 @@ struct GameContext {
     bool inputBlocked = true;
     bool showLayerEditor = false;
     GameContext()
-        : camera(tableParameters.pixelsPerMeter), entityFactory(registry, display, assets, camera, tableParameters) {
+        : camera(renderSettings.pixelsPerMeter), entityFactory(registry, display, assets, camera, tableParameters) {
     }
 };

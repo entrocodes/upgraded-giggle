@@ -46,4 +46,37 @@ public:
     static bool overlapsX(const Bounds3D& a, const Bounds3D& b) {
         return a.min.x < b.max.x && a.max.x > b.min.x;
     }
+    static bool sweepSegmentAABB(
+        const Vec3& p0,
+        const Vec3& p1,
+        const Bounds3D& box,
+        float& outT)
+    {
+        Vec3 d = p1 - p0;
+
+        float tMin = 0.0f;
+        float tMax = 1.0f;
+
+        auto testAxis = [&](float p, float dp, float minB, float maxB) -> bool
+            {
+                if (std::abs(dp) < 1e-6f)
+                    return (p >= minB && p <= maxB);
+
+                float invD = 1.0f / dp;
+                float t0 = (minB - p) * invD;
+                float t1 = (maxB - p) * invD;
+                if (t0 > t1) std::swap(t0, t1);
+
+                tMin = std::max(tMin, t0);
+                tMax = std::min(tMax, t1);
+                return tMin <= tMax;
+            };
+
+        if (!testAxis(p0.x, d.x, box.min.x, box.max.x)) return false;
+        if (!testAxis(p0.y, d.y, box.min.y, box.max.y)) return false;
+        if (!testAxis(p0.z, d.z, box.min.z, box.max.z)) return false;
+
+        outT = tMin;
+        return true;
+    }
 };
