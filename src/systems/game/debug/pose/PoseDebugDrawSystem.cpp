@@ -14,6 +14,7 @@ SystemExec PoseDebugDrawSystem::update(GameContext* context) {
 			PoseJoint& j0 = pose.joint(b.joint1);
 			PoseJoint& j1 = pose.joint(b.joint2);
 			Debug::queueLine3D(j0.pos_m, j1.pos_m, sf::Color::Green);
+			
 			});
 
 	}

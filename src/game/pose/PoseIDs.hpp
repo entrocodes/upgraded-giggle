@@ -2,7 +2,9 @@
 
 enum PoseJointID {
     NeckBase,
-    Pelvis,
+    CenterPelvis,
+    LeftPelvis,
+    RightPelvis,
     Torso,
     RightShoulder,
     RightElbow,
@@ -23,11 +25,13 @@ enum class PoseBoneID {
     LeftUpperLeg,
     LeftLowerLeg,
     LeftShoulder,
+    LeftPelvisBone,
     RightUpperArm,
     RightLowerArm,
     RightUpperLeg,
     RightLowerLeg,
     RightShoulder,
+    RightPelvisBone,
     Spine,
     BoneCount
 };

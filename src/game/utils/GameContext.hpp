@@ -154,6 +154,8 @@ struct RenderSettings {
     bool debugDrawReachStiffness = false;
 
     float pixelsPerMeter = 212.f;
+    float pixelsPerMeterPlayerSideY = 205.902f;
+    float pixelsPerMeterPlayerSideX = 126.315f;
 };
 
 

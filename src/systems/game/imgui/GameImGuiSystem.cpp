@@ -166,8 +166,8 @@ void GameImGuiSystem::drawDeveloperPanel(GameContext* context) {
             ImGui::TextColored(ImVec4(1, 0, 0, 1), "PLAYER ENTITY NOT FOUND");
         }
         else {
-            auto [cPlayerTransform3D, cPlayerTransform, cPlayerState, cPlayerInput, cPlayerFootworkState, cPlayerAuthorization] =
-                context->registry.getComponents<CTransform3D, CTransform, CState, CInput, CFootworkState, CAuthorization>(*ePlayer);
+            auto [cPlayerPose, cPlayerTransform3D, cPlayerTransform, cPlayerState, cPlayerInput, cPlayerFootworkState, cPlayerAuthorization] =
+                context->registry.getComponents<CPose, CTransform3D, CTransform, CState, CInput, CFootworkState, CAuthorization>(*ePlayer);
 
             if (ImGui::CollapsingHeader("Player Position Stats")) {
                 if (cPlayerTransform3D)
@@ -226,6 +226,13 @@ void GameImGuiSystem::drawDeveloperPanel(GameContext* context) {
                     }
                 }
                 ImGui::EndChild();
+            }
+            if (cPlayerPose) {
+                if (ImGui::CollapsingHeader("Pose Debug")) {
+                    ImGui::SliderFloat("Scale X", &cPlayerPose->pose.scale.x, 0.0f, 100.0f);
+                    ImGui::SliderFloat("Scale Y", &cPlayerPose->pose.scale.y, 0.0f, 100.0f);
+                    ImGui::SliderFloat("Scale Z", &cPlayerPose->pose.scale.z, 0.0f, 100.0f);
+                }
             }
         }
     }

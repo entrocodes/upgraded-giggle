@@ -4,6 +4,7 @@
 #include "../utils/GameContext.hpp"
 #include "ecs/system/SystemGraph.hpp"
 #include "ecs/system/SystemFactory.hpp"
+#include "game/pose/PoseInitializer.hpp"
 
 class GameScene final : public Scene {
 public:
@@ -20,4 +21,5 @@ private:
     GameContext* m_context;
     SystemFactory m_factory;
     SystemGraph   systemGraph;
+    PoseInitializer poseInitializer;
 };

@@ -15,7 +15,7 @@ Entity EntityFactory::createBackground() {
 
     const Animation& aRoom = m_assets.getAnimation("OrangeRoom");
     auto& cBackgroundAnimation = m_registry.addComponent<CAnimation>(eBackground, aRoom, false);
-    m_registry.addComponent<CRenderLayer>(eBackground, 0, RenderSpace::WorldHomography);
+    m_registry.addComponent<CRenderLayer>(eBackground, 0);
     // Ensure sprite origin is set and bounding box uses the animation sprite
     sf::Sprite& s = cBackgroundAnimation.animation.getSprite();
     s.setOrigin(s.getLocalBounds().width / 2.f, s.getLocalBounds().height / 2.f);
@@ -50,7 +50,7 @@ Entity EntityFactory::createTable() {
     auto& cTableAnimation =
         m_registry.addComponent<CAnimation>(eTable, aTable, false);
 
-    m_registry.addComponent<CRenderLayer>(eTable, 30, RenderSpace::WorldHomography);
+    m_registry.addComponent<CRenderLayer>(eTable, 30);
 
     // Ensure sprite origin is set
     sf::Sprite& s = cTableAnimation.animation.getSprite();
@@ -88,7 +88,7 @@ Entity EntityFactory::createNet() {
     auto& cNetAnimation = m_registry.addComponent<CAnimation>(eNet, aNet, false);
     auto& cNetTransform3D = m_registry.addComponent<CTransform3D>(eNet, netPos_m);
     auto& cBoundingBox3D = m_registry.addComponent<CBoundingBox3D>(eNet, Bounds3D(netPos_m - netSize_m / 2, netPos_m + netSize_m / 2));
-    m_registry.addComponent<CRenderLayer>(eNet, 60, RenderSpace::WorldHomography);
+    m_registry.addComponent<CRenderLayer>(eNet, 60);
     // Ensure sprite origin is set and bounding box uses the animation sprite
     sf::Sprite& s = cNetAnimation.animation.getSprite();
     s.setOrigin(s.getLocalBounds().width / 2.f, s.getLocalBounds().height / 2.f);
@@ -117,7 +117,7 @@ Entity EntityFactory::createPlayer() {
     m_registry.addComponent<CTransform>(ePlayer);
     m_registry.addComponent<CAuthorization>(ePlayer);
     // --- Render ---
-    m_registry.addComponent<CRenderLayer>(ePlayer, 90, RenderSpace::LocalPPM);
+    m_registry.addComponent<CRenderLayer>(ePlayer, 90);
     m_registry.addComponent<CLocalPPM>(ePlayer, ePlayer);
     m_registry.addComponent<CBoundingBox3D>(ePlayer, Bounds3D(startPlayerPos_m - playerSize_m / 2, startPlayerPos_m + playerSize_m / 2));
     // --- Animation ---
@@ -177,7 +177,7 @@ Entity EntityFactory::createPlayerRacket() {
     m_registry.addComponent<CBoundingBox3D>(eRacket, startPos, halfSize);
     const Animation& aRacket = m_assets.getAnimation("Racket");
     auto& cBallAnimation = m_registry.addComponent<CAnimation>(eRacket, aRacket, true);
-    m_registry.addComponent<CRenderLayer>(eRacket, 85, RenderSpace::LocalPPM);
+    m_registry.addComponent<CRenderLayer>(eRacket, 85);
     m_registry.addComponent<CLocalPPM>(eRacket, *ePlayer);
     sf::Sprite& s = cBallAnimation.animation.getSprite();
     s.setOrigin(s.getLocalBounds().width / 2.f, s.getLocalBounds().height / 2.f);
@@ -197,7 +197,7 @@ Entity EntityFactory::createOpponent() {
     m_registry.addComponent<CAuthorization>(eOpponent);
     m_registry.addComponent<CFootworkState>(eOpponent);
     // --- Render ---
-    m_registry.addComponent<CRenderLayer>(eOpponent, 20, RenderSpace::LocalPPM);
+    m_registry.addComponent<CRenderLayer>(eOpponent, 20);
     m_registry.addComponent<CLocalPPM>(eOpponent, eOpponent);
     // --- Animation ---
     const Animation& aStand = m_assets.getAnimation("OpponentStand");
@@ -264,7 +264,7 @@ Entity EntityFactory::createOpponentRacket() {
     m_registry.addComponent<CBoundingBox3D>(eRacket, startPos, halfSize);
     const Animation& aRacket = m_assets.getAnimation("Racket");
     auto& cBallAnimation = m_registry.addComponent<CAnimation>(eRacket, aRacket, true);
-    m_registry.addComponent<CRenderLayer>(eRacket, 85, RenderSpace::LocalPPM);
+    m_registry.addComponent<CRenderLayer>(eRacket, 85);
     m_registry.addComponent<CLocalPPM>(eRacket, *eOpponent);
     m_registry.addComponent<CLocalPPM>(eRacketShadow, *eOpponent);
     sf::Sprite& s = cBallAnimation.animation.getSprite();
@@ -292,7 +292,7 @@ Entity EntityFactory::createBall(const Vec3& pos_m, const Vec3& vel_mps, const V
     // animation
     const Animation& aBall = m_assets.getAnimation("Ball");
     auto& cBallAnimation = m_registry.addComponent<CAnimation>(eBall, aBall, true);
-    m_registry.addComponent<CRenderLayer>(eBall, 40, RenderSpace::WorldHomography);
+    m_registry.addComponent<CRenderLayer>(eBall, 40);
     sf::Sprite& s = cBallAnimation.animation.getSprite();
     s.setOrigin(s.getLocalBounds().width / 2.f, s.getLocalBounds().height / 2.f);
 
@@ -305,7 +305,7 @@ Entity EntityFactory::createBallShadow(const Vec3& shadowPos_m) {
     // animation
     const Animation& aShadow = m_assets.getAnimation("BallShadow");
     auto& cBallShadowAnimation = m_registry.addComponent<CAnimation>(eBallShadow, aShadow, false);
-    m_registry.addComponent<CRenderLayer>(eBallShadow, 30, RenderSpace::WorldHomography);
+    m_registry.addComponent<CRenderLayer>(eBallShadow, 30);
     m_registry.addComponent<CTransform3D>(eBallShadow, shadowPos_m);
     sf::Sprite& s = cBallShadowAnimation.animation.getSprite();
     s.setOrigin(s.getLocalBounds().width / 2.f, s.getLocalBounds().height / 2.f);
@@ -321,7 +321,7 @@ Entity EntityFactory::createRacketShadow() {
     // animation
     const Animation& aShadow = m_assets.getAnimation("RacketShadow");
     auto& cBallShadowAnimation = m_registry.addComponent<CAnimation>(eRacketShadow, aShadow, false);
-    m_registry.addComponent<CRenderLayer>(eRacketShadow, 31, RenderSpace::LocalPPM);
+    m_registry.addComponent<CRenderLayer>(eRacketShadow, 31);
     m_registry.addComponent<CTransform3D>(eRacketShadow);
     m_registry.addComponent<CRacketShadow>(eRacketShadow);
     sf::Sprite& s = cBallShadowAnimation.animation.getSprite();
@@ -334,6 +334,6 @@ Entity EntityFactory::createText(std::string pString, float pCharacterSize, sf::
     Entity eText = m_registry.createEntity("text");
     m_registry.addComponent<CText>(eText, pString, pCharacterSize, pColor, pFont);
     m_registry.addComponent<CTransform>(eText, pPos);
-    m_registry.addComponent<CRenderLayer>(eText, 0, RenderSpace::WorldHomography);
+    m_registry.addComponent<CRenderLayer>(eText, 0);
     return eText;
 }

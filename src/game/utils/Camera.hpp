@@ -23,18 +23,6 @@ public:
         return view;
     }
 
-    // These can stay if you use them elsewhere:
-    Vec2 worldToScreen(const Vec2& worldPos, const Vec2& windowSize) const {
-        Vec2 p = homography.worldToImage(worldPos);
-        p = (p - pos) * zoom + windowSize * 0.5f;
-        return p;
-    }
-
-    Vec2 screenToWorld(const Vec2& screenPos, const Vec2& windowSize) const {
-        Vec2 p = (screenPos - windowSize * 0.5f) / zoom + pos;
-        return homography.imageToWorld(p);
-    }
-
 private:
     float& m_pixelsPerMeter;
 };

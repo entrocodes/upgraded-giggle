@@ -72,6 +72,7 @@ void GameScene::firstLoad() {
 
 
     m_context->camera.homography.calibrate(imagePoints, worldPoints);
+    poseInitializer.initialize(m_context);
 }
 void GameScene::onEnter() {
     m_context->entityFactory.createBackground();
@@ -81,6 +82,8 @@ void GameScene::onEnter() {
     m_context->entityFactory.createPlayerRacket();
     m_context->entityFactory.createOpponent();
     m_context->entityFactory.createOpponentRacket();
+
+    
 
 }
 void GameScene::update() {

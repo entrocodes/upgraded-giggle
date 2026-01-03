@@ -236,33 +236,7 @@ void RenderSystem::sync3Dto2D(GameContext* context, Entity e, CTransform* cTrans
         interpPos3D.y = cTransform3D->pos_m.y;
     }
 
-    if (cRenderLayer->renderSpace == RenderSpace::WorldHomography) {
-        cTransform->renderPos =
-            context->camera.homography.worldToImage(interpPos3D);
-    }
-    else { // LocalPPM
-        auto [cLocalPPM] = context->registry.getComponents<CLocalPPM>(e);
-        Entity anchor = cLocalPPM->anchorEntity;
-        auto [cAnchorTransform3D] = context->registry.getComponents<CTransform3D>(anchor);
-        Vec3 anchorWorld_m = cAnchorTransform3D->pos_m;
-        Vec3 entityWorld_m = cTransform3D->pos_m;
-
-        // Step 1: project anchor once
-        Vec2 anchorPx = context->camera.homography.worldToImage(anchorWorld_m);
-
-        // Step 2: compute real world offset
-        Vec3 offset_m = entityWorld_m - anchorWorld_m;
-
-        // Step 3: convert offset without perspective
-        Vec2 offsetPx = {
-            offset_m.x * context->renderSettings.pixelsPerMeter,
-            offset_m.y * context->renderSettings.pixelsPerMeter
-        };
-
-        // Step 4: final screen position
-        cTransform->renderPos = anchorPx + offsetPx;
-
-    }
+    cTransform->renderPos =context->camera.homography.worldToImage(interpPos3D);
 
 
 }
