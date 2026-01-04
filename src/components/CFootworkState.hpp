@@ -10,5 +10,6 @@ struct CFootworkState : public Component{
     StepRaw bufferedStep;
     Vec3 bufferedDirection;
     StepKind kind;
+    DominantFoot lastFootMovedAlone = DominantFoot::None;
 
 };

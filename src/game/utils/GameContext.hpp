@@ -34,6 +34,8 @@ struct BodyMovement {
     float twistFactor = .7f;
     float leanIntensity = .4f;
     float crouchIntensity = .5f;
+    bool disablePoseConstraints = false;
+
 };
 struct PlayerMovement {
     float maxStrength = 1.0f;

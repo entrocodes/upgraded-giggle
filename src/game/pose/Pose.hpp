@@ -7,7 +7,7 @@
 struct Pose {
     PoseJoint joints[JointCount];
     PoseBone  bones[(int)PoseBoneID::BoneCount];
-    Vec3      scale;
+    Vec3      scale = { 1, 1, 1 };
 
     PoseJoint& joint(PoseJointID id) { return joints[id]; }
     PoseBone& bone(PoseBoneID id) { return bones[(int)id]; }
@@ -29,23 +29,24 @@ struct Pose {
     PoseJoint& racket() { return joint(Racket); }
 
     Pose() {
-        neckBase().configure(0, 150, .015f);
-        centerPelvis().configure(-5.f, 5.f, 1.0f);
-        leftPelvis().configure(-45.f, 45.f, .015f);
-        rightPelvis().configure(-45.f, 45.f, .015f);
+        neckBase().configure(0, 150, .015f, .4);
+        centerPelvis().configure(-5.f, 5.f, 1.0f, .25);
+        leftPelvis().configure(-45.f, 45.f, .04, .4);
+        rightPelvis().configure(-45.f, 45.f, .04, .4);
 
-        leftShoulder().configure(-110, 110, .04f);
-        leftElbow().configure(0, 145.f, .01f);
-        leftWrist().configure(-80, 80, .015f);
-        leftKnee().configure(0, 150, .015f);
-        leftAnkle().configure(-15, 15, .008f);
+        leftShoulder().configure(-110, 110, .04f, .4);
+        leftElbow().configure(0, 145.f, .01f, .6);
+        leftWrist().configure(-80, 80, .015f, .8);
+        leftKnee().configure(0, 150, .03f, .6);
+        leftAnkle().configure(-15, 15, .04, .85);
 
-        rightShoulder().configure(-110, 110, .04f);
-        rightElbow().configure(0, 145.f, .01f);
-        rightWrist().configure(-80, 80, .015f);
-        rightKnee().configure(0, 150, .015f);
-        rightAnkle().configure(-15, 15, .008f);
+        rightShoulder().configure(-110, 110, .04f, .4);
+        rightElbow().configure(0, 145.f, .01f, .6);
+        rightWrist().configure(-80, 80, .015f, .8);
+        rightKnee().configure(0, 150, .03f, .6);
+        rightAnkle().configure(-15, 15, .04, .85);
 
+        racket().configure(-60, 60, 0.002f, 1);
         bone(PoseBoneID::LeftUpperArm).configure(LeftShoulder, LeftElbow, -0.08f, 0.03f);
         bone(PoseBoneID::LeftLowerArm).configure(LeftElbow, LeftWrist, -0.05f, 0.01f);
         bone(PoseBoneID::LeftPelvisBone).configure(CenterPelvis, LeftPelvis, -0.01f, 0.02f);
@@ -60,7 +61,10 @@ struct Pose {
         bone(PoseBoneID::RightLowerLeg).configure(RightKnee, RightAnkle, -0.07f, 0.01f);
         bone(PoseBoneID::RightShoulder).configure(NeckBase, RightShoulder, -0.25f, 0.15f);
 
-        bone(PoseBoneID::Spine).configure(NeckBase, CenterPelvis, -0.05f, 0.07f);
+        bone(PoseBoneID::Spine).configure(CenterPelvis, NeckBase, -0.05f, 0.07f);
+
+        bone(PoseBoneID::RacketHand).configure(LeftWrist, Racket, -.02, .02);
+
 
 
     }

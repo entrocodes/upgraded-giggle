@@ -28,3 +28,4 @@
 #include "CRacketShadow.hpp"
 #include "CPose.hpp"
 #include "CLocalPPM.hpp"
+#include "CPoseIntentBuffer.hpp"

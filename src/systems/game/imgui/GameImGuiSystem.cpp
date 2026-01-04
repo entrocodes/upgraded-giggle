@@ -166,8 +166,8 @@ void GameImGuiSystem::drawDeveloperPanel(GameContext* context) {
             ImGui::TextColored(ImVec4(1, 0, 0, 1), "PLAYER ENTITY NOT FOUND");
         }
         else {
-            auto [cPlayerPose, cPlayerTransform3D, cPlayerTransform, cPlayerState, cPlayerInput, cPlayerFootworkState, cPlayerAuthorization] =
-                context->registry.getComponents<CPose, CTransform3D, CTransform, CState, CInput, CFootworkState, CAuthorization>(*ePlayer);
+            auto [cPoseIntents, cPlayerPose, cPlayerTransform3D, cPlayerTransform, cPlayerState, cPlayerInput, cPlayerFootworkState, cPlayerAuthorization] =
+                context->registry.getComponents<CPoseIntentBuffer,CPose, CTransform3D, CTransform, CState, CInput, CFootworkState, CAuthorization>(*ePlayer);
 
             if (ImGui::CollapsingHeader("Player Position Stats")) {
                 if (cPlayerTransform3D)
@@ -206,10 +206,6 @@ void GameImGuiSystem::drawDeveloperPanel(GameContext* context) {
                     // Cast the enum to int to index the names array
                     int typeIdx = static_cast<int>(cPlayerFootworkState->current.kind);
                     ImGui::TextColored(ImVec4(0, 1, 0, 1), "Type: %s", names[typeIdx]);
-                    ImGui::Text("Speed: %.2f m/s", cPlayerFootworkState->current.maxSpeed_mps);
-                    ImGui::Text("Progress: %d / %d", cPlayerFootworkState->frame, cPlayerFootworkState->current.totalFrames);
-                    ImGui::ProgressBar((float)cPlayerFootworkState->frame / (float)cPlayerFootworkState->current.totalFrames);
-
                     if (cPlayerFootworkState->buffered) {
                         ImGui::TextColored(ImVec4(1, 0.5f, 0, 1), "Step BUFFERED");
                     }
@@ -227,13 +223,46 @@ void GameImGuiSystem::drawDeveloperPanel(GameContext* context) {
                 }
                 ImGui::EndChild();
             }
-            if (cPlayerPose) {
-                if (ImGui::CollapsingHeader("Pose Debug")) {
-                    ImGui::SliderFloat("Scale X", &cPlayerPose->pose.scale.x, 0.0f, 100.0f);
-                    ImGui::SliderFloat("Scale Y", &cPlayerPose->pose.scale.y, 0.0f, 100.0f);
-                    ImGui::SliderFloat("Scale Z", &cPlayerPose->pose.scale.z, 0.0f, 100.0f);
+            
+            if (ImGui::CollapsingHeader("Pose Debug")) {
+                if (cPlayerPose) {
+                ImGui::SliderFloat("Scale X", &cPlayerPose->pose.scale.x, 0.0f, 1.0f);
+                ImGui::SliderFloat("Scale Y", &cPlayerPose->pose.scale.y, 0.0f, 1.0f);
+                ImGui::SliderFloat("Scale Z", &cPlayerPose->pose.scale.z, 0.0f, 1.0f);
+                }
+                ImGui::Checkbox("Disable Pose Constraints", &context->playerMovement.bodyMovement.disablePoseConstraints);
+                ImGui::Separator();
+                for (auto [eCharacter, cPose] : context->registry.getEntitiesWithComponents<CPose>()) {
+                    auto& pose = cPose->pose;
+                    if (ImGui::TreeNode("Joint Data")) {
+                        pose.forEachJoint([](PoseJoint& j, PoseJointID id) {
+                            Vec3 pos_m = j.pos_m;
+                            Vec3 offset_m = j.offset_m;
+                            Vec3 restOffset_m = j.restOffset_m;
+                            const char* name = PoseJointIDNames[id];
+                            ImGui::Text("%s", name);
+                            ImGui::Text("Pos: %.2f, %.2f, %.2f", pos_m.x, pos_m.y, pos_m.z);
+                            ImGui::Text("Offset: %.2f, %.2f, %.2f", offset_m.x, offset_m.y, offset_m.z);
+                            ImGui::Text("Rest Offset: %.2f, %.2f, %.2f", restOffset_m.x, restOffset_m.y, restOffset_m.z);
+                            });
+                        ImGui::TreePop();
+                    }
+                }
+                if (cPoseIntents && ImGui::TreeNode("Pose Intents")) {
+                    int i = 0;
+                    for (auto& intent : cPoseIntents->intents) {
+                        ImGui::Text("#%d Joint=%s Type=%d W=%.2f",
+                            i++,
+                            PoseJointIDNames[intent.joint],
+                            (int)intent.type,
+                            intent.weight);
+                        //ImGui::Text("  Vec: %.2f %.2f %.2f",
+                        //    intent.vec.x, intent.vec.y, intent.vec.z);
+                    }
+                    ImGui::TreePop();
                 }
             }
+
         }
     }
 

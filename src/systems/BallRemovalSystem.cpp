@@ -95,5 +95,5 @@ void BallRemovalSystem::keepOnlyXMostRecent(GameContext* context, int countToKee
     }
 
     for (auto& e : toDelete) context->registry.deleteEntity(e);
-    Debug::debugPrint("Pruned ball count down to " + std::to_string(countToKeep));
+    //Debug::debugPrint("Pruned ball count down to " + std::to_string(countToKeep));
 }

@@ -5,7 +5,7 @@
 SystemExec PoseDebugDrawSystem::update(GameContext* context) {
 	
 	for (auto [eBody, cPose] : context->registry.getEntitiesWithComponents<CPose>()) {
-		auto pose = cPose->pose;
+		auto& pose = cPose->pose;
 		pose.forEachJoint([](PoseJoint& j, PoseJointID) {
 			Vec3 pos_m = j.pos_m;
 			Debug::queueSphere3D(pos_m, .02f, sf::Color::Magenta);

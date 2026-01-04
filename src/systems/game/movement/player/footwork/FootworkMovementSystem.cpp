@@ -1,114 +1,96 @@
 ﻿#include "FootworkMovementSystem.hpp"
 #include "math/Vec3.hpp"
+#include "game/pose/PoseIntent.hpp"
 #include "components/Components.hpp"
 #include "math/Constants.hpp"
+#include "debug/Debug.hpp"
 #include <cmath>
 
 SystemExec FootworkMovementSystem::update(GameContext* context) {
-	for (auto entity : context->registry.getEntitiesWith<CFootworkState, CVelocity3D>()) {
-		auto [cFootworkIntent, cFootworkState, cVelocity3D] = context->registry.getComponents<CFootworkIntent, CFootworkState, CVelocity3D>(entity);
-		if (cFootworkIntent) {
-			if (cFootworkIntent->direction.z < 0) {
+    for (auto [eCharacter, cFootworkState, cPoseIntentBuffer] : context->registry.getEntitiesWithComponents<CFootworkState, CPoseIntentBuffer>()) {
+        auto [cFootworkIntent] = context->registry.getComponents<CFootworkIntent>(eCharacter);
+        if (cFootworkIntent && !cFootworkState->active) {
+            StepRaw raw{};
+            raw.kind = (cFootworkIntent->heldFrames < context->playerMovement.footworkMovement.tapFrameLimit) ? StepKind::Tap :
+                (cFootworkIntent->heldFrames < context->playerMovement.footworkMovement.hopFrameLimit) ? StepKind::Hop : StepKind::Leap;
+            raw.strength = cFootworkIntent->directionalStrength * (cFootworkIntent->heldFrames / 120.0f);
+            cFootworkState->current = convertStepFromRaw(raw);
+            cFootworkState->direction = cFootworkIntent->direction;
+            if (cFootworkState->direction.x > 0 && cFootworkState->lastFootMovedAlone != DominantFoot::Right) { //LEFTY Logic Only
+                cFootworkState->current.dominantFoot = DominantFoot::Right;
+            }
+            else {
+                cFootworkState->current.dominantFoot = DominantFoot::Left;
+            }
+            cFootworkState->frame = 0;
+            cFootworkState->active = true;
+            context->registry.removeComponent<CFootworkIntent>(eCharacter);
+        }
 
-			}
-			StepRaw rawStep{};
-			float s = cFootworkIntent->directionalStrength;
-			if (cFootworkIntent->heldFrames < context->playerMovement.footworkMovement.tapFrameLimit) {
-				rawStep.kind = StepKind::Tap;
-				rawStep.strength = context->playerMovement.footworkMovement.tapStrength;
-			}
-			else if (cFootworkIntent->heldFrames < context->playerMovement.footworkMovement.hopFrameLimit) { //change to double tap later
-				rawStep.kind = StepKind::Hop;
-				rawStep.strength = (cFootworkIntent->heldFrames / context->playerMovement.footworkMovement.hopFrameFactor) * context->playerMovement.footworkMovement.hopStrength;
-			}
-			else {
-				rawStep.kind = StepKind::Leap;
-				rawStep.strength = (std::min(context->playerMovement.footworkMovement.maxLeapStrength, cFootworkIntent->heldFrames / context->playerMovement.footworkMovement.leapFrameFactor)) * context->playerMovement.footworkMovement.leapStrength;
-			}
-			rawStep.strength *= cFootworkIntent->directionalStrength;
-			StepProfile step = convertStepFromRaw(rawStep);
-			if (!cFootworkState->active) {
-				cFootworkState->active = true;
-				cFootworkState->frame = 0;
-				cFootworkState->current = step;
-				cFootworkState->direction = cFootworkIntent->direction;
+        if (cFootworkState->active) {
+            Debug::debugPrint("Footwork Active", cFootworkState->frame);
+            if (cFootworkState->frame < cFootworkState->current.totalFrames) {
+                float prevT = float(cFootworkState->frame - 1) / cFootworkState->current.totalFrames;
+                float currT = float(cFootworkState->frame) / cFootworkState->current.totalFrames;
+
+                float prevW = (cFootworkState->frame == 0)
+                    ? 0.0f
+                    : (0.5f - 0.5f * std::cos(prevT * PI));
+
+                float currW = 0.5f - 0.5f * std::cos(currT * PI);
+                float stride = (currW - prevW) * cFootworkState->current.maxStride_m;
 
 
-			}
-			else {
-				// buffer one step only
-				cFootworkState->buffered = true;
-				cFootworkState->bufferedStep = rawStep;
-				cFootworkState->bufferedDirection = cFootworkIntent->direction;
-			}
-			context->registry.removeComponent<CFootworkIntent>(entity);
-		}
-		if (cFootworkState->active) {
-			if (cFootworkState->frame < cFootworkState->current.totalFrames) {
+                if (cFootworkState->current.kind != StepKind::Leap) {
+                    if (cFootworkState->current.dominantFoot == DominantFoot::Left) {
+                        cPoseIntentBuffer->intents.push_back(
+                            { PoseJointID::LeftAnkle, PoseIntentType::Translate,cFootworkState->direction * stride * 50, 1.0f, 10.f }
+                        );
+                        cFootworkState->lastFootMovedAlone = DominantFoot::Left;
+                    }
+                    else if (cFootworkState->current.dominantFoot == DominantFoot::Right) {
+                        cPoseIntentBuffer->intents.push_back(
+                            { PoseJointID::RightAnkle, PoseIntentType::Translate,cFootworkState->direction * stride * 50, 1.0f, 10.f }
+                        );
+                        cFootworkState->lastFootMovedAlone = DominantFoot::Right;
+                    }
+                }
+                else {
+                    cPoseIntentBuffer->intents.push_back(
+                        { PoseJointID::CenterPelvis, PoseIntentType::Translate,cFootworkState->direction * stride, 1.0f, 10.f }
+                    );
+                    cFootworkState->lastFootMovedAlone = DominantFoot::None;
+                }
 
-				float t = float(cFootworkState->frame) /
-					float(cFootworkState->current.totalFrames);
-
-				float speed =
-					cFootworkState->current.maxSpeed_mps *
-					std::sin(t * PI);
-
-				cVelocity3D->vel_mps =
-					cFootworkState->direction * speed;
-			}
-			else {
-				// recovery frames → no movement
-				cVelocity3D->vel_mps = { 0.f, 0.f, 0.f };
-			}
-
-			cFootworkState->frame++;
-
-			if (cFootworkState->frame >=
-				cFootworkState->current.totalFrames +
-				cFootworkState->current.recoveryFrames) {
-
-				if (cFootworkState->buffered) {
-					cFootworkState->current =
-						convertStepFromRaw(cFootworkState->bufferedStep);
-					cFootworkState->direction = cFootworkState->bufferedDirection;
-					cFootworkState->frame = 0;
-					cFootworkState->buffered = false;
-				}
-				else {
-					cFootworkState->active = false;
-				}
-			}
-		}
-		else {
-			cVelocity3D->vel_mps = { 0.f, 0.f, 0.f };
-		}
-
-		return { SystemExecResult::Ran };
-	}
-	
+            }
+            cFootworkState->frame += 1;
+            if (cFootworkState->frame >= cFootworkState->current.totalFrames + cFootworkState->current.recoveryFrames) { 
+                cFootworkState->lastFootMovedAlone = DominantFoot::None;
+                cFootworkState->active = false;
+            }
+        }
+    }
+    return{ SystemExecResult::Ran };
 }
 
-StepProfile FootworkMovementSystem::convertStepFromRaw(const StepRaw& rawStep) {
 
-	StepProfile stepProfile{};
-	stepProfile.kind = rawStep.kind;
-	if (rawStep.kind == StepKind::Tap) {
-		stepProfile.totalFrames = 5;
-		stepProfile.recoveryFrames = 7;
-		stepProfile.maxSpeed_mps = rawStep.strength;
-		stepProfile.staminaCost = 5;
-	}
-	else if (rawStep.kind == StepKind::Hop) {
-		stepProfile.totalFrames = 10;
-		stepProfile.recoveryFrames = 15;
-		stepProfile.maxSpeed_mps = rawStep.strength;
-		stepProfile.staminaCost = 12;
-	}
-	else {
-		stepProfile.totalFrames = 18;
-		stepProfile.recoveryFrames = 24;
-		stepProfile.maxSpeed_mps = rawStep.strength;
-		stepProfile.staminaCost = 20;
-	}
-	return stepProfile;
+StepProfile FootworkMovementSystem::convertStepFromRaw(const StepRaw& rawStep) {
+    StepProfile step{}; step.kind = rawStep.kind;
+    if (rawStep.kind == StepKind::Tap) {
+        step.totalFrames = 5;
+        step.recoveryFrames = 2;
+        step.maxStride_m = rawStep.strength;
+        step.staminaCost = 5; }
+    else if (rawStep.kind == StepKind::Hop) {
+        step.totalFrames = 10;
+        step.recoveryFrames = 15;
+        step.maxStride_m = rawStep.strength;
+        step.staminaCost = 12;
+    }
+    else {
+        step.totalFrames = 18;
+        step.recoveryFrames = 24;
+        step.maxStride_m = rawStep.strength;
+        step.staminaCost = 20; }
+    return step;
 }

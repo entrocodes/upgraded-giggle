@@ -111,6 +111,7 @@ Entity EntityFactory::createPlayer() {
     m_registry.addComponent<CInput>(ePlayer);
     m_registry.addComponent<CState>(ePlayer, "stand");
     m_registry.addComponent<CPose>(ePlayer);
+    m_registry.addComponent<CPoseIntentBuffer>(ePlayer);
     // --- Transform ---
     auto& cPlayerTransform3D = m_registry.addComponent<CTransform3D>(ePlayer);
     m_registry.addComponent<CVelocity3D>(ePlayer);
