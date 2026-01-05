@@ -2,6 +2,8 @@
 
 #include "components/Components.hpp"
 
+static inline float safeLen(const Vec3& v) { return std::sqrt(v.lengthSq()); }
+
 void PoseInitializer::initialize(GameContext* context) {
     for (auto [eCharacter, cPose, cTransform3D] :
         context->registry.getEntitiesWithComponents<CPose, CTransform3D>()) {
@@ -46,10 +48,13 @@ void PoseInitializer::initialize(GameContext* context) {
             j.overflow_m = { 0, 0, 0 };
             });
 
-        pose.forEachBone([&](PoseBone& b, PoseBoneID) {
+        pose.forEachBone([&](PoseBone& b, PoseBoneID id) {
             PoseJoint& parent = pose.joint(b.joint1);
             PoseJoint& child = pose.joint(b.joint2);
             child.pos_m = parent.pos_m + child.baseOffset_m;
+            pose.bone(id).baseLength = safeLen(child.baseOffset_m) ;
             });
+        
+
     }
 }

@@ -7,4 +7,6 @@ struct CInput : public Component {
     std::unordered_map<std::string, float> axes;
     std::unordered_map<std::string, bool>  actions;
     std::unordered_map<std::string, int> holdTime;
+    bool ignoreFootworkAuthorization = false;
+    int ignoreFootworkAuthorizationTimer = 0;
 };

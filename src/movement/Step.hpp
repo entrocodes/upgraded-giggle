@@ -1,7 +1,7 @@
 #pragma once
 
 #include "math/Vec3.hpp"
-enum class StepKind { None, Tap, Hop, Leap };
+enum class StepKind { None, Tap, Hop, Leap, Reach };
 enum class DominantFoot { None, Left, Right };
 struct StepRaw {
     StepKind kind;

@@ -52,6 +52,25 @@ enum class PoseBoneID {
     RacketHand,
     BoneCount
 };
+static constexpr const char* PoseBoneIDNames[
+    static_cast<size_t>(PoseBoneID::BoneCount)
+] = {
+    "LeftUpperArm",
+    "LeftLowerArm",
+    "LeftUpperLeg",
+    "LeftLowerLeg",
+    "LeftShoulder",
+    "LeftPelvisBone",
+    "RightUpperArm",
+    "RightLowerArm",
+    "RightUpperLeg",
+    "RightLowerLeg",
+    "RightShoulder",
+    "RightPelvisBone",
+    "Spine",
+    "RacketHand"
+};
+
 
 static PoseBoneID poseSolveOrder[] = {
     PoseBoneID::LeftLowerLeg,

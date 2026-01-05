@@ -9,32 +9,48 @@ SystemExec PlayerActionSystem::update(GameContext* context) {
     auto entities = context->registry.getEntitiesWith<Player, CInput, CAuthorization>();
 
     for (auto e : entities) {
-        auto [cPlayerInput, cPlayerAuthorization] = context->registry.getComponents<CInput, CAuthorization>(e);
+        auto [cPlayerInput, cPlayerAuthorization, cPose] = context->registry.getComponents<CInput, CAuthorization, CPose>(e);
+        // Only trigger when the button is RELEASED
+        bool leftDown = cPlayerInput->holdTime["MoveLeft"] > 0;
+        bool rightDown = cPlayerInput->holdTime["MoveRight"] > 0;
+        if (leftDown && rightDown) {
+            cPose->pose.resetRest = true;
+            cPlayerInput->ignoreFootworkAuthorization = true;
+            cPlayerInput->ignoreFootworkAuthorization = 6;
+        }
+        else {
+            cPlayerInput->ignoreFootworkAuthorizationTimer--;
+            // 1. Authorize Footwork (Translation Logic)
+            auto authorizeFootwork = [&](const std::string& key, Vec3 dir) {
 
-        // 1. Authorize Footwork (Translation Logic)
-        auto authorizeFootwork = [&](const std::string& key, Vec3 dir) {
-            // Only trigger when the button is RELEASED
-            if (cPlayerInput->actions[key]) {
-                auto& footwork = context->registry.addComponent<CFootworkIntent>(e);
-                footwork.direction = dir;
+                if (cPlayerInput->actions[key]) {
+                    if (cPlayerInput->ignoreFootworkAuthorization && cPlayerInput->ignoreFootworkAuthorizationTimer > 0) {
+                        cPlayerInput->ignoreFootworkAuthorization = false;
+                        return;
+                    }
+                    auto& footwork = context->registry.addComponent<CFootworkIntent>(e);
+                    footwork.direction = dir;
 
-                // Ensure holdTime[key] hasn't been wiped yet by the InputSystem
-                footwork.heldFrames = cPlayerInput->holdTime[key];
-                if (key == "MoveLeft") {
-                    context->playerMovement.footworkMovement.debugFootworkIntent.leftHoldTime = cPlayerInput->holdTime[key];
+                    // Ensure holdTime[key] hasn't been wiped yet by the InputSystem
+                    footwork.heldFrames = cPlayerInput->holdTime[key];
+                    if (key == "MoveLeft") {
+                        context->playerMovement.footworkMovement.debugFootworkIntent.leftHoldTime = cPlayerInput->holdTime[key];
+
+                    }
+                    if (key == "MoveRight") {
+                        context->playerMovement.footworkMovement.debugFootworkIntent.rightHoldTime = cPlayerInput->holdTime[key];
+                    }
+                    footwork.directionalStrength = (dir.z != 0) ? 0.3f : 1.0f;
+                    context->playerMovement.moveTriggered = true;
                 }
-                if (key == "MoveRight") {
-                    context->playerMovement.footworkMovement.debugFootworkIntent.rightHoldTime = cPlayerInput->holdTime[key];
-                }
-                footwork.directionalStrength = (dir.z != 0) ? 0.3f : 1.0f;
-                context->playerMovement.moveTriggered = true;
-            }
-            };
+                };
 
-        authorizeFootwork("MoveLeft", { -1, 0, 0 });
-        authorizeFootwork("MoveRight", { 1, 0, 0 });
-        authorizeFootwork("MoveForward", { 0, 0, 1 }); // Forward is Z
-        authorizeFootwork("MoveBackward", { 0, 0, -1 });
+            authorizeFootwork("MoveLeft", { -1, 0, 0 });
+            authorizeFootwork("MoveRight", { 1, 0, 0 });
+            authorizeFootwork("MoveForward", { 0, 0, 1 }); // Forward is Z
+            authorizeFootwork("MoveBackward", { 0, 0, -1 });
+        }
+
 
         // 2. Authorize Racket/Torso State
         cPlayerAuthorization->floatMap["TorsoLeftLoad"] = static_cast<float>(cPlayerInput->holdTime["TorsoLeft"]);

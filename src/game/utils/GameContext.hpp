@@ -25,6 +25,7 @@ struct FootworkMovement {
     float tapFrameLimit = 6;
     float hopStrength = 2.5;
     float leapStrength = 3.5;
+    float reachStrength = 5;
     float hopFrameFactor = 30;
     float hopFrameLimit = 20;
     float leapFrameFactor = 25;

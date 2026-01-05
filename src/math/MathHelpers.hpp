@@ -94,4 +94,43 @@ public:
         // Return the projected point
         return a + ab * t;
     }
+    static Vec3 MathHelpers::rotateByEuler(const Vec3& v, const Vec3& eulerRad) {
+        Vec3 out = v;
+
+        // --- Yaw (Y axis) ---
+        if (eulerRad.y != 0.0f) {
+            float c = std::cos(eulerRad.y);
+            float s = std::sin(eulerRad.y);
+            out = {
+                out.x * c + out.z * s,
+                out.y,
+               -out.x * s + out.z * c
+            };
+        }
+
+        // --- Pitch (X axis) ---
+        if (eulerRad.x != 0.0f) {
+            float c = std::cos(eulerRad.x);
+            float s = std::sin(eulerRad.x);
+            out = {
+                out.x,
+                out.y * c - out.z * s,
+                out.y * s + out.z * c
+            };
+        }
+
+        // --- Roll (Z axis) ---
+        if (eulerRad.z != 0.0f) {
+            float c = std::cos(eulerRad.z);
+            float s = std::sin(eulerRad.z);
+            out = {
+                out.x * c - out.y * s,
+                out.x * s + out.y * c,
+                out.z
+            };
+        }
+
+        return out;
+    }
+
 };

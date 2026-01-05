@@ -10,6 +10,8 @@
 #include <cmath>
 #include <imgui_internal.h>
 #include "GameImGuiConsole.hpp"
+#include <cstddef>  // for size_t
+
 SystemExec GameImGuiSystem::update(GameContext* context) {
     if (context->renderSettings.hideImGui) {
         context->inputBlocked = false;
@@ -202,10 +204,13 @@ void GameImGuiSystem::drawDeveloperPanel(GameContext* context) {
             if (cPlayerFootworkState) {
                 if (ImGui::TreeNodeEx("Footwork State", ImGuiTreeNodeFlags_DefaultOpen)) {
                     ImGui::Text("Status: %s", cPlayerFootworkState->active ? "MOVING" : "IDLE");
-                    const char* names[] = { "None", "Tap", "Hop", "Leap" };
+                    const char* names[] = { "None", "Tap", "Hop", "Leap", "Reach"};
                     // Cast the enum to int to index the names array
                     int typeIdx = static_cast<int>(cPlayerFootworkState->current.kind);
+                    int recentTypeIdx = static_cast<int>(cPlayerFootworkState->recentStepKind);
                     ImGui::TextColored(ImVec4(0, 1, 0, 1), "Type: %s", names[typeIdx]);
+                    ImGui::TextColored(ImVec4(0, 1, 0, 1), "Recent Type: %s", names[recentTypeIdx]);
+                    ImGui::TextColored(ImVec4(0, 1, 0, 1), "Recent Direction: %.2f, %.2f, %.2f", cPlayerFootworkState->recentDirection.x, cPlayerFootworkState->recentDirection.y, cPlayerFootworkState->recentDirection.z);
                     if (cPlayerFootworkState->buffered) {
                         ImGui::TextColored(ImVec4(1, 0.5f, 0, 1), "Step BUFFERED");
                     }
@@ -225,25 +230,51 @@ void GameImGuiSystem::drawDeveloperPanel(GameContext* context) {
             }
             
             if (ImGui::CollapsingHeader("Pose Debug")) {
-                if (cPlayerPose) {
-                ImGui::SliderFloat("Scale X", &cPlayerPose->pose.scale.x, 0.0f, 1.0f);
-                ImGui::SliderFloat("Scale Y", &cPlayerPose->pose.scale.y, 0.0f, 1.0f);
-                ImGui::SliderFloat("Scale Z", &cPlayerPose->pose.scale.z, 0.0f, 1.0f);
-                }
                 ImGui::Checkbox("Disable Pose Constraints", &context->playerMovement.bodyMovement.disablePoseConstraints);
                 ImGui::Separator();
-                for (auto [eCharacter, cPose] : context->registry.getEntitiesWithComponents<CPose>()) {
+                for (auto [eCharacter, cPose, cTransform3D] : context->registry.getEntitiesWithComponents<CPose, CTransform3D>()) {
                     auto& pose = cPose->pose;
+                    Vec3& leftKneeRot = pose.joints[PoseJointID::LeftKnee].restRotation_rad;
+                    Vec3& leftKneePos = pose.joints[PoseJointID::LeftKnee].trueRestOffset_m;
+                    ImGui::SliderFloat("Left Knee X (rad)", &leftKneeRot.x, -3.14f, 3.14f, "%.2f");
+                    ImGui::SliderFloat("Left Knee Y (rad)", &leftKneeRot.y, -3.14f, 3.14f, "%.2f");
+                    ImGui::SliderFloat("Left Knee Z (rad)", &leftKneeRot.z, -3.14f, 3.14f, "%.2f");
+                    ImGui::Text("Left Knee Rest Offset %.2f, %.2f, %.2f", leftKneePos.x, leftKneePos.y, leftKneePos.z);
+                    ImGui::Checkbox("Disable Left Knee Rotation Calc", &pose.joints[PoseJointID::LeftKnee].disablerotationCalc);
                     if (ImGui::TreeNode("Joint Data")) {
                         pose.forEachJoint([](PoseJoint& j, PoseJointID id) {
                             Vec3 pos_m = j.pos_m;
                             Vec3 offset_m = j.offset_m;
                             Vec3 restOffset_m = j.restOffset_m;
+                            Vec3 deltaOffset_m = j.deltaOffset_m;
+                            Vec3 overflow_m = j.overflow_m;
+                            Vec3 restRot = j.restRotation_rad;
+                            Vec3 baseOffset_m = j.baseOffset_m;
                             const char* name = PoseJointIDNames[id];
                             ImGui::Text("%s", name);
                             ImGui::Text("Pos: %.2f, %.2f, %.2f", pos_m.x, pos_m.y, pos_m.z);
                             ImGui::Text("Offset: %.2f, %.2f, %.2f", offset_m.x, offset_m.y, offset_m.z);
                             ImGui::Text("Rest Offset: %.2f, %.2f, %.2f", restOffset_m.x, restOffset_m.y, restOffset_m.z);
+                            ImGui::Text("Base Offset: %.2f, %.2f, %.2f", baseOffset_m.x, baseOffset_m.y, baseOffset_m.z);
+                            ImGui::Text("Delta Offset: %.2f, %.2f, %.2f", deltaOffset_m.x, deltaOffset_m.y, deltaOffset_m.z);
+                            ImGui::Text("Overflow: %.2f, %.2f, %.2f, %.2f", overflow_m.x, overflow_m.y, overflow_m.z, j.overflowTransfer);
+                            ImGui::Text("Rest Rotation: %.2f, %.2f, %.2f", restRot.x, restRot.y, restRot.z);
+                            });
+                        ImGui::TreePop();
+                    }
+                    if (ImGui::TreeNode("Bone Data")) {
+                        pose.forEachBone([](PoseBone& b, PoseBoneID id) {
+
+                            const char* name = PoseBoneIDNames[static_cast<size_t>(id)];
+                            //const char* parentJointName = PoseJointIDNames[b.joint1];
+                            //const char* childJointName = PoseJointIDNames[b.joint2];
+                            ImGui::Text("%s", name);
+                            //ImGui::Text("   Parent Joint: %s", parentJointName[b.joint1]);
+                            //ImGui::Text("   Child Joint: %s", childJointName[b.joint2]);
+                            ImGui::Text("   Base Length: %.2f", b.baseLength);
+                            ImGui::Text("   Rest Stretch: %.2f", b.restStretch);
+                            ImGui::Text("   Max Compression and Stretch: %.2f, %.2f", b.maxCompression, b.maxStretch);
+
                             });
                         ImGui::TreePop();
                     }

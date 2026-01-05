@@ -7,5 +7,5 @@ class FootworkMovementSystem : public ISystem {
 public:
     SystemExec update(GameContext* context);
 private:
-    StepProfile convertStepFromRaw(const StepRaw& rawStep);
+    StepProfile convertStepFromRaw(GameContext* context, const StepRaw& rawStep);
 };

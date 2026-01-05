@@ -9,6 +9,7 @@ SystemExec PoseIntentConsumerSystem::update(GameContext* context) {
         // 1. Clear deltas
         pose.forEachJoint([](PoseJoint& j, PoseJointID) {
             j.deltaOffset_m = { 0,0,0 };
+            j.deltaRotation_rad = { 0,0,0 };
             });
 
         // 2. Sort intents by priority (high → low)
@@ -21,7 +22,13 @@ SystemExec PoseIntentConsumerSystem::update(GameContext* context) {
         for (const PoseIntent& intent : cBuffer->intents) {
             PoseJoint& j = pose.joint(intent.joint);
             Vec3 contribution = intent.desiredDelta_m * intent.weight;
-            j.deltaOffset_m += contribution;
+            if (intent.type == PoseIntentType::Translate) {
+                j.deltaOffset_m += contribution;
+            }
+            else {
+                j.deltaRotation_rad += contribution;
+            }
+            
         }
 
         // 4. Clear buffer

@@ -29,6 +29,10 @@ struct Vec3 {
     Vec3 operator-() const {
         return Vec3(-x, -y, -z);
     }
+
+    bool operator==(const Vec3& o) const {
+        return (x == o.x && y == o.y && z == o.z);
+    }
     float length() const { return std::sqrt(x * x + y * y + z * z); }
     Vec3 normalized() const { float len = length(); return len ? *this / len : Vec3(); }
     // Dot product of two vectors
