@@ -103,27 +103,27 @@ SystemExec FootworkMovementSystem::update(GameContext* context) {
                     PoseJointID reachAnkle = reachRight ? PoseJointID::RightAnkle : PoseJointID::LeftAnkle;
                     PoseJointID trailAnkle = reachRight ? PoseJointID::LeftAnkle : PoseJointID::RightAnkle;
 
-                    // 1) Pull center of mass first (THIS is what makes it feel like a save)
-                    cPoseIntentBuffer->intents.push_back({
-                        PoseJointID::CenterPelvis,PoseIntentType::Translate,cFootworkState->direction * stride,1.2f,10.f});
+                    //// 1) Pull center of mass first (THIS is what makes it feel like a save)
+                    //cPoseIntentBuffer->intents.push_back({
+                    //    PoseJointID::CenterPelvis,PoseIntentType::Translate,cFootworkState->direction * stride,1.2f,10.f});
 
-                    // 2) Small pelvis yaw ONLY for balance, not reach
-                    float pelvisYaw = reachRight ? +0.15f : -0.15f;
-                    cPoseIntentBuffer->intents.push_back({
-                        reachPelvis,
-                        PoseIntentType::Rotate,Vec3{ 0.f, pelvisYaw, 0.f },0.6f,8.f});
+                    //// 2) Small pelvis yaw ONLY for balance, not reach
+                    //float pelvisYaw = reachRight ? +0.15f : -0.15f;
+                    //cPoseIntentBuffer->intents.push_back({
+                    //    reachPelvis,
+                    //    PoseIntentType::Rotate,Vec3{ 0.f, pelvisYaw, 0.f },0.6f,8.f});
 
                     // 3) Hip flexion: THIS drives the leg forward
                     cPoseIntentBuffer->intents.push_back({
-                        reachUpperLeg, PoseIntentType::Rotate, Vec3{ 0.9f, 0.f, 0.f }, 1.0f,9.f});
+                        reachUpperLeg, PoseIntentType::LoadAnkle, Vec3{ 0.f, 0.f, 0.f }, 1.0f,10.f, .08});
 
-                    // 4) Reach foot slides forward to catch
-                    cPoseIntentBuffer->intents.push_back({
-                        reachAnkle,PoseIntentType::Translate,cFootworkState->direction * stride ,0.42f,7.f});
+                    //// 4) Reach foot slides forward to catch
+                    //cPoseIntentBuffer->intents.push_back({
+                    //    reachAnkle,PoseIntentType::Translate,cFootworkState->direction * stride ,0.42f,7.f});
 
-                    // 5) Trail foot drags slightly (don’t let it stick)
-                    cPoseIntentBuffer->intents.push_back({
-                        trailAnkle, PoseIntentType::Translate,cFootworkState->direction * stride ,0.3f * .15,6.f});
+                    //// 5) Trail foot drags slightly (don’t let it stick)
+                    //cPoseIntentBuffer->intents.push_back({
+                    //    trailAnkle, PoseIntentType::Translate,cFootworkState->direction * stride ,0.3f * .15,6.f});
                 }
 
                 else { // LEAP

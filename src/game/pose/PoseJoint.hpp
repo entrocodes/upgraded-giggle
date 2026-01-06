@@ -1,31 +1,51 @@
+// PoseJoint.hpp
 #pragma once
+#include "math/Vec3.hpp"
+#include <algorithm>
 
-#include "PoseIDs.hpp"
 struct PoseJoint {
-    Vec3 offset_m;
-    Vec3 deltaOffset_m = { 0,0,0 };
-    Vec3 baseOffset_m;
-    Vec3 restOffset_m;
-    Vec3 trueRestOffset_m;
-    Vec3 overflow_m; //offset past max offset
-    Vec3 pos_m;           // world or model space
-    float rotation_rad;          // yaw / sprite rotation
-    Vec3 restRotation_rad;
-    Vec3 deltaRotation_rad = { 0,0,0 };  // per-frame, cleared every update
+    // --- Driver state (persistent) ---
+    Vec3 baseOffset_m{ 0,0,0 };        // bind/local socket offset from parent (pre-scale)
+    Vec3 restOffset_m{ 0,0,0 };        // persistent local translation offset (pre-scale)
+    Vec3 restRotation_rad{ 0,0,0 };    // persistent local euler rotation (radians), applied to baseOffset_m
 
-    float overflowTransfer = 1.0f;
-    // Joint constraints (relative to parent)
-    Vec3 minRot;       // radians or degrees
-    Vec3 maxRot;
+    // --- Per-frame deltas (cleared each frame) ---
+    Vec3 deltaOffset_m{ 0,0,0 };
+    Vec3 deltaRotation_rad{ 0,0,0 };
 
-    // Optional positional slack (small!)
-    float maxOffset;    // meters (visual jiggle)
+    // --- Solver outputs (computed) ---
+    Vec3 offset_m{ 0,0,0 };            // baseOffset_m + restOffset_m (pre-scale)
+    Vec3 pos_m{ 0,0,0 };               // world position
+    Vec3 overflow_m{ 0,0,0 };          // used by joint maxOffset clamp
+
+    // --- Constraints ---
+    float maxOffset = 0.015f;        // meters (pre-scale)
+    float overflowTransfer = 1.0f;   // how much child overflow propagates to parent deltaOffset
+
+    Vec3 minRot{ -3.1415926f, -3.1415926f, -3.1415926f };
+    Vec3 maxRot{ +3.1415926f, +3.1415926f, +3.1415926f };
 
     bool disablerotationCalc = false;
+
+    // --- Contact/locking (constraint phase) ---
+    bool lockPosition = false;       // if true, constraint solver tries to keep joint at lockedWorldPos_m
+    Vec3 lockedWorldPos_m{ 0,0,0 };
+    float lockWeight = 1.0f;         // 0..1 strength
+
+    // --- Debug helpers (optional) ---
+    Vec3 trueRestOffset_m{ 0,0,0 };    // world delta from parent minus bind (for debug)
+    Vec3 tempTrueRestOffset_m{ 0,0,0 };
+
     void configure(Vec3 pMinRot, Vec3 pMaxRot, float pMaxOffset, float pOverflowTransfer) {
         minRot = pMinRot;
         maxRot = pMaxRot;
         maxOffset = pMaxOffset;
         overflowTransfer = pOverflowTransfer;
+    }
+
+    inline void clampRotationInPlace() {
+        restRotation_rad.x = std::clamp(restRotation_rad.x, minRot.x, maxRot.x);
+        restRotation_rad.y = std::clamp(restRotation_rad.y, minRot.y, maxRot.y);
+        restRotation_rad.z = std::clamp(restRotation_rad.z, minRot.z, maxRot.z);
     }
 };

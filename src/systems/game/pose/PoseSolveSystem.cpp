@@ -27,10 +27,16 @@ static constexpr PoseBoneID kSolveDownOrder[] = {
 };
 
 static inline float safeLen(const Vec3& v) { return std::sqrt(v.lengthSq()); }
+static inline float safeLen(const Vec2& v) { return std::sqrt(v.length() * v.length()); }
 
 static inline Vec3 safeNormalize(const Vec3& v) {
     float len = safeLen(v);
     if (len < 1e-6f) return { 0,0,0 };
+    return v / len;
+}
+static inline Vec2 safeNormalize(const Vec2& v) {
+    float len = safeLen(v);
+    if (len < 1e-6f) return { 0,0 };
     return v / len;
 }
 
@@ -106,25 +112,45 @@ SystemExec PoseSolveSystem::update(GameContext* context) {
 
         // 4) Root clamp + overflow -> transform only
         {
-            Vec3 rootDesired = centerPelvis.restOffset_m + centerPelvis.deltaOffset_m;
+            // Separate desired offsets
+            Vec2 desiredXZ(
+                centerPelvis.restOffset_m.x + centerPelvis.deltaOffset_m.x,
+                centerPelvis.restOffset_m.z + centerPelvis.deltaOffset_m.z
+            );
 
-            if (!context->playerMovement.bodyMovement.disablePoseConstraints &&
-                rootDesired.lengthSq() > centerPelvis.maxOffset * centerPelvis.maxOffset) {
-                Vec3 clamped = safeNormalize(rootDesired) * centerPelvis.maxOffset;
-                centerPelvis.restOffset_m = clamped;
-                centerPelvis.overflow_m = rootDesired - clamped;
+            float desiredY =
+                centerPelvis.restOffset_m.y + centerPelvis.deltaOffset_m.y;
+
+            // ---- XZ locomotion clamp ----
+            Vec2 overflowXZ(0.f, 0.f);
+
+            if (!context->playerMovement.bodyMovement.disablePoseConstraints) {
+                float maxXZ = centerPelvis.maxOffset;
+                float lenSq = desiredXZ.length() * desiredXZ.length();
+
+                if (lenSq > maxXZ * maxXZ) {
+                    Vec2 clampedXZ = desiredXZ.normalized() * maxXZ;
+                    overflowXZ = desiredXZ - clampedXZ;
+                    desiredXZ = clampedXZ;
+                }
             }
-            else {
-                centerPelvis.restOffset_m = rootDesired;
-                centerPelvis.overflow_m = { 0,0,0 };
-            }
+
+            // ---- Commit pelvis restOffset (Y is NEVER clamped here) ----
+            centerPelvis.restOffset_m = {
+                desiredXZ.x,
+                desiredY,
+                desiredXZ.y
+            };
 
             centerPelvis.deltaOffset_m = { 0,0,0 };
-            cTransform3D->pos_m += centerPelvis.overflow_m;
-            centerPelvis.overflow_m = { 0,0,0 };
 
+            // ---- Apply locomotion ONLY in XZ ----
+            cTransform3D->pos_m += Vec3(overflowXZ.x, 0.f, overflowXZ.y);
+
+            // ---- Final pelvis world position ----
             centerPelvis.offset_m = centerPelvis.baseOffset_m + centerPelvis.restOffset_m;
             centerPelvis.pos_m = cTransform3D->pos_m + compMul(centerPelvis.offset_m, pose.scale);
+
         }
 
         // 5) Forward solve + bone length constraints that WRITE BACK into driver (restOffset)
@@ -133,48 +159,51 @@ SystemExec PoseSolveSystem::update(GameContext* context) {
             PoseJoint& parent = pose.joint(b.joint1);
             PoseJoint& child = pose.joint(b.joint2);
 
-            // Consume bone stretch delta into persistent stretch (then clear)
             b.restStretch += b.deltaStretch;
             b.deltaStretch = 0.f;
 
-            // Clamp the *target* stretch relative to bind length
             float minLenLocal = b.baseLength + b.maxCompression;
             float maxLenLocal = b.baseLength + b.maxStretch;
-
-            float targetLenLocal = b.baseLength + b.restStretch;
-            targetLenLocal = std::clamp(targetLenLocal, minLenLocal, maxLenLocal);
-
-            // If clamped, reflect that back into restStretch (so it doesn't keep fighting)
+            float targetLenLocal = std::clamp(b.baseLength + b.restStretch, minLenLocal, maxLenLocal);
             b.restStretch = targetLenLocal - b.baseLength;
 
-            // Build the local vector using rotation + joint offset driver
             Vec3 rotatedBaseLocal = MathHelpers::rotateByEuler(child.baseOffset_m, child.restRotation_rad);
+
+            // Bone axis (where "length" is allowed to change)
+            Vec3 axis = safeNormalize(rotatedBaseLocal);
+            if (axis.lengthSq() < 1e-8f) axis = { 0.f, -1.f, 0.f }; // fallback
+
+            // Build current local vector
             Vec3 finalLocal = rotatedBaseLocal + child.restOffset_m;
 
-            // Compute current length
-            float lenLocal = safeLen(finalLocal);
-            if (lenLocal < 1e-6f) { child.pos_m = parent.pos_m + compMul(rotatedBaseLocal, pose.scale); continue; }
+            // Decompose finalLocal into parallel + perpendicular to the axis
+            float parallelLen = finalLocal.dot(axis);
+            Vec3 parallel = axis * parallelLen;
+            Vec3 perp = finalLocal - parallel;
 
-            float clampedLen = std::clamp(lenLocal, minLenLocal, maxLenLocal);
-            b.restStretch = clampedLen - b.baseLength;
+            // Rebuild: enforce length ONLY in parallel component
+            Vec3 correctedLocal = axis * targetLenLocal + perp;
 
-            // Now *build* the desired local vector at that length by scaling the direction,
-            // but ONLY along the bone axis (not by injecting big restOffset)
-            Vec3 dir = safeNormalize(finalLocal);
-            Vec3 correctedLocal = dir * (b.baseLength + b.restStretch);
-
-            // Convert back to restOffset relative to rotated base, but clamp to maxOffset
+            // Convert back to restOffset relative to rotated base
             Vec3 wantedRestOffset = correctedLocal - rotatedBaseLocal;
 
+            // Clamp by joint maxOffset (so it can't fight step 1 next frame)
             float maxOff = child.maxOffset;
             if (wantedRestOffset.lengthSq() > maxOff * maxOff) {
                 wantedRestOffset = safeNormalize(wantedRestOffset) * maxOff;
             }
+
             child.restOffset_m = wantedRestOffset;
-            finalLocal = rotatedBaseLocal + child.restOffset_m;
-            child.pos_m = parent.pos_m + compMul(finalLocal, pose.scale);
+
+            // Final world position
+            Vec3 finalLocal2 = rotatedBaseLocal + child.restOffset_m;
+            child.pos_m = parent.pos_m + compMul(finalLocal2, pose.scale);
+
+            // Optional debug (yours)
             child.trueRestOffset_m = child.pos_m - parent.pos_m - compMul(child.baseOffset_m, pose.scale);
         }
+
+        
     }
 
     return { SystemExecResult::Ran };

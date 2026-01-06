@@ -34,31 +34,31 @@ struct Pose {
         neckBase().configure(Vec3(-0.4f, -0.6f, -0.3f), Vec3(0.6f, 0.6f, 0.3f), 0.015f, 0.4f);
         centerPelvis().configure(Vec3(-0.3f, -0.4f, -0.2f), Vec3(0.4f, 0.4f, 0.2f), 0.015f, 0.25f);
 
-        // Pelvis (hips) – yaw dominant, small pitch
+        // Pelvis (hips) ?yaw dominant, small pitch
         leftPelvis().configure(Vec3(-0.2f, -0.6f, 0.0f), Vec3(0.6f, 0.6f, 0.0f), 0.02f, 0.4f);
         rightPelvis().configure(Vec3(-0.2f, -0.6f, 0.0f), Vec3(0.6f, 0.6f, 0.0f), 0.02f, 0.4f);
 
-        // Shoulders – reach with limited twist
+        // Shoulders ?reach with limited twist
         leftShoulder().configure(Vec3(-0.6f, -0.8f, -0.4f), Vec3(1.0f, 0.8f, 0.4f), 0.04f, 0.4f);
         rightShoulder().configure(Vec3(-0.6f, -0.8f, -0.4f), Vec3(1.0f, 0.8f, 0.4f), 0.04f, 0.4f);
 
-        // Elbows – pure hinge (X only)
+        // Elbows ?pure hinge (X only)
         leftElbow().configure(Vec3(0.0f, 0.0f, 0.0f), Vec3(2.5f, 0.0f, 0.0f), 0.01f, 0.6f);
         rightElbow().configure(Vec3(0.0f, 0.0f, 0.0f), Vec3(2.5f, 0.0f, 0.0f), 0.01f, 0.6f);
 
-        // Wrists – small flex and roll
+        // Wrists ?small flex and roll
         leftWrist().configure(Vec3(-0.6f, 0.0f, -0.6f), Vec3(0.6f, 0.0f, 0.6f), 0.015f, 0.8f);
         rightWrist().configure(Vec3(-0.6f, 0.0f, -0.6f), Vec3(0.6f, 0.0f, 0.6f), 0.015f, 0.8f);
 
-        // Knees – strict hinge (forward only)
+        // Knees ?strict hinge (forward only)
         leftKnee().configure(Vec3(0.0f, 0.0f, 0.0f), Vec3(1.3f, 0.0f, 0.0f), 0.03f, 0.6f);
         rightKnee().configure(Vec3(0.0f, 0.0f, 0.0f), Vec3(1.3f, 0.0f, 0.0f), 0.03f, 0.6f);
 
-        // Ankles – flex and roll, no yaw
+        // Ankles ?flex and roll, no yaw
         leftAnkle().configure(Vec3(-0.4f, 0.0f, -0.3f), Vec3(0.4f, 0.0f, 0.3f), 0.04f, 0.85f);
         rightAnkle().configure(Vec3(-0.4f, 0.0f, -0.3f), Vec3(0.4f, 0.0f, 0.3f), 0.04f, 0.85f);
 
-        // Racket – very tight rotation
+        // Racket ?very tight rotation
         racket().configure(Vec3(-0.4f, -0.4f, -0.2f), Vec3(0.4f, 0.4f, 0.2f), 0.002f, 1.0f);
 
         bone(PoseBoneID::LeftUpperArm).configure(LeftShoulder, LeftElbow, -0.08f, 0.03f);
@@ -86,6 +86,11 @@ struct Pose {
             fn(joints[i], static_cast<PoseJointID>(i));
     }
 
+    template <typename Fn>
+    void forEachAnkle(Fn&& fn) {
+        fn(joints[PoseJointID::LeftAnkle]));
+        fn(joints[PoseJointID::RightAnkle]));
+    }
     template <typename Fn>
     void forEachJoint(Fn&& fn) const {
         for (int i = 0; i < JointCount; ++i)
