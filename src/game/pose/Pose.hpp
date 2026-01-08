@@ -81,16 +81,17 @@ struct Pose {
 
     }
     template <typename Fn>
+    void forEachAnkle(Fn&& fn) {
+        fn(joints[PoseJointID::LeftAnkle]);
+        fn(joints[PoseJointID::RightAnkle]);
+    }
+
+    template <typename Fn>
     void forEachJoint(Fn&& fn) {
         for (int i = 0; i < JointCount; ++i)
             fn(joints[i], static_cast<PoseJointID>(i));
     }
 
-    template <typename Fn>
-    void forEachAnkle(Fn&& fn) {
-        fn(joints[PoseJointID::LeftAnkle]));
-        fn(joints[PoseJointID::RightAnkle]));
-    }
     template <typename Fn>
     void forEachJoint(Fn&& fn) const {
         for (int i = 0; i < JointCount; ++i)

@@ -17,7 +17,7 @@ public:
             "SystemFactory::create<T>: T must derive from ISystem"
             );
 
-        // Explicit upcast through constructor — safe and correct
+        // Explicit upcast through constructor ?safe and correct
         return std::unique_ptr<ISystem>(
             new T(std::forward<Args>(args)...)
         );

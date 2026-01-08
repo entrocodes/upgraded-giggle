@@ -2,6 +2,7 @@
 #include "PoseForwardKinematicsSystem.hpp"
 #include "components/Components.hpp"
 #include "math/MathHelpers.hpp"
+#include "debug/Debug.hpp"
 #include <cmath>
 
 static inline Vec3 compMul(const Vec3& a, const Vec3& b) { return { a.x * b.x, a.y * b.y, a.z * b.z }; }
@@ -40,6 +41,7 @@ SystemExec PoseForwardKinematicsSystem::update(GameContext* context) {
 
             child.pos_m = parent.pos_m + compMul(finalLocal, pose.scale);
             child.offset_m = child.baseOffset_m + child.restOffset_m;
+
         }
     }
 

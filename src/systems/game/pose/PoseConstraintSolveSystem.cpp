@@ -88,11 +88,6 @@ SystemExec PoseConstraintSolveSystem::update(GameContext* context) {
     for (auto [eBody, cTransform3D, cPose] : context->registry.getEntitiesWithComponents<CTransform3D, CPose>()) {
         Pose& pose = cPose->pose;
 
-        // If user wants ankles locked whenever grounded, you can set these flags elsewhere.
-        // This system only *solves* the locks.
-
-        // Precondition: FK already ran this frame (so pos_m is current)
-        // Solve locks (may alter restOffset_m)
         solveAnkleLock_LegChain(pose, PoseJointID::LeftAnkle, PoseJointID::LeftKnee, PoseJointID::LeftPelvis, PoseJointID::CenterPelvis, pose.leftAnkle().lockWeight);
         solveAnkleLock_LegChain(pose, PoseJointID::RightAnkle, PoseJointID::RightKnee, PoseJointID::RightPelvis, PoseJointID::CenterPelvis, pose.rightAnkle().lockWeight);
 

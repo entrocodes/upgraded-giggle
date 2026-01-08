@@ -32,15 +32,6 @@ SystemExec PoseIntentConsumerSystem::update(GameContext* context) {
 
         Pose& pose = cPose->pose;
 
-        // 1) Clear per-frame deltas
-        pose.forEachJoint([](PoseJoint& j, PoseJointID) {
-            j.deltaOffset_m = { 0,0,0 };
-            j.deltaRotation_rad = { 0,0,0 };
-            });
-
-        pose.forEachBone([](PoseBone& b, PoseBoneID) {
-            b.deltaStretch = 0.f;
-            });
 
         // 2) Sort intents by priority (high → low)
         std::sort(cBuffer->intents.begin(), cBuffer->intents.end(),
@@ -54,6 +45,7 @@ SystemExec PoseIntentConsumerSystem::update(GameContext* context) {
             if (intent.type == PoseIntentType::Translate) {
                 PoseJoint& j = pose.joint(intent.joint);
                 j.deltaOffset_m += intent.desiredDelta_m * intent.weight;
+                if(intent.joint == PoseJointID::CenterPelvis) Debug::debugPrint("Pelvis Translate Consumed!", j.deltaOffset_m);
                 continue;
             }
 

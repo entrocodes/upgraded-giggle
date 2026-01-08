@@ -2,7 +2,7 @@
 #include "game/utils/GameContext.hpp"
 #include "ecs/system/ISystem.hpp"
 
-class PoseRootMotionSystemSystem : public ISystem {
+class PoseConstraintSolveSystem : public ISystem {
 public:
     SystemExec update(GameContext* context);
 };

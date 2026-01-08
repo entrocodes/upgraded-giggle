@@ -1,8 +1,8 @@
-#pragma once
-#include "components/Components.hpp"
+﻿#pragma once
 #include "game/utils/GameContext.hpp"
 #include "ecs/system/ISystem.hpp"
-class PoseSolveSystem : public ISystem {
+
+class PoseForwardKinematicsSystem : public ISystem {
 public:
     SystemExec update(GameContext* context);
 };

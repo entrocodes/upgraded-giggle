@@ -12,5 +12,6 @@ private:
     void drawControllerDebug(GameContext* context);
     void drawSystemExecution(GameContext* context);
     void drawRacketOrientationWidget(const Vec3& normal);
+    void drawPoseIntentTest(GameContext* context);
     static void drawSystemNodeRecursive(const SystemNode& node, int depth = 0);
 };

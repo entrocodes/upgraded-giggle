@@ -2,10 +2,10 @@
 
 #include "game/utils/GameContext.hpp"
 
-#include "systems/game/pose/PoseConstraintSolveSystemSystem.hpp"
-#include "systems/game/pose/PoseForwardKinematcsSystemSystem.hpp"
+#include "systems/game/pose/PoseConstraintSolveSystem.hpp"
+#include "systems/game/pose/PoseForwardKinematicsSystem.hpp"
 #include "systems/game/pose/PoseIntentConsumerSystem.hpp"
-#include "systems/game/pose/PoseRootMotionSystemSystem.hpp"
+#include "systems/game/pose/PoseRootMotionSystem.hpp"
 #include "ecs/system/ISystemGroup.hpp"
 
 class PoseSystemGroup final : public ISystemGroup {
@@ -14,9 +14,9 @@ public:
         : m_factory(factory)
     {
         m_graph.add<PoseIntentConsumerSystem>(m_factory, 100, TickPhase::Fixed);
-        m_graph.add<PoseRootMotionSystemSystem>(m_factory, 120, TickPhase::Fixed);
-        m_graph.add<PoseForwardKinematcsSystemSystem>(m_factory, 140, TickPhase::Fixed);
-        m_graph.add<PoseConstraintSolveSystemSystem>(m_factory, 160, TickPhase::Fixed);
+        m_graph.add<PoseRootMotionSystem>(m_factory, 120, TickPhase::Fixed);
+        m_graph.add<PoseForwardKinematicsSystem>(m_factory, 140, TickPhase::Fixed);
+        m_graph.add<PoseConstraintSolveSystem>(m_factory, 160, TickPhase::Fixed);
 
     }
 

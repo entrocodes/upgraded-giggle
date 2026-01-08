@@ -12,6 +12,20 @@
 #include "GameImGuiConsole.hpp"
 #include <cstddef>  // for size_t
 
+struct PoseIntentTestUI {
+    int jointIdx = (int)PoseJointID::CenterPelvis;
+    int typeIdx = (int)PoseIntentType::Translate;
+
+    Vec3 delta = { 0.f, -0.1f, 0.f };   // default squat
+    float magnitude = 0.1f;             // for Load intents
+    float weight = 1.0f;
+    float priority = 10.0f;
+
+    bool continuous = false;
+};
+
+static PoseIntentTestUI g_poseIntentTest;
+
 SystemExec GameImGuiSystem::update(GameContext* context) {
     if (context->renderSettings.hideImGui) {
         context->inputBlocked = false;
@@ -30,6 +44,7 @@ SystemExec GameImGuiSystem::update(GameContext* context) {
     drawRacketDebug(context);
     drawControllerDebug(context);
     drawSystemExecution(context);
+    drawPoseIntentTest(context);
     static bool showConsole = true;
     ImGuiConsoleDraw(&showConsole);
     return { SystemExecResult::Ran };
@@ -229,70 +244,7 @@ void GameImGuiSystem::drawDeveloperPanel(GameContext* context) {
                 ImGui::EndChild();
             }
             
-            if (ImGui::CollapsingHeader("Pose Debug")) {
-                ImGui::Checkbox("Disable Pose Constraints", &context->playerMovement.bodyMovement.disablePoseConstraints);
-                ImGui::Separator();
-                for (auto [eCharacter, cPose, cTransform3D] : context->registry.getEntitiesWithComponents<CPose, CTransform3D>()) {
-                    auto& pose = cPose->pose;
-                    Vec3& leftKneeRot = pose.joints[PoseJointID::LeftKnee].restRotation_rad;
-                    Vec3& leftKneePos = pose.joints[PoseJointID::LeftKnee].trueRestOffset_m;
-                    ImGui::SliderFloat("Left Knee X (rad)", &leftKneeRot.x, -3.14f, 3.14f, "%.2f");
-                    ImGui::SliderFloat("Left Knee Y (rad)", &leftKneeRot.y, -3.14f, 3.14f, "%.2f");
-                    ImGui::SliderFloat("Left Knee Z (rad)", &leftKneeRot.z, -3.14f, 3.14f, "%.2f");
-                    ImGui::Text("Left Knee Rest Offset %.2f, %.2f, %.2f", leftKneePos.x, leftKneePos.y, leftKneePos.z);
-                    ImGui::Checkbox("Disable Left Knee Rotation Calc", &pose.joints[PoseJointID::LeftKnee].disablerotationCalc);
-                    if (ImGui::TreeNode("Joint Data")) {
-                        pose.forEachJoint([](PoseJoint& j, PoseJointID id) {
-                            Vec3 pos_m = j.pos_m;
-                            Vec3 offset_m = j.offset_m;
-                            Vec3 restOffset_m = j.restOffset_m;
-                            Vec3 deltaOffset_m = j.deltaOffset_m;
-                            Vec3 overflow_m = j.overflow_m;
-                            Vec3 restRot = j.restRotation_rad;
-                            Vec3 baseOffset_m = j.baseOffset_m;
-                            const char* name = PoseJointIDNames[id];
-                            ImGui::Text("%s", name);
-                            ImGui::Text("Pos: %.2f, %.2f, %.2f", pos_m.x, pos_m.y, pos_m.z);
-                            ImGui::Text("Offset: %.2f, %.2f, %.2f", offset_m.x, offset_m.y, offset_m.z);
-                            ImGui::Text("Rest Offset: %.2f, %.2f, %.2f", restOffset_m.x, restOffset_m.y, restOffset_m.z);
-                            ImGui::Text("Base Offset: %.2f, %.2f, %.2f", baseOffset_m.x, baseOffset_m.y, baseOffset_m.z);
-                            ImGui::Text("Delta Offset: %.2f, %.2f, %.2f", deltaOffset_m.x, deltaOffset_m.y, deltaOffset_m.z);
-                            ImGui::Text("Overflow: %.2f, %.2f, %.2f, %.2f", overflow_m.x, overflow_m.y, overflow_m.z, j.overflowTransfer);
-                            ImGui::Text("Rest Rotation: %.2f, %.2f, %.2f", restRot.x, restRot.y, restRot.z);
-                            });
-                        ImGui::TreePop();
-                    }
-                    if (ImGui::TreeNode("Bone Data")) {
-                        pose.forEachBone([](PoseBone& b, PoseBoneID id) {
-
-                            const char* name = PoseBoneIDNames[static_cast<size_t>(id)];
-                            //const char* parentJointName = PoseJointIDNames[b.joint1];
-                            //const char* childJointName = PoseJointIDNames[b.joint2];
-                            ImGui::Text("%s", name);
-                            //ImGui::Text("   Parent Joint: %s", parentJointName[b.joint1]);
-                            //ImGui::Text("   Child Joint: %s", childJointName[b.joint2]);
-                            ImGui::Text("   Base Length: %.2f", b.baseLength);
-                            ImGui::Text("   Rest Stretch: %.2f", b.restStretch);
-                            ImGui::Text("   Max Compression and Stretch: %.2f, %.2f", b.maxCompression, b.maxStretch);
-
-                            });
-                        ImGui::TreePop();
-                    }
-                }
-                if (cPoseIntents && ImGui::TreeNode("Pose Intents")) {
-                    int i = 0;
-                    for (auto& intent : cPoseIntents->intents) {
-                        ImGui::Text("#%d Joint=%s Type=%d W=%.2f",
-                            i++,
-                            PoseJointIDNames[intent.joint],
-                            (int)intent.type,
-                            intent.weight);
-                        //ImGui::Text("  Vec: %.2f %.2f %.2f",
-                        //    intent.vec.x, intent.vec.y, intent.vec.z);
-                    }
-                    ImGui::TreePop();
-                }
-            }
+            
 
         }
     }
@@ -563,4 +515,135 @@ void GameImGuiSystem::drawSystemNodeRecursive(const SystemNode& node, int depth)
         ImGui::BulletText("%s", typeid(*node.system).name());
     }
     ImGui::Unindent(depth * 14.0f);
+}
+void GameImGuiSystem::drawPoseIntentTest(GameContext* context) {
+    Entity* ePlayer = context->registry.getEntity("player");
+    if (!ePlayer) return;
+
+    auto [cBuffer] = context->registry.getComponents<CPoseIntentBuffer>(*ePlayer);
+    if (!cBuffer) return;
+
+    ImGui::Begin("Pose Intent Test##Dev");
+
+    // ---- Joint selection ----
+    if (ImGui::BeginCombo("Joint", PoseJointIDNames[g_poseIntentTest.jointIdx])) {
+        for (int i = 0; i < (int)PoseJointID::JointCount; ++i) {
+            if (ImGui::Selectable(PoseJointIDNames[i], i == g_poseIntentTest.jointIdx))
+                g_poseIntentTest.jointIdx = i;
+        }
+        ImGui::EndCombo();
+    }
+
+    // ---- Intent type ----
+    const char* intentNames[] = {
+        "Translate",
+        "Rotate",
+        "LoadAnkle"
+    };
+
+    ImGui::Combo("Intent Type", &g_poseIntentTest.typeIdx,
+        intentNames, IM_ARRAYSIZE(intentNames));
+
+    // ---- Parameters ----
+    if (g_poseIntentTest.typeIdx == (int)PoseIntentType::LoadAnkle) {
+        ImGui::SliderFloat("Load (m)", &g_poseIntentTest.magnitude, 0.f, 0.5f);
+    }
+    else {
+        ImGui::DragFloat3("Delta", &g_poseIntentTest.delta.x, 0.01f);
+    }
+
+    ImGui::SliderFloat("Weight", &g_poseIntentTest.weight, 0.f, 2.f);
+    ImGui::SliderFloat("Priority", &g_poseIntentTest.priority, 0.f, 20.f);
+
+    ImGui::Checkbox("Continuous", &g_poseIntentTest.continuous);
+
+    // ---- Fire intent ----
+    bool fire = ImGui::Button("Send Intent");
+
+    if (fire || g_poseIntentTest.continuous) {
+        PoseIntent intent;
+        intent.joint = (PoseJointID)g_poseIntentTest.jointIdx;
+        intent.type = (PoseIntentType)g_poseIntentTest.typeIdx;
+        intent.weight = g_poseIntentTest.weight;
+        intent.priority = g_poseIntentTest.priority;
+
+        if (intent.type == PoseIntentType::LoadAnkle) {
+            intent.magnitude = g_poseIntentTest.magnitude;
+            intent.desiredDelta_m = { 0,0,0 };
+        }
+        else {
+            intent.desiredDelta_m = g_poseIntentTest.delta;
+            intent.magnitude = 0.f;
+        }
+
+        cBuffer->intents.push_back(intent);
+    }
+    if (ImGui::CollapsingHeader("Pose Debug")) {
+        ImGui::Checkbox("Disable Pose Constraints", &context->playerMovement.bodyMovement.disablePoseConstraints);
+        ImGui::Separator();
+        for (auto [eCharacter, cPose, cTransform3D] : context->registry.getEntitiesWithComponents<CPose, CTransform3D>()) {
+            auto& pose = cPose->pose;
+            Vec3& leftKneeRot = pose.joints[PoseJointID::LeftKnee].restRotation_rad;
+            Vec3& leftKneePos = pose.joints[PoseJointID::LeftKnee].trueRestOffset_m;
+            ImGui::SliderFloat("Left Knee X (rad)", &leftKneeRot.x, -3.14f, 3.14f, "%.2f");
+            ImGui::SliderFloat("Left Knee Y (rad)", &leftKneeRot.y, -3.14f, 3.14f, "%.2f");
+            ImGui::SliderFloat("Left Knee Z (rad)", &leftKneeRot.z, -3.14f, 3.14f, "%.2f");
+            ImGui::Text("Left Knee Rest Offset %.2f, %.2f, %.2f", leftKneePos.x, leftKneePos.y, leftKneePos.z);
+            ImGui::Checkbox("Disable Left Knee Rotation Calc", &pose.joints[PoseJointID::LeftKnee].disablerotationCalc);
+            if (ImGui::TreeNode("Joint Data")) {
+                pose.forEachJoint([](PoseJoint& j, PoseJointID id) {
+                    Vec3 pos_m = j.pos_m;
+                    Vec3 offset_m = j.offset_m;
+                    Vec3 restOffset_m = j.restOffset_m;
+                    Vec3 deltaOffset_m = j.deltaOffset_m;
+                    Vec3 overflow_m = j.overflow_m;
+                    Vec3 restRot = j.restRotation_rad;
+                    Vec3 baseOffset_m = j.baseOffset_m;
+                    bool locked = j.lockPosition;
+                    const char* name = PoseJointIDNames[id];
+                    ImGui::Text("%s", name);
+                    ImGui::Text("Pos: %.2f, %.2f, %.2f", pos_m.x, pos_m.y, pos_m.z);
+                    ImGui::Text("Offset: %.2f, %.2f, %.2f", offset_m.x, offset_m.y, offset_m.z);
+                    ImGui::Text("Rest Offset: %.2f, %.2f, %.2f", restOffset_m.x, restOffset_m.y, restOffset_m.z);
+                    ImGui::Text("Base Offset: %.2f, %.2f, %.2f", baseOffset_m.x, baseOffset_m.y, baseOffset_m.z);
+                    ImGui::Text("Delta Offset: %.2f, %.2f, %.2f", deltaOffset_m.x, deltaOffset_m.y, deltaOffset_m.z);
+                    ImGui::Text("Overflow: %.2f, %.2f, %.2f, %.2f", overflow_m.x, overflow_m.y, overflow_m.z, j.overflowTransfer);
+                    ImGui::Text("Rest Rotation: %.2f, %.2f, %.2f", restRot.x, restRot.y, restRot.z);
+                    ImGui::Text("Locked: %s", locked ? "Yes" : "No");
+                    });
+                ImGui::TreePop();
+            }
+            if (ImGui::TreeNode("Bone Data")) {
+                pose.forEachBone([](PoseBone& b, PoseBoneID id) {
+
+                    const char* name = PoseBoneIDNames[static_cast<size_t>(id)];
+                    //const char* parentJointName = PoseJointIDNames[b.joint1];
+                    //const char* childJointName = PoseJointIDNames[b.joint2];
+                    ImGui::Text("%s", name);
+                    //ImGui::Text("   Parent Joint: %s", parentJointName[b.joint1]);
+                    //ImGui::Text("   Child Joint: %s", childJointName[b.joint2]);
+                    ImGui::Text("   Base Length: %.2f", b.baseLength);
+                    ImGui::Text("   Rest Stretch: %.2f", b.restStretch);
+                    ImGui::Text("   Max Compression and Stretch: %.2f, %.2f", b.maxCompression, b.maxStretch);
+
+                    });
+                ImGui::TreePop();
+            }
+        }
+
+        if (cBuffer && ImGui::TreeNode("Pose Intents")) {
+            int i = 0;
+            for (auto& intent : cBuffer->intents) {
+                ImGui::Text("#%d Joint=%s Type=%d W=%.2f",
+                    i++,
+                    PoseJointIDNames[intent.joint],
+                    (int)intent.type,
+                    intent.weight);
+                //ImGui::Text("  Vec: %.2f %.2f %.2f",
+                //    intent.vec.x, intent.vec.y, intent.vec.z);
+            }
+            ImGui::TreePop();
+        }
+    }
+    ImGui::End();
 }

@@ -18,8 +18,8 @@
 #include "systems/game/imgui/GameImGuiSystem.hpp"
 #include "systems/game/debug/BallSpawnDebugSystem.hpp"
 #include "systems/ProceduralAnimationSystem.hpp"
-#include "systems/groups/CollisionsSystemGroup.hpp"
-#include "systems/game/pose/PoseSolveSystem.hpp"
+#include "systems/groups/game/CollisionsSystemGroup.hpp"
+#include "systems/groups/game/pose/PoseSystemGroup.hpp"
 #include "systems/game/pose/PoseIntentConsumerSystem.hpp"
 #include "systems/game/debug/pose/PoseDebugDrawSystem.hpp"
 #include <imgui.h>
@@ -43,7 +43,7 @@ GameScene::GameScene(GameContext* context)
     systemGraph.add<MovementSystemGroup>(m_factory, 100, TickPhase::Fixed, Pausable, m_factory);
     systemGraph.add<CollisionsSystemGroup>(m_factory, 150, TickPhase::Fixed, Pausable, m_factory);
     systemGraph.add<PoseIntentConsumerSystem>(m_factory, 155, TickPhase::Fixed, Pausable);
-    systemGraph.add<PoseSolveSystem>(m_factory, 160, TickPhase::Fixed, NotPausable);
+    systemGraph.add<PoseSystemGroup>(m_factory, 160, TickPhase::Fixed, NotPausable, m_factory);
     systemGraph.add<PoseDebugDrawSystem>(m_factory, 170, TickPhase::Fixed, NotPausable);
     systemGraph.add<BallRemovalSystem>(m_factory, 200, TickPhase::Fixed);
     systemGraph.add<AnimationSystem>(m_factory, 300, TickPhase::Fixed);

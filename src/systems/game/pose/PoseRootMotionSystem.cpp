@@ -3,6 +3,7 @@
 #include "components/Components.hpp"
 #include "math/Vec2.hpp"
 #include "math/Constants.hpp"
+#include "debug/Debug.hpp"
 #include <algorithm>
 #include <cmath>
 
