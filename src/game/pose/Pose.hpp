@@ -82,9 +82,10 @@ struct Pose {
     }
     template <typename Fn>
     void forEachAnkle(Fn&& fn) {
-        fn(joints[PoseJointID::LeftAnkle]);
-        fn(joints[PoseJointID::RightAnkle]);
+        fn(joints[PoseJointID::LeftAnkle], PoseJointID::LeftAnkle);
+        fn(joints[PoseJointID::RightAnkle], PoseJointID::RightAnkle);
     }
+
 
     template <typename Fn>
     void forEachJoint(Fn&& fn) {

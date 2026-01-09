@@ -1,29 +1,14 @@
-﻿#include "PoseIntentConsumerSystem.hpp"
+﻿// PoseIntentConsumerSystem.cpp
+#include "PoseIntentConsumerSystem.hpp"
 #include "components/Components.hpp"
 #include "debug/Debug.hpp"
+#include <algorithm>
 
 static PoseJointID kneeFromAnkle(PoseJointID ankle) {
-    return (ankle == PoseJointID::LeftAnkle)
-        ? PoseJointID::LeftKnee
-        : PoseJointID::RightKnee;
+    return (ankle == PoseJointID::LeftAnkle) ? PoseJointID::LeftKnee : PoseJointID::RightKnee;
 }
-
 static PoseJointID pelvisFromAnkle(PoseJointID ankle) {
-    return (ankle == PoseJointID::LeftAnkle)
-        ? PoseJointID::LeftPelvis
-        : PoseJointID::RightPelvis;
-}
-
-static PoseBoneID upperLegFromAnkle(PoseJointID ankle) {
-    return (ankle == PoseJointID::LeftAnkle)
-        ? PoseBoneID::LeftUpperLeg
-        : PoseBoneID::RightUpperLeg;
-}
-
-static PoseBoneID lowerLegFromAnkle(PoseJointID ankle) {
-    return (ankle == PoseJointID::LeftAnkle)
-        ? PoseBoneID::LeftLowerLeg
-        : PoseBoneID::RightLowerLeg;
+    return (ankle == PoseJointID::LeftAnkle) ? PoseJointID::LeftPelvis : PoseJointID::RightPelvis;
 }
 
 SystemExec PoseIntentConsumerSystem::update(GameContext* context) {
@@ -32,8 +17,22 @@ SystemExec PoseIntentConsumerSystem::update(GameContext* context) {
 
         Pose& pose = cPose->pose;
 
+        // 1) Clear per-frame deltas (and unlock unless something re-locks this frame)
+        pose.forEachJoint([&](PoseJoint& j, PoseJointID) {
+            j.deltaOffset_m = { 0,0,0 };
+            j.deltaRotation_rad = { 0,0,0 };
+            });
 
-        // 2) Sort intents by priority (high → low)
+        pose.forEachBone([&](PoseBone& b, PoseBoneID) {
+            b.deltaStretch = 0.f;
+            });
+
+        pose.forEachAnkle([&](PoseJoint& ankle, PoseJointID) {
+            ankle.lockPosition = false;
+            ankle.lockWeight = 0.f;
+            });
+
+        // 2) Sort intents by priority (high -> low)
         std::sort(cBuffer->intents.begin(), cBuffer->intents.end(),
             [](const PoseIntent& a, const PoseIntent& b) {
                 return a.priority > b.priority;
@@ -45,7 +44,7 @@ SystemExec PoseIntentConsumerSystem::update(GameContext* context) {
             if (intent.type == PoseIntentType::Translate) {
                 PoseJoint& j = pose.joint(intent.joint);
                 j.deltaOffset_m += intent.desiredDelta_m * intent.weight;
-                if(intent.joint == PoseJointID::CenterPelvis) Debug::debugPrint("Pelvis Translate Consumed!", j.deltaOffset_m);
+                Debug::debugPrint("transform intent consumed", j.deltaOffset_m);
                 continue;
             }
 
@@ -55,30 +54,24 @@ SystemExec PoseIntentConsumerSystem::update(GameContext* context) {
                 continue;
             }
 
+            // New: "LoadAnkle" means "compress down into the floor" (squat/lunge driver)
             if (intent.type == PoseIntentType::LoadAnkle) {
-                PoseJointID ankle = intent.joint;
-                PoseJointID knee = kneeFromAnkle(ankle);
-                PoseJointID pelvis = pelvisFromAnkle(ankle);
-                
-                PoseBone& upperLeg = pose.bone(upperLegFromAnkle(ankle));
-                PoseBone& lowerLeg = pose.bone(lowerLegFromAnkle(ankle));
+                const float load = intent.magnitude * intent.weight; // meters of requested "body drop"
 
-                float load = intent.magnitude * intent.weight; // meters of compression request
-
-                // Bone compression (negative stretch = shortening)
-                upperLeg.deltaStretch -= load * 0.6f;
-                lowerLeg.deltaStretch -= load * 0.3f;
-
-                // Pelvis drops (this is the key!)
+                // (A) Pelvis drop driver (this will be resolved by IK so feet don't move)
                 pose.centerPelvis().deltaOffset_m.y -= load;
 
-                pose.forEachAnkle([](PoseJoint& fAnkle) {
-                    fAnkle.lockPosition = true;
-                    fAnkle.lockedWorldPos_m = fAnkle.pos_m;
-                    fAnkle.lockWeight = 1.0f;
+                // (B) Mild counterbalance: pelvis goes slightly backward (helps "squat", not elevator)
+                pose.centerPelvis().deltaOffset_m.z -= load * 0.20f;
+
+                // (C) Lock both ankles at current world position (captured pre-drop, from last FK)
+                pose.forEachAnkle([&](PoseJoint& ankle, PoseJointID) {
+                    ankle.lockPosition = true;
+                    ankle.lockWeight = 1.0f;
+                    ankle.lockedWorldPos_m = ankle.pos_m;
                     });
 
-
+                continue;
             }
         }
 
