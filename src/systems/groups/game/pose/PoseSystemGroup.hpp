@@ -7,6 +7,7 @@
 #include "systems/game/pose/PoseIntentConsumerSystem.hpp"
 #include "systems/game/pose/PoseRootMotionSystem.hpp"
 #include "systems/game/pose/PoseAnkleLockIKSystem.hpp"
+#include "systems/game/pose/PoseDeltaClearerSystem.hpp"
 #include "ecs/system/ISystemGroup.hpp"
 
 class PoseSystemGroup final : public ISystemGroup {
@@ -20,6 +21,7 @@ public:
         //DEPRECATED: m_graph.add<PoseConstraintSolveSystem>(m_factory, 160, TickPhase::Fixed);
         m_graph.add<PoseAnkleLockIKSystem>(m_factory, 180, TickPhase::Fixed);
         m_graph.add<PoseForwardKinematicsSystem>(m_factory, 200, TickPhase::Fixed);
+        m_graph.add<PoseDeltaClearerSystem>(m_factory, 220, TickPhase::Fixed);
 
     }
 

@@ -538,14 +538,14 @@ void GameImGuiSystem::drawPoseIntentTest(GameContext* context) {
     const char* intentNames[] = {
         "Translate",
         "Rotate",
-        "LoadAnkle"
+        "LoadBody"
     };
 
     ImGui::Combo("Intent Type", &g_poseIntentTest.typeIdx,
         intentNames, IM_ARRAYSIZE(intentNames));
 
     // ---- Parameters ----
-    if (g_poseIntentTest.typeIdx == (int)PoseIntentType::LoadAnkle) {
+    if (g_poseIntentTest.typeIdx == (int)PoseIntentType::LoadBody) {
         ImGui::SliderFloat("Load (m)", &g_poseIntentTest.magnitude, 0.f, 0.5f);
     }
     else {
@@ -567,7 +567,7 @@ void GameImGuiSystem::drawPoseIntentTest(GameContext* context) {
         intent.weight = g_poseIntentTest.weight;
         intent.priority = g_poseIntentTest.priority;
 
-        if (intent.type == PoseIntentType::LoadAnkle) {
+        if (intent.type == PoseIntentType::LoadBody) {
             intent.magnitude = g_poseIntentTest.magnitude;
             intent.desiredDelta_m = { 0,0,0 };
         }
@@ -599,7 +599,6 @@ void GameImGuiSystem::drawPoseIntentTest(GameContext* context) {
                     Vec3 overflow_m = j.overflow_m;
                     Vec3 restRot = j.restRotation_rad;
                     Vec3 baseOffset_m = j.baseOffset_m;
-                    bool locked = j.lockPosition;
                     const char* name = PoseJointIDNames[id];
                     ImGui::Text("%s", name);
                     ImGui::Text("Pos: %.2f, %.2f, %.2f", pos_m.x, pos_m.y, pos_m.z);
@@ -609,7 +608,6 @@ void GameImGuiSystem::drawPoseIntentTest(GameContext* context) {
                     ImGui::Text("Delta Offset: %.2f, %.2f, %.2f", deltaOffset_m.x, deltaOffset_m.y, deltaOffset_m.z);
                     ImGui::Text("Overflow: %.2f, %.2f, %.2f, %.2f", overflow_m.x, overflow_m.y, overflow_m.z, j.overflowTransfer);
                     ImGui::Text("Rest Rotation: %.2f, %.2f, %.2f", restRot.x, restRot.y, restRot.z);
-                    ImGui::Text("Locked: %s", locked ? "Yes" : "No");
                     });
                 ImGui::TreePop();
             }

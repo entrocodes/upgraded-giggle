@@ -17,20 +17,6 @@ SystemExec PoseIntentConsumerSystem::update(GameContext* context) {
 
         Pose& pose = cPose->pose;
 
-        // 1) Clear per-frame deltas (and unlock unless something re-locks this frame)
-        pose.forEachJoint([&](PoseJoint& j, PoseJointID) {
-            j.deltaOffset_m = { 0,0,0 };
-            j.deltaRotation_rad = { 0,0,0 };
-            });
-
-        pose.forEachBone([&](PoseBone& b, PoseBoneID) {
-            b.deltaStretch = 0.f;
-            });
-
-        pose.forEachAnkle([&](PoseJoint& ankle, PoseJointID) {
-            ankle.lockPosition = false;
-            ankle.lockWeight = 0.f;
-            });
 
         // 2) Sort intents by priority (high -> low)
         std::sort(cBuffer->intents.begin(), cBuffer->intents.end(),
@@ -54,8 +40,8 @@ SystemExec PoseIntentConsumerSystem::update(GameContext* context) {
                 continue;
             }
 
-            // New: "LoadAnkle" means "compress down into the floor" (squat/lunge driver)
-            if (intent.type == PoseIntentType::LoadAnkle) {
+            // New: "LoadBody" means "compress down into the floor" (squat/lunge driver)
+            if (intent.type == PoseIntentType::LoadBody) {
                 const float load = intent.magnitude * intent.weight; // meters of requested "body drop"
 
                 // (A) Pelvis drop driver (this will be resolved by IK so feet don't move)
@@ -64,12 +50,12 @@ SystemExec PoseIntentConsumerSystem::update(GameContext* context) {
                 // (B) Mild counterbalance: pelvis goes slightly backward (helps "squat", not elevator)
                 pose.centerPelvis().deltaOffset_m.z -= load * 0.20f;
 
-                // (C) Lock both ankles at current world position (captured pre-drop, from last FK)
-                pose.forEachAnkle([&](PoseJoint& ankle, PoseJointID) {
-                    ankle.lockPosition = true;
-                    ankle.lockWeight = 1.0f;
-                    ankle.lockedWorldPos_m = ankle.pos_m;
-                    });
+                //// (C) Lock both ankles at current world position (captured pre-drop, from last FK)
+                //pose.forEachAnkle([&](PoseJoint& ankle, PoseJointID) {
+                //    ankle.supportMode = SupportMode::Grounded;
+                //    ankle.lockWeight = 1.0f;
+                //    ankle.lockedWorldPos_m = ankle.pos_m;
+                //    });
 
                 continue;
             }

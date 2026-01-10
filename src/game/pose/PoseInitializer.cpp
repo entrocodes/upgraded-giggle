@@ -15,7 +15,6 @@ void PoseInitializer::initialize(GameContext* context) {
         pose.centerPelvis().pos_m = cTransform3D->pos_m;
         pose.centerPelvis().baseOffset_m = { 0, -.25, 0 };
         pose.centerPelvis().offset_m = pose.centerPelvis().baseOffset_m;
-        pose.centerPelvis().overflow_m = { 0, 0, 0 };
 
         // Pelvis split
         pose.leftPelvis().baseOffset_m = { -0.15f, 0.0f, 0.0f };
@@ -26,10 +25,15 @@ void PoseInitializer::initialize(GameContext* context) {
 
         // Legs
         pose.leftKnee().baseOffset_m = { -0.09f, -0.35f, 0.0f };
+
         pose.leftAnkle().baseOffset_m = { -0.03f, -0.28f, 0.0f };
+        pose.leftAnkle().lockWeight = 1;
 
         pose.rightKnee().baseOffset_m = { 0.09f, -0.35f, 0.0f };
+
         pose.rightAnkle().baseOffset_m = { 0.03f, -0.28f, 0.0f };
+
+        pose.rightAnkle().lockWeight = 1;
 
         // Arms
         pose.leftShoulder().baseOffset_m = { -0.18f, 0.18f, 0.0f };

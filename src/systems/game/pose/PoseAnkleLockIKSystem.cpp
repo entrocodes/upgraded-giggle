@@ -5,10 +5,19 @@
 #include <algorithm>
 #include <cmath>
 
+
+
+
 static inline float clampf(float v, float a, float b) { return std::max(a, std::min(b, v)); }
 static inline Vec3 compMul(const Vec3& a, const Vec3& b) { return { a.x * b.x, a.y * b.y, a.z * b.z }; }
 
 static inline float safeLen2(float y, float z) { return std::sqrt(y * y + z * z); }
+
+static void refreshPelvisWorldPos(Pose& pose, CTransform3D* cTransform3D) {
+    PoseJoint& pelvis = pose.centerPelvis();
+    pelvis.offset_m = pelvis.baseOffset_m + pelvis.restOffset_m;
+    pelvis.pos_m = cTransform3D->pos_m + compMul(pelvis.offset_m, pose.scale);
+}
 
 static PoseJointID hipFromAnkle(PoseJointID ankle) {
     return (ankle == PoseJointID::LeftAnkle) ? PoseJointID::LeftPelvis : PoseJointID::RightPelvis;
@@ -35,7 +44,7 @@ static void solveLeg2BoneIK_YZ(
     PoseJoint& knee = pose.joint(kneeId);
     PoseJoint& ankle = pose.joint(ankleId);
 
-    if (!ankle.lockPosition) return;
+    if (ankle.supportMode != SupportMode::Grounded) return;
 
     float w = clampf(lockWeight, 0.f, 1.f);
     if (w <= 0.f) return;
@@ -104,6 +113,24 @@ static void solveLeg2BoneIK_YZ(
     // Clamp to joint rotation limits (important!)
     knee.restRotation_rad.x = clampf(knee.restRotation_rad.x, knee.minRot.x, knee.maxRot.x);
     ankle.restRotation_rad.x = clampf(ankle.restRotation_rad.x, ankle.minRot.x, ankle.maxRot.x);
+
+    // after FK has run once this frame, ankle.pos_m is current.
+    // If locked, enforce the position by pushing error into the chain.
+    Vec3 errorW = ankle.lockedWorldPos_m - ankle.pos_m;
+    if (errorW.lengthSq() > 1e-8f) {
+        float w = clampf(ankle.lockWeight, 0.f, 1.f);
+
+        Vec3 invScale = { 1.f / pose.scale.x, 1.f / pose.scale.y, 1.f / pose.scale.z };
+        Vec3 errorLocal = { errorW.x * invScale.x, errorW.y * invScale.y, errorW.z * invScale.z };
+
+        // push into offsets (driver space)
+        knee.restOffset_m += errorLocal * (0.45f * w);
+        hip.restOffset_m += errorLocal * (0.35f * w);
+
+        // IMPORTANT: if you touch centerPelvis.restOffset_m, you must refresh pelvis world pos
+        pose.centerPelvis().restOffset_m += errorLocal * (0.20f * w);
+    }
+
 }
 
 SystemExec PoseAnkleLockIKSystem::update(GameContext* context) {
@@ -130,6 +157,8 @@ SystemExec PoseAnkleLockIKSystem::update(GameContext* context) {
             pose.rightAnkle().lockedWorldPos_m,
             pose.rightAnkle().lockWeight
         );
+
+        refreshPelvisWorldPos(pose, cTransform3D);
     }
 
     return { SystemExecResult::Ran };
