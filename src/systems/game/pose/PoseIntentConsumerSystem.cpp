@@ -18,10 +18,10 @@ SystemExec PoseIntentConsumerSystem::update(GameContext* context) {
         Pose& pose = cPose->pose;
 
 
-        // 2) Sort intents by priority (high -> low)
+        // 2) Sort intents by order (low -> high)
         std::sort(cBuffer->intents.begin(), cBuffer->intents.end(),
             [](const PoseIntent& a, const PoseIntent& b) {
-                return a.priority > b.priority;
+                return a.order < b.order;
             });
 
         // 3) Apply intents
@@ -31,6 +31,13 @@ SystemExec PoseIntentConsumerSystem::update(GameContext* context) {
                 PoseJoint& j = pose.joint(intent.joint);
                 j.deltaOffset_m += intent.desiredDelta_m * intent.weight;
                 Debug::debugPrint("transform intent consumed", j.deltaOffset_m);
+                continue;
+            }
+            if (intent.type == PoseIntentType::ShiftBody) {
+                PoseJoint& j = pose.joint(intent.joint);
+                pose.supportMode = SupportMode::Airborne;
+                j.deltaOffset_m += intent.desiredDelta_m * intent.weight;
+                Debug::debugPrint("shift body intent consumed", j.deltaOffset_m);
                 continue;
             }
 

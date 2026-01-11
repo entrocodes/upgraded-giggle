@@ -573,7 +573,7 @@ void GameImGuiSystem::drawPoseIntentTest(GameContext* context) {
         intent.joint = (PoseJointID)g_poseIntentTest.jointIdx;
         intent.type = (PoseIntentType)g_poseIntentTest.typeIdx;
         intent.weight = g_poseIntentTest.weight;
-        intent.priority = g_poseIntentTest.priority;
+        intent.order = g_poseIntentTest.priority;
 
         if (intent.type == PoseIntentType::LoadBody) {
             intent.magnitude = g_poseIntentTest.magnitude;

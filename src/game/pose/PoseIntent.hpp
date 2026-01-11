@@ -16,6 +16,6 @@ struct PoseIntent {
     PoseIntentType type;
     Vec3 desiredDelta_m;
     float weight; //multiplier
-    float priority = 1;
+    float order = 1;
     float magnitude = 1;
 };

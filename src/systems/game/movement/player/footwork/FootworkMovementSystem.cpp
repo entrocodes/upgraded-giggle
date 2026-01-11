@@ -115,11 +115,11 @@ SystemExec FootworkMovementSystem::update(GameContext* context) {
 
                     // 3) Hip flexion: THIS drives the leg forward
                     cPoseIntentBuffer->intents.push_back({
-                        PoseJointID::CenterPelvis, PoseIntentType::LoadBody, Vec3{ 0.f, 0.f, 0.f }, 1.0f,10.f, .08});
+                        PoseJointID::CenterPelvis, PoseIntentType::LoadBody, Vec3{ 0.f, 0.f, 0.f }, 1.0f,2.0f, .08});
 
-                    //// 4) Reach foot slides forward to catch
-                    //cPoseIntentBuffer->intents.push_back({
-                    //    reachAnkle,PoseIntentType::Translate,cFootworkState->direction * stride ,0.42f,7.f});
+                    // 4) Reach foot slides forward to catch
+                    cPoseIntentBuffer->intents.push_back({
+                        reachAnkle,PoseIntentType::ShiftBody,cFootworkState->direction * stride ,1.0f,1.0f, 1.f});
 
                     //// 5) Trail foot drags slightly (don’t let it stick)
                     //cPoseIntentBuffer->intents.push_back({
