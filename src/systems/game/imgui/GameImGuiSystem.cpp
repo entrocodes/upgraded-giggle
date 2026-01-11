@@ -559,6 +559,14 @@ void GameImGuiSystem::drawPoseIntentTest(GameContext* context) {
 
     // ---- Fire intent ----
     bool fire = ImGui::Button("Send Intent");
+    
+    if (ImGui::BeginCombo("Support Mode", PoseJointIDNames[g_poseIntentTest.jointIdx])) {
+        for (int i = 0; i < (int)PoseJointID::JointCount; ++i) {
+            if (ImGui::Selectable(PoseJointIDNames[i], i == g_poseIntentTest.jointIdx))
+                g_poseIntentTest.jointIdx = i;
+        }
+        ImGui::EndCombo();
+    }
 
     if (fire || g_poseIntentTest.continuous) {
         PoseIntent intent;

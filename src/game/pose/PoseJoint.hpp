@@ -2,15 +2,8 @@
 #pragma once
 #include "math/Vec3.hpp"
 #include <algorithm>
-enum class SupportMode {
-    Grounded,
-    Airborne,
-    GroundedLeftOnly,
-    GroundedRightOnly
-};
 
 struct PoseJoint {
-    SupportMode supportMode = SupportMode::Grounded;
     // --- Driver state (persistent) ---
     Vec3 baseOffset_m{ 0,0,0 };        // bind/local socket offset from parent (pre-scale)
     Vec3 restOffset_m{ 0,0,0 };        // persistent local translation offset (pre-scale)
@@ -35,6 +28,7 @@ struct PoseJoint {
     bool disablerotationCalc = false;
 
     // --- Contact/locking (constraint phase) ---
+    bool locked = false;
     Vec3 lockedWorldPos_m{ 0,0,0 };
     float lockWeight = 1.0f;         // 0..1 strength
 

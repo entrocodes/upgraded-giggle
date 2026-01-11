@@ -44,7 +44,7 @@ static void solveLeg2BoneIK_YZ(
     PoseJoint& knee = pose.joint(kneeId);
     PoseJoint& ankle = pose.joint(ankleId);
 
-    if (ankle.supportMode != SupportMode::Grounded) return;
+    if (!ankle.locked) return;
 
     float w = clampf(lockWeight, 0.f, 1.f);
     if (w <= 0.f) return;

@@ -2,9 +2,11 @@
 #include "PoseJoint.hpp"
 #include "PoseBone.hpp"
 #include "PoseIDs.hpp"
+#include "footwork/SupportMode.hpp"
 #include "math/Vec3.hpp"
 
 struct Pose {
+    SupportMode supportMode = SupportMode::Airborne;
     PoseJoint joints[JointCount];
     PoseBone  bones[(int)PoseBoneID::BoneCount];
     Vec3      scale = { 1, 1, 1 };

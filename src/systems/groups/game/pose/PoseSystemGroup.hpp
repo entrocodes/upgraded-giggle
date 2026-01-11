@@ -2,13 +2,15 @@
 
 #include "game/utils/GameContext.hpp"
 
-#include "systems/game/pose/PoseConstraintSolveSystem.hpp"
 #include "systems/game/pose/PoseForwardKinematicsSystem.hpp"
 #include "systems/game/pose/PoseIntentConsumerSystem.hpp"
 #include "systems/game/pose/PoseRootMotionSystem.hpp"
 #include "systems/game/pose/PoseAnkleLockIKSystem.hpp"
 #include "systems/game/pose/PoseDeltaClearerSystem.hpp"
+#include "systems/game/pose/footwork/SupportModeSystem.hpp"
+#include "systems/game/pose/footwork/SupportResolutionSystem.hpp"
 #include "ecs/system/ISystemGroup.hpp"
+
 
 class PoseSystemGroup final : public ISystemGroup {
 public:
@@ -16,9 +18,10 @@ public:
         : m_factory(factory)
     {
         m_graph.add<PoseIntentConsumerSystem>(m_factory, 100, TickPhase::Fixed);
+        //m_graph.add<SupportModeSystem>(m_factory, 110, TickPhase::Fixed);
+        m_graph.add<SupportResolutionSystem>(m_factory, 115, TickPhase::Fixed);
         m_graph.add<PoseRootMotionSystem>(m_factory, 120, TickPhase::Fixed);
         m_graph.add<PoseForwardKinematicsSystem>(m_factory, 140, TickPhase::Fixed);
-        //DEPRECATED: m_graph.add<PoseConstraintSolveSystem>(m_factory, 160, TickPhase::Fixed);
         m_graph.add<PoseAnkleLockIKSystem>(m_factory, 180, TickPhase::Fixed);
         m_graph.add<PoseForwardKinematicsSystem>(m_factory, 200, TickPhase::Fixed);
         m_graph.add<PoseDeltaClearerSystem>(m_factory, 220, TickPhase::Fixed);

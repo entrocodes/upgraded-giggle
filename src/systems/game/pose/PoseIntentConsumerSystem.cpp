@@ -50,12 +50,8 @@ SystemExec PoseIntentConsumerSystem::update(GameContext* context) {
                 // (B) Mild counterbalance: pelvis goes slightly backward (helps "squat", not elevator)
                 pose.centerPelvis().deltaOffset_m.z -= load * 0.20f;
 
-                //// (C) Lock both ankles at current world position (captured pre-drop, from last FK)
-                //pose.forEachAnkle([&](PoseJoint& ankle, PoseJointID) {
-                //    ankle.supportMode = SupportMode::Grounded;
-                //    ankle.lockWeight = 1.0f;
-                //    ankle.lockedWorldPos_m = ankle.pos_m;
-                //    });
+                // (C) Lock both ankles at current world position (captured pre-drop, from last FK)
+                pose.supportMode = SupportMode::Grounded;
 
                 continue;
             }
