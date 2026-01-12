@@ -1,8 +1,8 @@
-﻿#include "PoseDeltaClearerSystem.hpp"
+﻿#include "PoseStageDeltaClearSystem.hpp"
 #include "components/Components.hpp"
 #include "debug/Debug.hpp"
 
-SystemExec PoseDeltaClearerSystem::update(GameContext* context) {
+SystemExec PoseStageDeltaClearSystem::update(GameContext* context) {
     for (auto [eCharacter, cPose] : context->registry.getEntitiesWithComponents<CPose>()) {
         auto& pose = cPose->pose;
         pose.forEachJoint([&](PoseJoint& j, PoseJointID) {
@@ -14,12 +14,6 @@ SystemExec PoseDeltaClearerSystem::update(GameContext* context) {
             b.deltaStretch = 0.f;
             });
 
-        pose.forEachAnkle([&](PoseJoint& ankle, PoseJointID) {
-            ankle.locked = false;
-            ankle.lockWeight = 0.f;
-            });
-
     }
-    
     return { SystemExecResult::Ran };
 }

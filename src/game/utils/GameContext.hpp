@@ -15,6 +15,9 @@
 #include "BallSpawnDebug.hpp"
 #include "ecs/SceneManager.hpp"
 
+struct PoseRuntime {
+    float currentStage = 0;
+};
 struct DebugFootworkIntent {
     float leftHoldTime = 0.0f;
     float rightHoldTime = 0.0f;
@@ -179,6 +182,7 @@ struct ControllerParameters {
     float sensitivity = 1;
 };
 struct GameContext {
+    PoseRuntime poseRuntime;
     PlayerMovement playerMovement;
     MainMenuIntent mainMenuIntent;
     GlobalIntent globalIntent;

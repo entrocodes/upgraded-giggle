@@ -2,7 +2,7 @@
 #include "game/utils/GameContext.hpp"
 #include "ecs/system/ISystem.hpp"
 
-class SupportModeSystem : public ISystem {
+class PoseForceIntegrationSystem : public ISystem {
 public:
     SystemExec update(GameContext* context);
 };

@@ -25,7 +25,7 @@ static inline void unlockAnkle(Ankle ankle, Pose& pose) {
     if (ankle == Ankle::Left || ankle == Ankle::Both) {
         pose.leftAnkle().locked = false;
     }
-    if (ankle == Ankle::Left || ankle == Ankle::Both) {
+    if (ankle == Ankle::Right || ankle == Ankle::Both) {
         pose.rightAnkle().locked = false;
     }
 

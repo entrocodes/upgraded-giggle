@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Pose.hpp"
+#include "PoseIntentPhase.hpp"
 
 enum class PoseIntentType {
     LoadBody,      // compress into base (squat / lunge prep)
@@ -13,6 +14,8 @@ enum class PoseIntentType {
 
 struct PoseIntent {
     PoseJointID joint;
+    PoseIntentPhase phase;
+    uint8_t stage = 0;
     PoseIntentType type;
     Vec3 desiredDelta_m;
     float weight; //multiplier

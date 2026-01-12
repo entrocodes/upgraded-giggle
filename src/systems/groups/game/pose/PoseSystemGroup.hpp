@@ -7,36 +7,36 @@
 #include "systems/game/pose/PoseRootMotionSystem.hpp"
 #include "systems/game/pose/PoseAnkleLockIKSystem.hpp"
 #include "systems/game/pose/PoseDeltaClearerSystem.hpp"
-#include "systems/game/pose/footwork/SupportModeSystem.hpp"
-#include "systems/game/pose/footwork/SupportResolutionSystem.hpp"
+#include "systems/game/pose/PoseStageDeltaClearSystem.hpp"
+#include "systems/game/pose/PoseConstraintSystem.hpp"
+#include "systems/game/pose/PoseForceIntegrationSystem.hpp"
+#include "systems/game/pose/SupportResolutionSystem.hpp"
 #include "ecs/system/ISystemGroup.hpp"
-
 
 class PoseSystemGroup final : public ISystemGroup {
 public:
-    explicit PoseSystemGroup(SystemFactory& factory)
-        : m_factory(factory)
-    {
-        m_graph.add<PoseIntentConsumerSystem>(m_factory, 100, TickPhase::Fixed);
-        //m_graph.add<SupportModeSystem>(m_factory, 110, TickPhase::Fixed);
-        m_graph.add<SupportResolutionSystem>(m_factory, 115, TickPhase::Fixed);
-        m_graph.add<PoseRootMotionSystem>(m_factory, 120, TickPhase::Fixed);
-        m_graph.add<PoseForwardKinematicsSystem>(m_factory, 140, TickPhase::Fixed);
-        m_graph.add<PoseAnkleLockIKSystem>(m_factory, 180, TickPhase::Fixed);
-        m_graph.add<PoseForwardKinematicsSystem>(m_factory, 200, TickPhase::Fixed);
-        m_graph.add<PoseDeltaClearerSystem>(m_factory, 220, TickPhase::Fixed);
+    explicit PoseSystemGroup(SystemFactory& factory);
 
-    }
+    SystemExec update(GameContext* context) override;
 
-    SystemExec update(GameContext* context) override {
-        m_graph.run(context, TickPhase::Fixed);
-        return { SystemExecResult::Ran };
-    }
-
-    SystemGraph& childGraph() override { return m_graph; }
-    const SystemGraph& childGraph() const override { return m_graph; }
+    SystemGraph& childGraph() override { return m_dummy; }
+    const SystemGraph& childGraph() const override { return m_dummy; }
 
 private:
     SystemFactory m_factory;
-    SystemGraph   m_graph;
+
+    // Per-stage subgraphs
+    SystemGraph m_consumeGraph;
+    SystemGraph m_rootGraph;
+    SystemGraph m_fkGraph;
+    SystemGraph m_supportGraph;
+    SystemGraph m_ikGraph;
+    SystemGraph m_fkFinalGraph;
+    SystemGraph m_stageClearGraph;
+
+    // Final cleanup
+    SystemGraph m_finalClearGraph;
+
+    // Dummy graph to satisfy interface
+    SystemGraph m_dummy;
 };
