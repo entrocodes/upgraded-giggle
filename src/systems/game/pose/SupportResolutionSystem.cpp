@@ -10,14 +10,19 @@ enum Ankle {
 };
 static inline void lockAnkle(Ankle ankle, Pose& pose) {
     if (ankle == Ankle::Left || ankle == Ankle::Both) {
-        pose.leftAnkle().locked = true;
-        pose.leftAnkle().lockedWorldPos_m = pose.leftAnkle().pos_m;
-        pose.leftAnkle().lockWeight = 1.f;
+        if (!pose.leftAnkle().locked) {
+            pose.leftAnkle().locked = true;
+            pose.leftAnkle().lockedWorldPos_m = pose.leftAnkle().pos_m;
+            pose.leftAnkle().lockWeight = 1.f;
+        }
+
     }
-    if (ankle == Ankle::Left || ankle == Ankle::Both) {
-        pose.rightAnkle().locked = true;
-        pose.rightAnkle().lockedWorldPos_m = pose.rightAnkle().pos_m;
-        pose.rightAnkle().lockWeight = 1.f;
+    if (ankle == Ankle::Right || ankle == Ankle::Both) {
+        if (!pose.rightAnkle().locked) {
+            pose.rightAnkle().locked = true;
+            pose.rightAnkle().lockedWorldPos_m = pose.rightAnkle().pos_m;
+            pose.rightAnkle().lockWeight = 1.f;
+        }
     }
 
 }
@@ -31,21 +36,32 @@ static inline void unlockAnkle(Ankle ankle, Pose& pose) {
 
 }
 SystemExec SupportResolutionSystem::update(GameContext* context) {
-    for (auto [eCharacter, cPose] : context->registry.getEntitiesWithComponents<CPose>()) {
-        auto& pose = cPose->pose;
+    for (auto [eCharacter, cPose] :
+        context->registry.getEntitiesWithComponents<CPose>()) {
+
+        Pose& pose = cPose->pose;
+
+        bool enteringGrounded =
+            (pose.prevSupportMode == SupportMode::Airborne) &&
+            (pose.supportMode == SupportMode::Grounded);
+
         switch (pose.supportMode) {
         case SupportMode::Grounded:
-            lockAnkle(Ankle::Both, pose);
+            if (enteringGrounded) {
+                lockAnkle(Ankle::Both, pose); // capture ONCE
+            }
             break;
 
         case SupportMode::GroundedLeftOnly:
-            lockAnkle(Left, pose);
+            if (pose.prevSupportMode != SupportMode::GroundedLeftOnly)
+                lockAnkle(Left, pose);
             unlockAnkle(Right, pose);
             break;
 
         case SupportMode::GroundedRightOnly:
+            if (pose.prevSupportMode != SupportMode::GroundedRightOnly)
+                lockAnkle(Right, pose);
             unlockAnkle(Left, pose);
-            lockAnkle(Right, pose);
             break;
 
         case SupportMode::Airborne:
@@ -53,6 +69,7 @@ SystemExec SupportResolutionSystem::update(GameContext* context) {
             break;
         }
 
+        pose.prevSupportMode = pose.supportMode;
     }
     return { SystemExecResult::Ran };
 }

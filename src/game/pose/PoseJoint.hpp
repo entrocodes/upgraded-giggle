@@ -4,6 +4,7 @@
 #include <algorithm>
 
 struct PoseJoint {
+
     // --- Driver state (persistent) ---
     Vec3 baseOffset_m{ 0,0,0 };        // bind/local socket offset from parent (pre-scale)
     Vec3 restOffset_m{ 0,0,0 };        // persistent local translation offset (pre-scale)

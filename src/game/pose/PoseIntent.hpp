@@ -15,10 +15,8 @@ enum class PoseIntentType {
 struct PoseIntent {
     PoseJointID joint;
     PoseIntentPhase phase;
-    uint8_t stage = 0;
+    int stage = 0;
     PoseIntentType type;
-    Vec3 desiredDelta_m;
-    float weight; //multiplier
-    float order = 1;
-    float magnitude = 1;
+    Vec3 desiredDelta_m = Vec3(0,0,0);
+    float amount = 1; //multiplier
 };

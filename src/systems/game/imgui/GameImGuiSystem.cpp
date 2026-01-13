@@ -15,15 +15,14 @@
 struct PoseIntentTestUI {
     // --- Timeline control ---
     int stage = 0;   // micro-timeline index inside the frame
-    int phaseIdx = (int)PoseIntentPhase::Translate;
+    int phaseIdx = (int)PoseIntentPhase::Support;
 
     // --- Target ---
     int jointIdx = (int)PoseJointID::CenterPelvis;
-    int typeIdx = (int)PoseIntentType::Translate;
+    int typeIdx = (int)PoseIntentType::LoadBody;
 
     // --- Parameters ---
     Vec3  delta = { 0.f, 0.f, 0.f };   // used by Translate / ShiftBody / Rotate
-    float magnitude = 0.1f;            // used by LoadBody
     float weight = 1.0f;
 
     // --- Behavior ---
@@ -536,9 +535,7 @@ void GameImGuiSystem::drawPoseIntentTest(GameContext* context)
 
     ImGui::Begin("Pose Intent Test (Staged)##Dev");
 
-    // =============================
     // A) INTENT EMITTER
-    // =============================
     ImGui::Separator();
     ImGui::Text("Emit Pose Intent");
 
@@ -561,21 +558,17 @@ void GameImGuiSystem::drawPoseIntentTest(GameContext* context)
 
     // Intent type
     const char* intentNames[] = {
-        "Translate",
-        "Rotate",
         "LoadBody",
-        "ShiftBody"
+        "ShiftBody",
+        "PushOff",
+        "Recover",
+        "Translate",
+        "Rotate"
     };
     ImGui::Combo("Intent Type", &g_poseIntentTest.typeIdx,
         intentNames, IM_ARRAYSIZE(intentNames));
 
-    // Parameters
-    if ((PoseIntentType)g_poseIntentTest.typeIdx == PoseIntentType::LoadBody) {
-        ImGui::SliderFloat("Load (m)", &g_poseIntentTest.magnitude, 0.f, 0.5f);
-    }
-    else {
-        ImGui::DragFloat3("Delta", &g_poseIntentTest.delta.x, 0.01f);
-    }
+    ImGui::DragFloat3("Delta", &g_poseIntentTest.delta.x, 0.01f);
 
     ImGui::SliderFloat("Weight", &g_poseIntentTest.weight, 0.f, 2.f);
     ImGui::Checkbox("Continuous", &g_poseIntentTest.continuous);
@@ -588,35 +581,28 @@ void GameImGuiSystem::drawPoseIntentTest(GameContext* context)
         intent.type = (PoseIntentType)g_poseIntentTest.typeIdx;
         intent.phase = (PoseIntentPhase)g_poseIntentTest.phaseIdx;
         intent.stage = (uint8_t)g_poseIntentTest.stage;
-        intent.weight = g_poseIntentTest.weight;
+        intent.amount = g_poseIntentTest.weight;
 
         if (intent.type == PoseIntentType::LoadBody) {
-            intent.magnitude = g_poseIntentTest.magnitude;
             intent.desiredDelta_m = { 0,0,0 };
         }
         else {
             intent.desiredDelta_m = g_poseIntentTest.delta;
-            intent.magnitude = 0.f;
         }
 
         cBuffer->intents.push_back(intent);
     }
-
-    // =============================
     // B) RUNTIME POSE STATE
-    // =============================
     ImGui::Separator();
     ImGui::Text("Runtime Pose State");
 
     ImGui::Text("Current Stage: %d", context->poseRuntime.currentStage);
     ImGui::Text("Support Mode: %d", (int)pose.supportMode);
 
-    ImGui::Text("Left Ankle Locked: %s", pose.leftAnkle().locked ? "YES" : "NO");
-    ImGui::Text("Right Ankle Locked: %s", pose.rightAnkle().locked ? "YES" : "NO");
+    ImGui::Text("Left Ankle: %s", pose.leftAnkle().locked ? "Locked" : "Unlocked");
+    ImGui::Text("Right Ankle: %s", pose.rightAnkle().locked ? "Locked" : "Unlocked");
 
-    // =============================
     // C) INTENT BUFFER INSPECTOR
-    // =============================
     ImGui::Separator();
     ImGui::Text("Intent Buffer");
 
@@ -630,9 +616,50 @@ void GameImGuiSystem::drawPoseIntentTest(GameContext* context)
                 kPoseIntentPhaseNames[(int)intent.phase],
                 PoseJointIDNames[intent.joint],
                 (int)intent.type,
-                intent.weight
+                intent.amount
             );
         }
+        ImGui::TreePop();
+    }
+    // D) JOINT DEBUG
+    ImGui::Separator();
+    ImGui::Text("Pose Joints");
+
+    if (ImGui::TreeNode("Joints")) {
+        pose.forEachJoint([&](PoseJoint& j, PoseJointID id) {
+            if (ImGui::TreeNode(PoseJointIDNames[(int)id])) {
+                ImGui::Text("pos:     %.3f %.3f %.3f", j.pos_m.x, j.pos_m.y, j.pos_m.z);
+                ImGui::Text("restOff: %.3f %.3f %.3f", j.restOffset_m.x, j.restOffset_m.y, j.restOffset_m.z);
+                ImGui::Text("deltaOff:%.3f %.3f %.3f", j.deltaOffset_m.x, j.deltaOffset_m.y, j.deltaOffset_m.z);
+                ImGui::Text("restRot: %.3f %.3f %.3f", j.restRotation_rad.x, j.restRotation_rad.y, j.restRotation_rad.z);
+                ImGui::Text("deltaRot:%.3f %.3f %.3f", j.deltaRotation_rad.x, j.deltaRotation_rad.y, j.deltaRotation_rad.z);
+                ImGui::Text("locked:  %s", j.locked ? "true" : "false");
+                if (j.locked) {
+                    ImGui::Text("lockW:   %.2f", j.lockWeight);
+                    ImGui::Text("lockPos: %.3f %.3f %.3f",
+                        j.lockedWorldPos_m.x,
+                        j.lockedWorldPos_m.y,
+                        j.lockedWorldPos_m.z);
+                }
+
+                ImGui::TreePop();
+            }
+            });
+        ImGui::TreePop();
+    }
+    // E) BONE DEBUG
+    ImGui::Separator();
+    ImGui::Text("Pose Bones");
+
+    if (ImGui::TreeNode("Bones")) {
+        pose.forEachBone([&](PoseBone& b, PoseBoneID id) {
+            if (ImGui::TreeNode(PoseBoneIDNames[(int)id])) {
+                ImGui::Text("Max Compression: %.3f", b.maxCompression);
+                ImGui::Text("Max Stretch: %.3f", b.maxStretch);
+                ImGui::Text("Rest Stretch: %.3f", b.restStretch);
+                ImGui::TreePop();
+            }
+            });
         ImGui::TreePop();
     }
 

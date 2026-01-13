@@ -4,7 +4,7 @@
 #include "math/MathHelpers.hpp"
 #include <algorithm>
 #include <cmath>
-
+#include "debug/Debug.hpp"
 
 
 
@@ -12,12 +12,6 @@ static inline float clampf(float v, float a, float b) { return std::max(a, std::
 static inline Vec3 compMul(const Vec3& a, const Vec3& b) { return { a.x * b.x, a.y * b.y, a.z * b.z }; }
 
 static inline float safeLen2(float y, float z) { return std::sqrt(y * y + z * z); }
-
-static void refreshPelvisWorldPos(Pose& pose, CTransform3D* cTransform3D) {
-    PoseJoint& pelvis = pose.centerPelvis();
-    pelvis.offset_m = pelvis.baseOffset_m + pelvis.restOffset_m;
-    pelvis.pos_m = cTransform3D->pos_m + compMul(pelvis.offset_m, pose.scale);
-}
 
 static PoseJointID hipFromAnkle(PoseJointID ankle) {
     return (ankle == PoseJointID::LeftAnkle) ? PoseJointID::LeftPelvis : PoseJointID::RightPelvis;
@@ -84,7 +78,8 @@ static void solveLeg2BoneIK_YZ(
     // Choose bend direction: for squat, we generally want the knee to go "forward"
     // If forward is -Z in your space, then we want the perpendicular to bias toward -Z.
     // We’ll pick a consistent sign based on target direction (works well in practice).
-    float bendSign = (dz > 0.f) ? -1.f : +1.f;
+    float bendSign = (ankleId == PoseJointID::LeftAnkle) ? -1.f : -1.f; // pick one that matches your rig
+
 
     // Knee position in YZ plane
     float kneeY = hip.pos_m.y + uy * a + (-uz) * h * bendSign;
@@ -106,36 +101,55 @@ static void solveLeg2BoneIK_YZ(
     float deltaPitch1 = (desiredPitch1 - bindPitch1) * w;
     float deltaPitch2 = (desiredPitch2 - bindPitch2) * w;
 
-    // Apply to joint rotations (pitch about X)
-    knee.restRotation_rad.x += deltaPitch1;
-    ankle.restRotation_rad.x += deltaPitch2;
-
-    // Clamp to joint rotation limits (important!)
-    knee.restRotation_rad.x = clampf(knee.restRotation_rad.x, knee.minRot.x, knee.maxRot.x);
-    ankle.restRotation_rad.x = clampf(ankle.restRotation_rad.x, ankle.minRot.x, ankle.maxRot.x);
-
+    Vec3 errorW = ankle.lockedWorldPos_m - ankle.pos_m;
     // after FK has run once this frame, ankle.pos_m is current.
     // If locked, enforce the position by pushing error into the chain.
-    Vec3 errorW = ankle.lockedWorldPos_m - ankle.pos_m;
+
+
     if (errorW.lengthSq() > 1e-8f) {
+        // apply rotation response
+        knee.deltaRotation_rad.x += deltaPitch1;
+        ankle.deltaRotation_rad.x += deltaPitch2;
+
+        // clamp ONLY after applying correction
+        float kneeProposed =
+            clampf(
+                knee.restRotation_rad.x + knee.deltaRotation_rad.x,
+                knee.minRot.x,
+                knee.maxRot.x
+            );
+        knee.deltaRotation_rad.x = kneeProposed - knee.restRotation_rad.x;
+
+        float ankleProposed =
+            clampf(
+                ankle.restRotation_rad.x + ankle.deltaRotation_rad.x,
+                ankle.minRot.x,
+                ankle.maxRot.x
+            );
+        ankle.deltaRotation_rad.x = ankleProposed - ankle.restRotation_rad.x;
+
         float w = clampf(ankle.lockWeight, 0.f, 1.f);
 
         Vec3 invScale = { 1.f / pose.scale.x, 1.f / pose.scale.y, 1.f / pose.scale.z };
         Vec3 errorLocal = { errorW.x * invScale.x, errorW.y * invScale.y, errorW.z * invScale.z };
 
-        // push into offsets (driver space)
-        knee.restOffset_m += errorLocal * (0.45f * w);
-        hip.restOffset_m += errorLocal * (0.35f * w);
+        errorLocal.x = 0.f;
 
-        // IMPORTANT: if you touch centerPelvis.restOffset_m, you must refresh pelvis world pos
-        pose.centerPelvis().restOffset_m += errorLocal * (0.20f * w);
+        hip.deltaOffset_m.y += errorLocal.y * (0.25f * w);
+        hip.deltaOffset_m.z += errorLocal.z * (0.25f * w);
+
+        PoseJoint& root = pose.centerPelvis();
+        root.deltaOffset_m.y += errorLocal.y * (0.75f * w);
+        root.deltaOffset_m.z += errorLocal.z * (0.25f * w);
+        if (errorLocal.lengthSq() != 0) {
+            Debug::debugPrint("error", errorLocal);
+        }
     }
 
 }
 
 SystemExec PoseAnkleLockIKSystem::update(GameContext* context) {
-    for (auto [eBody, cTransform3D, cPose] :
-        context->registry.getEntitiesWithComponents<CTransform3D, CPose>()) {
+    for (auto [eBody, cTransform3D, cPose] : context->registry.getEntitiesWithComponents<CTransform3D, CPose>()) {
 
         Pose& pose = cPose->pose;
 
@@ -158,7 +172,10 @@ SystemExec PoseAnkleLockIKSystem::update(GameContext* context) {
             pose.rightAnkle().lockWeight
         );
 
-        refreshPelvisWorldPos(pose, cTransform3D);
+        PoseJoint& pelvis = pose.centerPelvis();
+        pelvis.pos_m = cTransform3D->pos_m + compMul(pelvis.baseOffset_m + pelvis.restOffset_m + pelvis.deltaOffset_m, pose.scale);
+
+
     }
 
     return { SystemExecResult::Ran };

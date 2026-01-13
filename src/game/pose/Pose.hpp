@@ -6,6 +6,9 @@
 #include "math/Vec3.hpp"
 
 struct Pose {
+    float pelvisMinY = -.15;
+    float pelvisMaxY = .05;
+    SupportMode prevSupportMode = SupportMode::Airborne;
     SupportMode supportMode = SupportMode::Airborne;
     PoseJoint joints[JointCount];
     PoseBone  bones[(int)PoseBoneID::BoneCount];
@@ -34,7 +37,7 @@ struct Pose {
     Pose() {
         // Spine / root
         neckBase().configure(Vec3(-0.4f, -0.6f, -0.3f), Vec3(0.6f, 0.6f, 0.3f), 0.015f, 0.4f);
-        centerPelvis().configure(Vec3(-0.3f, -0.4f, -0.2f), Vec3(0.4f, 0.4f, 0.2f), 0.015f, 0.25f);
+        centerPelvis().configure(Vec3(-0.3f, -0.4f, -0.2f), Vec3(0.4f, 0.4f, 0.2f), 0.06f, 0.25f);
 
         // Pelvis (hips) ?yaw dominant, small pitch
         leftPelvis().configure(Vec3(-0.2f, -0.6f, 0.0f), Vec3(0.6f, 0.6f, 0.0f), 0.02f, 0.4f);
@@ -117,6 +120,12 @@ struct Pose {
 
     PoseJoint& jointFromEnd(const PoseBone& bone) {
         return joint(bone.joint2);
+    }
+    void computeBindLengths() {
+        forEachBone([&](PoseBone& b, PoseBoneID) {
+            PoseJoint& child = joint(b.joint2);
+            b.baseLength = child.baseOffset_m.length(); // local pre-scale
+            });
     }
 
 

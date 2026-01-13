@@ -11,42 +11,40 @@ static PoseJointID kneeFromAnkle(PoseJointID ankle) {
 static PoseJointID pelvisFromAnkle(PoseJointID ankle) {
     return (ankle == PoseJointID::LeftAnkle) ? PoseJointID::LeftPelvis : PoseJointID::RightPelvis;
 }
-static void applyIntent(PoseIntent intent, Pose& pose) {
+static void applyIntent(const PoseIntent& intent, Pose& pose) {
         if (intent.type == PoseIntentType::Translate) {
             PoseJoint& j = pose.joint(intent.joint);
-            j.deltaOffset_m += intent.desiredDelta_m * intent.weight;
+            j.deltaOffset_m += intent.desiredDelta_m * intent.amount;
             Debug::debugPrint("transform intent consumed", j.deltaOffset_m);
             return;
         }
-        //if (intent.type == PoseIntentType::ShiftBody) {
-        //    PoseJoint& j = pose.joint(intent.joint);
-        //    pose.supportMode = SupportMode::Airborne;
-        //    j.deltaOffset_m += intent.desiredDelta_m * intent.weight;
-        //    Debug::debugPrint("shift body intent consumed", j.deltaOffset_m);
-        //    return;
-        //}
+        if (intent.type == PoseIntentType::ShiftBody) {
+            if (intent.phase == PoseIntentPhase::Support) {
+                pose.supportMode = SupportMode::Airborne;
+            }
+            else if (intent.phase == PoseIntentPhase::Translate) {
+                PoseJoint& j = pose.joint(intent.joint);
+                j.deltaOffset_m += intent.desiredDelta_m * intent.amount;
+            }
+            return;
+        }
 
         if (intent.type == PoseIntentType::Rotate) {
             PoseJoint& j = pose.joint(intent.joint);
-            j.deltaRotation_rad += intent.desiredDelta_m * intent.weight;
+            j.deltaRotation_rad += intent.desiredDelta_m * intent.amount;
             return;
         }
 
         //// New: "LoadBody" means "compress down into the floor" (squat/lunge driver)
-        //if (intent.type == PoseIntentType::LoadBody) {
-        //    const float load = intent.magnitude * intent.weight; // meters of requested "body drop"
-
-        //    // (A) Pelvis drop driver (this will be resolved by IK so feet don't move)
-        //    pose.centerPelvis().deltaOffset_m.y -= load;
-
-        //    // (B) Mild counterbalance: pelvis goes slightly backward (helps "squat", not elevator)
-        //    pose.centerPelvis().deltaOffset_m.z -= load * 0.20f;
-
-        //    // (C) Lock both ankles at current world position (captured pre-drop, from last FK)
-        //    pose.supportMode = SupportMode::Grounded;
-
-        //    return;
-        //}
+        if (intent.type == PoseIntentType::LoadBody) {
+            if (intent.phase == PoseIntentPhase::Support) {
+                pose.supportMode = SupportMode::Grounded;
+            }
+            if (intent.phase == PoseIntentPhase::Translate) {
+                pose.centerPelvis().deltaOffset_m.y -= intent.amount;
+            }
+            return;
+        }
 }
 SystemExec PoseIntentConsumerSystem::update(GameContext* context) {
     int stage = context->poseRuntime.currentStage;
@@ -71,6 +69,14 @@ SystemExec PoseIntentConsumerSystem::update(GameContext* context) {
                 applyIntent(it, pose);
             }
         }
+        // Remove intents that were consumed in this stage
+        auto& v = cBuffer->intents;
+        v.erase(std::remove_if(v.begin(), v.end(),
+            [stage](const PoseIntent& it) {
+                return it.stage == stage;
+            }), v.end());
+
+
     }
 
     return { SystemExecResult::Ran };

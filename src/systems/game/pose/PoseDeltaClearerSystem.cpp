@@ -14,11 +14,6 @@ SystemExec PoseDeltaClearerSystem::update(GameContext* context) {
             b.deltaStretch = 0.f;
             });
 
-        pose.forEachAnkle([&](PoseJoint& ankle, PoseJointID) {
-            ankle.locked = false;
-            ankle.lockWeight = 0.f;
-            });
-
     }
     
     return { SystemExecResult::Ran };

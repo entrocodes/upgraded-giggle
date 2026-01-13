@@ -10,6 +10,7 @@
 #include "systems/game/pose/PoseStageDeltaClearSystem.hpp"
 #include "systems/game/pose/PoseConstraintSystem.hpp"
 #include "systems/game/pose/PoseForceIntegrationSystem.hpp"
+#include "systems/game/pose/PoseCommitSystem.hpp"
 #include "systems/game/pose/SupportResolutionSystem.hpp"
 #include "ecs/system/ISystemGroup.hpp"
 
@@ -26,13 +27,7 @@ private:
     SystemFactory m_factory;
 
     // Per-stage subgraphs
-    SystemGraph m_consumeGraph;
-    SystemGraph m_rootGraph;
-    SystemGraph m_fkGraph;
-    SystemGraph m_supportGraph;
-    SystemGraph m_ikGraph;
-    SystemGraph m_fkFinalGraph;
-    SystemGraph m_stageClearGraph;
+    SystemGraph m_stagedGraph;
 
     // Final cleanup
     SystemGraph m_finalClearGraph;

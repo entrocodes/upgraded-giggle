@@ -23,39 +23,38 @@ SystemExec PoseRootMotionSystem::update(GameContext* context) {
 
         Pose& pose = cPose->pose;
         PoseJoint& pelvis = pose.centerPelvis();
-        Debug::debugPrint("Pelvis Delta Offset", pelvis.deltaOffset_m);
-        // desired root offsets (driver space)
-        Vec2 desiredXZ(
+
+        // Build proposal (driver space)
+        Vec2 proposedXZ(
             pelvis.restOffset_m.x + pelvis.deltaOffset_m.x,
             pelvis.restOffset_m.z + pelvis.deltaOffset_m.z
         );
-        float desiredY = pelvis.restOffset_m.y + pelvis.deltaOffset_m.y;
 
-        Vec2 overflowXZ(0.f, 0.f);
+        float proposedY =
+            pelvis.restOffset_m.y + pelvis.deltaOffset_m.y;
+
+        Vec2 overflowXZ{ 0.f, 0.f };
 
         if (!context->playerMovement.bodyMovement.disablePoseConstraints) {
             float maxXZ = pelvis.maxOffset;
-            float d2 = lenSq(desiredXZ);
+            float d2 = lenSq(proposedXZ);
+
             if (d2 > maxXZ * maxXZ) {
-                Vec2 clamped = safeNormalize(desiredXZ) * maxXZ;
-                overflowXZ = desiredXZ - clamped;
-                desiredXZ = clamped;
+                Vec2 clamped = safeNormalize(proposedXZ) * maxXZ;
+                overflowXZ = proposedXZ - clamped;
+                proposedXZ = clamped;
             }
         }
 
-        // Commit pelvis restOffset (Y allowed here as a driver, not transform locomotion)
-        pelvis.restOffset_m = { desiredXZ.x, desiredY, desiredXZ.y };
-        Debug::debugPrint("Pelvis Rest Offset", pelvis.restOffset_m);
-        Debug::debugPrint("Pelvis Overflow", pelvis.overflow_m);
-        pelvis.deltaOffset_m = { 0,0,0 };
+        // Rewrite deltaOffset so FK sees clamped proposal
+        pelvis.deltaOffset_m.x = proposedXZ.x - pelvis.restOffset_m.x;
+        pelvis.deltaOffset_m.z = proposedXZ.y - pelvis.restOffset_m.z;
+        pelvis.deltaOffset_m.y = proposedY - pelvis.restOffset_m.y;
 
-        // Locomotion ONLY in XZ
+        // Convert overflow into transform locomotion
         cTransform3D->pos_m += Vec3(overflowXZ.x, 0.f, overflowXZ.y);
 
-        // Final pelvis world position
-        pelvis.offset_m = pelvis.baseOffset_m + pelvis.restOffset_m;
-        pelvis.pos_m = cTransform3D->pos_m + compMul(pelvis.offset_m, pose.scale);
+        pelvis.pos_m = cTransform3D->pos_m + compMul(pelvis.baseOffset_m + pelvis.restOffset_m + pelvis.deltaOffset_m, pose.scale);
     }
-
     return { SystemExecResult::Ran };
 }
