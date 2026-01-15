@@ -4,6 +4,13 @@
 #include <algorithm>
 
 struct PoseJoint {
+    Vec3 lockBendNormalW = { 0,0,0 };
+    bool lockBendValid = true;
+    float lockRefPelvisY = 0.f;
+    float lockRefPelvisZ = 0.f;
+    bool  lockRefPelvisValid = false;
+    float lockRefDistanceYZ = -1;
+    float lockRefDzSign = -1;
 
     // --- Driver state (persistent) ---
     Vec3 baseOffset_m{ 0,0,0 };        // bind/local socket offset from parent (pre-scale)
@@ -12,6 +19,7 @@ struct PoseJoint {
 
     // --- Per-frame deltas (cleared each frame) ---
     Vec3 deltaOffset_m{ 0,0,0 };
+    Vec3 desiredDeltaOffset_m{ 0,0,0 };
     Vec3 deltaRotation_rad{ 0,0,0 };
 
     // --- Solver outputs (computed) ---
@@ -33,6 +41,7 @@ struct PoseJoint {
     Vec3 lockedWorldPos_m{ 0,0,0 };
     float lockWeight = 1.0f;         // 0..1 strength
 
+    Vec3 lastPos_m = { 0,0,0 };
     // --- Debug helpers (optional) ---
     Vec3 trueRestOffset_m{ 0,0,0 };    // world delta from parent minus bind (for debug)
     Vec3 tempTrueRestOffset_m{ 0,0,0 };

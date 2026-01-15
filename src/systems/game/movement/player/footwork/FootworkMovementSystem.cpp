@@ -48,7 +48,7 @@ SystemExec FootworkMovementSystem::update(GameContext* context) {
                 if (cFootworkState->current.kind == StepKind::Tap) {
                     bool stepRight = (cFootworkState->current.dominantFoot == DominantFoot::Right);
                     PoseJointID swingAnkle = stepRight ? PoseJointID::RightAnkle : PoseJointID::LeftAnkle;
-                    PoseJointID hip = stepRight ? PoseJointID::RightPelvis : PoseJointID::LeftPelvis;
+                    PoseJointID hip = stepRight ? PoseJointID::RightHip : PoseJointID::LeftHip;
 
                     // Pelvis leads (small)
                     //cPoseIntentBuffer->intents.push_back({
@@ -94,7 +94,7 @@ SystemExec FootworkMovementSystem::update(GameContext* context) {
                 else if (cFootworkState->current.kind == StepKind::Reach) {
                     bool reachRight = (cFootworkState->direction.x > 0);
 
-                    PoseJointID reachPelvis = reachRight ? PoseJointID::RightPelvis : PoseJointID::LeftPelvis;
+                    PoseJointID reachPelvis = reachRight ? PoseJointID::RightHip : PoseJointID::LeftHip;
                     PoseJointID reachUpperLeg = reachRight ? PoseJointID::RightKnee : PoseJointID::LeftKnee; // femur flexion proxy
                     PoseJointID reachAnkle = reachRight ? PoseJointID::RightAnkle : PoseJointID::LeftAnkle;
                     PoseJointID trailAnkle = reachRight ? PoseJointID::LeftAnkle : PoseJointID::RightAnkle;
@@ -118,6 +118,7 @@ SystemExec FootworkMovementSystem::update(GameContext* context) {
                         PoseJointID::CenterPelvis, PoseIntentPhase::Support, 2, PoseIntentType::LoadBody});                    
                     cPoseIntentBuffer->intents.push_back({
                         PoseJointID::CenterPelvis, PoseIntentPhase::Translate, 2, PoseIntentType::LoadBody, Vec3{ 0.f, 0.f, 0.f }, .08});
+                    Debug::debugPrint("Reach Triggered");
 
 
                     // 4) Reach foot slides forward to cat

@@ -29,6 +29,7 @@ public:
             a.x * b.y - a.y * b.x
         };
     }
+    static Vec3 compMul(const Vec3& a, const Vec3& b) { return { a.x * b.x, a.y * b.y, a.z * b.z }; }
 
     static ClosestPoints findClosestPoints(Vec3 p1, Vec3 q1, Vec3 p2, Vec3 q2) {
         Vec3 d1 = q1 - p1; // Ball dir

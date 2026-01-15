@@ -49,6 +49,7 @@ SystemExec SupportResolutionSystem::update(GameContext* context) {
         case SupportMode::Grounded:
             if (enteringGrounded) {
                 lockAnkle(Ankle::Both, pose); // capture ONCE
+                pose.centerPelvis().lockedWorldPos_m = pose.centerPelvis().pos_m;
             }
             break;
 

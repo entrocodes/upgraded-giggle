@@ -38,11 +38,6 @@ SystemExec PoseConstraintSystem::update(GameContext* context) {
                     j.deltaOffset_m.x = xz.x;
                     j.deltaOffset_m.z = xz.y;
                 }
-
-                // Y squat clamp — DO NOT use maxOffset
-                float proposedY = j.restOffset_m.y + j.deltaOffset_m.y;
-                float clampedY = std::clamp(proposedY, pose.pelvisMinY, pose.pelvisMaxY);
-                j.deltaOffset_m.y = clampedY - j.restOffset_m.y;
                 return;
             }
 

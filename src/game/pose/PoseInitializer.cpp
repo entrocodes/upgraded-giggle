@@ -17,8 +17,8 @@ void PoseInitializer::initialize(GameContext* context) {
         pose.centerPelvis().offset_m = pose.centerPelvis().baseOffset_m;
 
         // Pelvis split
-        pose.leftPelvis().baseOffset_m = { -0.15f, 0.0f, 0.0f };
-        pose.rightPelvis().baseOffset_m = { 0.15f, 0.0f, 0.0f };
+        pose.leftHip().baseOffset_m = { -0.15f, 0.0f, 0.0f };
+        pose.rightHip().baseOffset_m = { 0.15f, 0.0f, 0.0f };
 
         // Spine
         pose.neckBase().baseOffset_m = { 0.0f, 0.62f, 0.0f };

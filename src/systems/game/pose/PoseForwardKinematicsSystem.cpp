@@ -3,15 +3,14 @@
 #include "components/Components.hpp"
 #include "math/MathHelpers.hpp"
 #include "debug/Debug.hpp"
-static inline Vec3 compMul(const Vec3& a, const Vec3& b) { return { a.x * b.x, a.y * b.y, a.z * b.z }; }
 
 // Parent -> child order
 static constexpr PoseBoneID kSolveDownOrder[] = {
     PoseBoneID::Spine,
     PoseBoneID::LeftShoulder, PoseBoneID::LeftUpperArm, PoseBoneID::LeftLowerArm, PoseBoneID::RacketHand,
     PoseBoneID::RightShoulder, PoseBoneID::RightUpperArm, PoseBoneID::RightLowerArm,
-    PoseBoneID::LeftPelvisBone, PoseBoneID::LeftUpperLeg, PoseBoneID::LeftLowerLeg,
-    PoseBoneID::RightPelvisBone, PoseBoneID::RightUpperLeg, PoseBoneID::RightLowerLeg
+    PoseBoneID::LeftHipBone, PoseBoneID::LeftUpperLeg, PoseBoneID::LeftLowerLeg,
+    PoseBoneID::RightHipBone, PoseBoneID::RightUpperLeg, PoseBoneID::RightLowerLeg
 };
 
 SystemExec PoseForwardKinematicsSystem::update(GameContext* context) {
@@ -33,15 +32,18 @@ SystemExec PoseForwardKinematicsSystem::update(GameContext* context) {
 
             Vec3 finalLocal = rotatedBaseLocal + (child.restOffset_m + child.deltaOffset_m);
 
-            Vec3 newPos = parent.pos_m + compMul(finalLocal, pose.scale);
-            //if (child.locked) {
-            //    child.pos_m = Vec3(newPos.x, child.lockedWorldPos_m.y, newPos.z);
-            //}
-            //else {
-            //    child.pos_m = newPos;
-            //}
+            Vec3 newPos = parent.pos_m + MathHelpers::compMul(finalLocal, pose.scale);
+
             child.pos_m = newPos;
         }
+        if (pose.leftAnkle().locked) {
+            pose.leftAnkle().pos_m = pose.leftAnkle().lockedWorldPos_m;
+        }
+        if (pose.rightAnkle().locked) {
+            pose.rightAnkle().pos_m = pose.rightAnkle().lockedWorldPos_m;
+        }
+
+        context->poseRuntime.ankleErr = (pose.leftAnkle().pos_m - pose.leftAnkle().lockedWorldPos_m).length();
     }
 
     return { SystemExecResult::Ran };

@@ -9,7 +9,7 @@ static PoseJointID kneeFromAnkle(PoseJointID ankle) {
     return (ankle == PoseJointID::LeftAnkle) ? PoseJointID::LeftKnee : PoseJointID::RightKnee;
 }
 static PoseJointID pelvisFromAnkle(PoseJointID ankle) {
-    return (ankle == PoseJointID::LeftAnkle) ? PoseJointID::LeftPelvis : PoseJointID::RightPelvis;
+    return (ankle == PoseJointID::LeftAnkle) ? PoseJointID::LeftHip : PoseJointID::RightHip;
 }
 static void applyIntent(const PoseIntent& intent, Pose& pose) {
         if (intent.type == PoseIntentType::Translate) {
@@ -41,7 +41,8 @@ static void applyIntent(const PoseIntent& intent, Pose& pose) {
                 pose.supportMode = SupportMode::Grounded;
             }
             if (intent.phase == PoseIntentPhase::Translate) {
-                pose.centerPelvis().deltaOffset_m.y -= intent.amount;
+                pose.requestedSquat = intent.amount;
+                Debug::debugPrint("squat amount", pose.requestedSquat);
             }
             return;
         }

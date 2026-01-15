@@ -5,8 +5,10 @@
 SystemExec PoseStageDeltaClearSystem::update(GameContext* context) {
     for (auto [eCharacter, cPose] : context->registry.getEntitiesWithComponents<CPose>()) {
         auto& pose = cPose->pose;
+        pose.requestedSquat = 0;
         pose.forEachJoint([&](PoseJoint& j, PoseJointID) {
             j.deltaOffset_m = { 0,0,0 };
+            j.desiredDeltaOffset_m = { 0,0,0 };
             j.deltaRotation_rad = { 0,0,0 };
             });
 

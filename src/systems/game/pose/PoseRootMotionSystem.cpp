@@ -24,6 +24,11 @@ SystemExec PoseRootMotionSystem::update(GameContext* context) {
         Pose& pose = cPose->pose;
         PoseJoint& pelvis = pose.centerPelvis();
 
+        if (pose.requestedSquat > 0) {
+            pelvis.desiredDeltaOffset_m.y -= pose.requestedSquat;
+            Debug::debugPrint("desired delta offset", pelvis.desiredDeltaOffset_m);
+        }
+
         // Build proposal (driver space)
         Vec2 proposedXZ(
             pelvis.restOffset_m.x + pelvis.deltaOffset_m.x,
@@ -45,14 +50,13 @@ SystemExec PoseRootMotionSystem::update(GameContext* context) {
                 proposedXZ = clamped;
             }
         }
-
         // Rewrite deltaOffset so FK sees clamped proposal
         pelvis.deltaOffset_m.x = proposedXZ.x - pelvis.restOffset_m.x;
         pelvis.deltaOffset_m.z = proposedXZ.y - pelvis.restOffset_m.z;
         pelvis.deltaOffset_m.y = proposedY - pelvis.restOffset_m.y;
 
-        // Convert overflow into transform locomotion
-        cTransform3D->pos_m += Vec3(overflowXZ.x, 0.f, overflowXZ.y);
+        //// Convert overflow into transform locomotion
+        //cTransform3D->pos_m += Vec3(overflowXZ.x, 0.f, overflowXZ.y);
 
         pelvis.pos_m = cTransform3D->pos_m + compMul(pelvis.baseOffset_m + pelvis.restOffset_m + pelvis.deltaOffset_m, pose.scale);
     }

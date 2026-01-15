@@ -1,181 +1,83 @@
 ﻿// PoseAnkleLockIKSystem.cpp
 #include "PoseAnkleLockIKSystem.hpp"
 #include "components/Components.hpp"
+#include "debug/Debug.hpp"
 #include "math/MathHelpers.hpp"
 #include <algorithm>
 #include <cmath>
-#include "debug/Debug.hpp"
+static void solvePelvisZ(Pose& pose) {
+    constexpr float squatRatioZ = 0.4f;
+    PoseJoint& pelvis = pose.centerPelvis();
 
+    pelvis.deltaOffset_m.y = pelvis.desiredDeltaOffset_m.y;
 
-
-static inline float clampf(float v, float a, float b) { return std::max(a, std::min(b, v)); }
-static inline Vec3 compMul(const Vec3& a, const Vec3& b) { return { a.x * b.x, a.y * b.y, a.z * b.z }; }
-
-static inline float safeLen2(float y, float z) { return std::sqrt(y * y + z * z); }
-
-static PoseJointID hipFromAnkle(PoseJointID ankle) {
-    return (ankle == PoseJointID::LeftAnkle) ? PoseJointID::LeftPelvis : PoseJointID::RightPelvis;
-}
-static PoseJointID kneeFromAnkle(PoseJointID ankle) {
-    return (ankle == PoseJointID::LeftAnkle) ? PoseJointID::LeftKnee : PoseJointID::RightKnee;
+    pelvis.deltaOffset_m.z = pelvis.deltaOffset_m.y * squatRatioZ;
+    Debug::debugPrint("delta offset Y", pelvis.desiredDeltaOffset_m.y);
 }
 
-static float pitchFromVectorYZ(const Vec3& v) {
-    // pitch about X that points bind (0,-1,0) toward v in YZ plane.
-    // Using atan2(-z, y) gives "forward (z-) = positive pitch" style.
-    return std::atan2(-v.z, v.y);
-}
+static void solveLeg(Pose& pose, PoseJointID id) {
+    PoseJoint& knee = (id == PoseJointID::LeftAnkle) ? pose.leftKnee() : pose.rightKnee();
+    PoseJoint& ankle = (id == PoseJointID::LeftAnkle) ? pose.leftAnkle() : pose.rightAnkle();
+    PoseJoint& hip = (id == PoseJointID::LeftAnkle) ? pose.leftHip() : pose.rightHip();
+    PoseJoint& pelvis = pose.centerPelvis();
+    PoseBone& upperLeg = (id == PoseJointID::LeftAnkle) ? pose.bone(PoseBoneID::LeftUpperLeg) : pose.bone(PoseBoneID::RightUpperLeg);
+    PoseBone& lowerLeg = (id == PoseJointID::LeftAnkle) ? pose.bone(PoseBoneID::LeftLowerLeg) : pose.bone(PoseBoneID::RightLowerLeg); 
 
-static void solveLeg2BoneIK_YZ(
-    Pose& pose,
-    PoseJointID hipId,
-    PoseJointID kneeId,
-    PoseJointID ankleId,
-    const Vec3& ankleTargetW,
-    float lockWeight
-) {
-    PoseJoint& hip = pose.joint(hipId);
-    PoseJoint& knee = pose.joint(kneeId);
-    PoseJoint& ankle = pose.joint(ankleId);
+    float lowerLegLength = (lowerLeg.baseLength + lowerLeg.restStretch + lowerLeg.deltaStretch) / 2;
+    float upperLegLength = (upperLeg.baseLength + upperLeg.restStretch + upperLeg.deltaStretch) / 2;
+    Vec3 hipPos_m = hip.pos_m + pelvis.deltaOffset_m;
+    Debug::queueSphere3D(hipPos_m, .02, sf::Color::Yellow);
+    Vec3 anklePos_m = ankle.pos_m;
 
-    if (!ankle.locked) return;
+    float Dy = (anklePos_m.y - hipPos_m.y);
+    float Dz = (anklePos_m.z - hipPos_m.z);
+    float d = std::sqrt(Dy * Dy + Dz * Dz);
 
-    float w = clampf(lockWeight, 0.f, 1.f);
-    if (w <= 0.f) return;
+    d = std::clamp(d, std::fabs(upperLegLength - lowerLegLength) + 1e-5f, (upperLegLength + lowerLegLength) - 1e-5f);
 
-    // World-space hip -> target vector
-    Vec3 toTargetW = ankleTargetW - hip.pos_m;
+    float pitchFromYZ = std::atan2(-Dz, -Dy);
+    
+    float cosAlpha = (upperLegLength * upperLegLength + d * d - lowerLegLength * lowerLegLength) / (2.f * upperLegLength * d);
+    cosAlpha = std::clamp(cosAlpha, -1.f, 1.f);
+    float alpha = std::acos(cosAlpha);     // offset from phi for the first segment
 
-    // We solve in the sagittal plane (YZ). Keep X as-is.
-    float dy = toTargetW.y;
-    float dz = toTargetW.z;
-    float d = safeLen2(dy, dz);
-    if (d < 1e-6f) return;
+    float cosBeta = (upperLegLength * upperLegLength + lowerLegLength * lowerLegLength - d * d) / (2.f * upperLegLength * lowerLegLength);
+    cosBeta = std::clamp(cosBeta, -1.f, 1.f);
+    float beta = std::acos(cosBeta);       // interior angle between segments
 
-    // Segment bind vectors (scaled)
-    // hip->knee is knee.baseOffset (because knee is child of hip)
-    Vec3 b1W = compMul(knee.baseOffset_m, pose.scale);
-    Vec3 b2W = compMul(ankle.baseOffset_m, pose.scale);
+    // Solution 1
+    float kneePitch1 = pitchFromYZ - alpha;
+    float anklePitch1 = kneePitch1 + M_PI - beta;
 
-    float L1 = safeLen2(b1W.y, b1W.z);
-    float L2 = safeLen2(b2W.y, b2W.z);
+    //// Solution 2 (mirror)
+    float kneePitch2 = pitchFromYZ + alpha;
+    float anklePitch2 = kneePitch2 - (M_PI - beta);
 
-    if (L1 < 1e-5f || L2 < 1e-5f) return;
-
-    // Clamp reachable distance (classic 2-bone IK)
-    float dClamped = clampf(d, std::fabs(L1 - L2) + 1e-4f, (L1 + L2) - 1e-4f);
-
-    // Triangle solve:
-    // a = distance from hip to knee along the hip->target ray
-    float a = (L1 * L1 - L2 * L2 + dClamped * dClamped) / (2.f * dClamped);
-    float h2 = std::max(0.f, L1 * L1 - a * a);
-    float h = std::sqrt(h2);
-
-    // Unit direction in YZ
-    float uy = dy / d;
-    float uz = dz / d;
-
-    // Choose bend direction: for squat, we generally want the knee to go "forward"
-    // If forward is -Z in your space, then we want the perpendicular to bias toward -Z.
-    // We’ll pick a consistent sign based on target direction (works well in practice).
-    float bendSign = (ankleId == PoseJointID::LeftAnkle) ? -1.f : -1.f; // pick one that matches your rig
+    knee.deltaRotation_rad.x = kneePitch1 - knee.restRotation_rad.x;
+    ankle.deltaRotation_rad.x = anklePitch1 - ankle.restRotation_rad.x;
 
 
-    // Knee position in YZ plane
-    float kneeY = hip.pos_m.y + uy * a + (-uz) * h * bendSign;
-    float kneeZ = hip.pos_m.z + uz * a + (uy)*h * bendSign;
-
-    Vec3 kneeSolvedW = { knee.pos_m.x, kneeY, kneeZ };
-
-    // Now compute desired segment directions in YZ
-    Vec3 v1W = kneeSolvedW - hip.pos_m;
-    Vec3 v2W = ankleTargetW - kneeSolvedW;
-
-    // Compute desired pitches (about X) relative to bind
-    float bindPitch1 = pitchFromVectorYZ(b1W);
-    float bindPitch2 = pitchFromVectorYZ(b2W);
-
-    float desiredPitch1 = pitchFromVectorYZ(v1W);
-    float desiredPitch2 = pitchFromVectorYZ(v2W);
-
-    float deltaPitch1 = (desiredPitch1 - bindPitch1) * w;
-    float deltaPitch2 = (desiredPitch2 - bindPitch2) * w;
-
-    Vec3 errorW = ankle.lockedWorldPos_m - ankle.pos_m;
-    // after FK has run once this frame, ankle.pos_m is current.
-    // If locked, enforce the position by pushing error into the chain.
-
-
-    if (errorW.lengthSq() > 1e-8f) {
-        // apply rotation response
-        knee.deltaRotation_rad.x += deltaPitch1;
-        ankle.deltaRotation_rad.x += deltaPitch2;
-
-        // clamp ONLY after applying correction
-        float kneeProposed =
-            clampf(
-                knee.restRotation_rad.x + knee.deltaRotation_rad.x,
-                knee.minRot.x,
-                knee.maxRot.x
-            );
-        knee.deltaRotation_rad.x = kneeProposed - knee.restRotation_rad.x;
-
-        float ankleProposed =
-            clampf(
-                ankle.restRotation_rad.x + ankle.deltaRotation_rad.x,
-                ankle.minRot.x,
-                ankle.maxRot.x
-            );
-        ankle.deltaRotation_rad.x = ankleProposed - ankle.restRotation_rad.x;
-
-        float w = clampf(ankle.lockWeight, 0.f, 1.f);
-
-        Vec3 invScale = { 1.f / pose.scale.x, 1.f / pose.scale.y, 1.f / pose.scale.z };
-        Vec3 errorLocal = { errorW.x * invScale.x, errorW.y * invScale.y, errorW.z * invScale.z };
-
-        errorLocal.x = 0.f;
-
-        hip.deltaOffset_m.y += errorLocal.y * (0.25f * w);
-        hip.deltaOffset_m.z += errorLocal.z * (0.25f * w);
-
-        PoseJoint& root = pose.centerPelvis();
-        root.deltaOffset_m.y += errorLocal.y * (0.75f * w);
-        root.deltaOffset_m.z += errorLocal.z * (0.25f * w);
-        if (errorLocal.lengthSq() != 0) {
-            Debug::debugPrint("error", errorLocal);
-        }
-    }
 
 }
-
+// ------------------------------------------------------------
+// System entry
+// ------------------------------------------------------------
 SystemExec PoseAnkleLockIKSystem::update(GameContext* context) {
-    for (auto [eBody, cTransform3D, cPose] : context->registry.getEntitiesWithComponents<CTransform3D, CPose>()) {
+    for (auto [eBody, cTransform3D, cPose] :
 
+        context->registry.getEntitiesWithComponents<CTransform3D, CPose>()) {
         Pose& pose = cPose->pose;
+        float dt = context->frameStats.dt;
 
-        // Solve both legs if ankles are locked
-        solveLeg2BoneIK_YZ(
-            pose,
-            PoseJointID::LeftPelvis,
-            PoseJointID::LeftKnee,
-            PoseJointID::LeftAnkle,
-            pose.leftAnkle().lockedWorldPos_m,
-            pose.leftAnkle().lockWeight
-        );
+        const bool leftLocked = pose.leftAnkle().locked;
+        const bool rightLocked = pose.rightAnkle().locked;
 
-        solveLeg2BoneIK_YZ(
-            pose,
-            PoseJointID::RightPelvis,
-            PoseJointID::RightKnee,
-            PoseJointID::RightAnkle,
-            pose.rightAnkle().lockedWorldPos_m,
-            pose.rightAnkle().lockWeight
-        );
-
-        PoseJoint& pelvis = pose.centerPelvis();
-        pelvis.pos_m = cTransform3D->pos_m + compMul(pelvis.baseOffset_m + pelvis.restOffset_m + pelvis.deltaOffset_m, pose.scale);
-
-
+        // Double-foot support: solve pelvis Z sit-back and pelvis X correction
+        if (leftLocked && rightLocked) {
+            solvePelvisZ(pose);
+            solveLeg(pose, PoseJointID::LeftAnkle);
+            solveLeg(pose, PoseJointID::RightAnkle);
+        }
     }
 
     return { SystemExecResult::Ran };

@@ -29,6 +29,9 @@ struct Vec3 {
     Vec3 operator-() const {
         return Vec3(-x, -y, -z);
     }
+    bool operator!=(const Vec3& o) const {
+        return (x != o.x || y != o.y || z != o.z);
+    }
 
     bool operator==(const Vec3& o) const {
         return (x == o.x && y == o.y && z == o.z);

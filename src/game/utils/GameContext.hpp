@@ -17,6 +17,8 @@
 
 struct PoseRuntime {
     float currentStage = 0;
+    float lastLeftAnkleErr = 0;
+    float ankleErr = 0;
 };
 struct DebugFootworkIntent {
     float leftHoldTime = 0.0f;

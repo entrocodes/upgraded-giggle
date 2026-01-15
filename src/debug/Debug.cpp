@@ -1,12 +1,42 @@
 ﻿#include "Debug.hpp"
 #include "game/utils/GameContext.hpp"
 #include <iostream>
+#include <unordered_map>
+#include <cmath>
 
 namespace Debug {
 
     std::vector<ArrowCommand> queuedArrows;
     std::vector<LineCommand> queuedLines;
     std::vector<SphereCommand> queuedSpheres;
+
+    // =========================================================
+    // Internal caches for duplicate suppression
+    // =========================================================
+
+    static std::unordered_map<std::string, float> lastFloat;
+    static std::unordered_map<std::string, Vec2>  lastVec2;
+    static std::unordered_map<std::string, Vec3>  lastVec3;
+    static std::unordered_map<std::string, std::string> lastString;
+
+    static inline bool nearlyEqual(float a, float b, float eps = 1e-5f) {
+        return std::fabs(a - b) < eps;
+    }
+
+    static inline bool nearlyEqual(const Vec2& a, const Vec2& b, float eps = 1e-5f) {
+        return nearlyEqual(a.x, b.x, eps) &&
+            nearlyEqual(a.y, b.y, eps);
+    }
+
+    static inline bool nearlyEqual(const Vec3& a, const Vec3& b, float eps = 1e-5f) {
+        return nearlyEqual(a.x, b.x, eps) &&
+            nearlyEqual(a.y, b.y, eps) &&
+            nearlyEqual(a.z, b.z, eps);
+    }
+
+    // =========================================================
+    // Queueing
+    // =========================================================
 
     void queueLine3D(const Vec3& from, const Vec3& to, const sf::Color& color) {
         queuedLines.push_back({ from, to, color });
@@ -16,8 +46,16 @@ namespace Debug {
         queuedSpheres.push_back({ center, radius, color });
     }
 
+    void queueArrow3D(const Vec3& from, const Vec3& to, const sf::Color& color) {
+        queuedArrows.push_back({ from, to, color });
+    }
+
+    // =========================================================
+    // Rendering
+    // =========================================================
+
     void renderQueuedShapes(GameContext* context) {
-        // --- Render Lines ---
+        // --- Lines ---
         for (auto& l : queuedLines) {
             Vec2 p1 = context->camera.homography.worldToImage(l.from);
             Vec2 p2 = context->camera.homography.worldToImage(l.to);
@@ -28,10 +66,9 @@ namespace Debug {
             context->window.draw(line, 2, sf::Lines);
         }
 
-        // --- Render Spheres (as Octagons for performance) ---
+        // --- Spheres ---
         for (auto& s : queuedSpheres) {
             Vec2 center = context->camera.homography.worldToImage(s.center);
-            // Rough screen-space radius calculation
             Vec3 edgePoint = s.center + Vec3(s.radius, 0, 0);
             Vec2 edge = context->camera.homography.worldToImage(edgePoint);
             float screenRadius = std::abs(edge.x - center.x);
@@ -49,11 +86,6 @@ namespace Debug {
         queuedSpheres.clear();
         renderQueuedArrows(context);
     }
-    // ===== ARROW QUEUEING =====
-
-    void queueArrow3D(const Vec3& from, const Vec3& to, const sf::Color& color) {
-        queuedArrows.push_back({ from, to, color });
-    }
 
     void renderQueuedArrows(GameContext* context) {
         for (auto& cmd : queuedArrows) {
@@ -66,29 +98,27 @@ namespace Debug {
         queuedArrows.clear();
     }
 
-
-    // ===== DRAWING =====
+    // =========================================================
+    // Drawing
+    // =========================================================
 
     void drawArrow3D(GameContext* context, const Vec3& from, const Vec3& to, const sf::Color& color)
     {
-        // Convert world → screen
         Vec2 fromScreen = context->camera.homography.worldToImage(from);
         Vec2 toScreen = context->camera.homography.worldToImage(to);
 
-        // Main line
         sf::Vertex line[] = {
             sf::Vertex(sf::Vector2f(fromScreen.x, fromScreen.y), color),
             sf::Vertex(sf::Vector2f(toScreen.x,   toScreen.y),   color)
         };
         context->window.draw(line, 2, sf::Lines);
 
-        // Arrow head
         Vec2 dir = toScreen - fromScreen;
         float len = std::sqrt(dir.x * dir.x + dir.y * dir.y);
         if (len < 0.001f) return;
 
         Vec2 ndir = dir / len;
-        Vec2 perp = { -ndir.y, ndir.x }; // perpendicular
+        Vec2 perp = { -ndir.y, ndir.x };
 
         float headSize = 12.f;
         Vec2 tip = toScreen;
@@ -104,24 +134,46 @@ namespace Debug {
         context->window.draw(head, 4, sf::Lines);
     }
 
-
-    // ===== PRINT HELPERS =====
+    void debugPrint(std::string varName, float varValue) {
+        auto it = lastFloat.find(varName);
+        if (it != lastFloat.end() && nearlyEqual(it->second, varValue))
+            return;
+        lastFloat[varName] = varValue;
+        std::cout << varName << ": " << varValue << "\n";
+    }
 
     void debugPrint(std::string varName, Vec2 varValue) {
+        auto it = lastVec2.find(varName);
+        if (it != lastVec2.end() && nearlyEqual(it->second, varValue))
+            return;
+        lastVec2[varName] = varValue;
         std::cout << varName << ": (" << varValue.x << ", " << varValue.y << ")\n";
     }
+
     void debugPrint(std::string varName, Vec3 varValue) {
-        std::cout << varName << ": (" << varValue.x << ", " << varValue.y << ", " << varValue.z << ")\n";
+        auto it = lastVec3.find(varName);
+        if (it != lastVec3.end() && nearlyEqual(it->second, varValue))
+            return;
+        lastVec3[varName] = varValue;
+        std::cout << varName << ": (" << varValue.x << ", "
+            << varValue.y << ", " << varValue.z << ")\n";
     }
-    void debugPrint(std::string varName, int varValue) {
-        std::cout << varName << ": " << varValue << "\n";
-    }
+
     void debugPrint(std::string varName, std::string varValue) {
+        auto it = lastString.find(varName);
+        if (it != lastString.end() && it->second == varValue)
+            return;
+        lastString[varName] = varValue;
         std::cout << varName << ": " << varValue << "\n";
     }
+
     void debugPrint(std::string str) {
+        static std::string last;
+        if (last == str) return;
+        last = str;
         std::cout << str << "\n";
     }
+
     void debugPrint(std::string varName, const sf::Transform& transform) {
         const float* m = transform.getMatrix();
         std::cout << varName << ":\n";
@@ -130,4 +182,4 @@ namespace Debug {
         std::cout << "  [" << m[3] << ", " << m[7] << ", " << m[15] << "]\n";
     }
 
-} // namespace Debug
+}
