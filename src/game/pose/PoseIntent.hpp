@@ -18,5 +18,4 @@ struct PoseIntent {
     int stage = 0;
     PoseIntentType type;
     Vec3 desiredDelta_m = Vec3(0,0,0);
-    float amount = 1; //multiplier
 };

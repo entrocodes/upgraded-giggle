@@ -581,14 +581,9 @@ void GameImGuiSystem::drawPoseIntentTest(GameContext* context)
         intent.type = (PoseIntentType)g_poseIntentTest.typeIdx;
         intent.phase = (PoseIntentPhase)g_poseIntentTest.phaseIdx;
         intent.stage = (uint8_t)g_poseIntentTest.stage;
-        intent.amount = g_poseIntentTest.weight;
+        intent.desiredDelta_m.y = g_poseIntentTest.weight;
 
-        if (intent.type == PoseIntentType::LoadBody) {
-            intent.desiredDelta_m = { 0,0,0 };
-        }
-        else {
-            intent.desiredDelta_m = g_poseIntentTest.delta;
-        }
+        intent.desiredDelta_m = g_poseIntentTest.delta;
 
         cBuffer->intents.push_back(intent);
     }
@@ -620,7 +615,7 @@ void GameImGuiSystem::drawPoseIntentTest(GameContext* context)
                 kPoseIntentPhaseNames[(int)intent.phase],
                 PoseJointIDNames[intent.joint],
                 (int)intent.type,
-                intent.amount
+                intent.desiredDelta_m.y
             );
         }
         ImGui::TreePop();

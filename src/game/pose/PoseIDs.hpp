@@ -89,3 +89,10 @@ static PoseBoneID poseSolveOrder[] = {
     PoseBoneID::Spine
 
 };
+
+inline const char* poseJointName(PoseJointID id) {
+    return PoseJointIDNames[static_cast<int>(id)];
+}
+inline const char* poseBoneName(PoseBoneID id) {
+    return PoseBoneIDNames[static_cast<int>(id)];
+}

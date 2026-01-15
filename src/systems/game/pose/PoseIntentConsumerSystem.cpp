@@ -14,7 +14,7 @@ static PoseJointID pelvisFromAnkle(PoseJointID ankle) {
 static void applyIntent(const PoseIntent& intent, Pose& pose) {
         if (intent.type == PoseIntentType::Translate) {
             PoseJoint& j = pose.joint(intent.joint);
-            j.deltaOffset_m += intent.desiredDelta_m * intent.amount;
+            j.deltaOffset_m += intent.desiredDelta_m;
             Debug::debugPrint("transform intent consumed", j.deltaOffset_m);
             return;
         }
@@ -24,14 +24,15 @@ static void applyIntent(const PoseIntent& intent, Pose& pose) {
             }
             else if (intent.phase == PoseIntentPhase::Translate) {
                 PoseJoint& j = pose.joint(intent.joint);
-                j.deltaOffset_m += intent.desiredDelta_m * intent.amount;
+                j.deltaOffset_m += intent.desiredDelta_m;
+                Debug::debugPrint("shift body translate intent consumed", j.deltaOffset_m);
             }
             return;
         }
 
         if (intent.type == PoseIntentType::Rotate) {
             PoseJoint& j = pose.joint(intent.joint);
-            j.deltaRotation_rad += intent.desiredDelta_m * intent.amount;
+            j.deltaRotation_rad += intent.desiredDelta_m;
             return;
         }
 
@@ -41,7 +42,7 @@ static void applyIntent(const PoseIntent& intent, Pose& pose) {
                 pose.supportMode = SupportMode::Grounded;
             }
             if (intent.phase == PoseIntentPhase::Translate) {
-                pose.requestedSquat = intent.amount;
+                pose.requestedSquat = intent.desiredDelta_m.y;
                 Debug::debugPrint("squat amount", pose.requestedSquat);
             }
             return;

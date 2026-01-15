@@ -55,8 +55,8 @@ struct Pose {
         rightWrist().configure(Vec3(-0.6f, 0.0f, -0.6f), Vec3(0.6f, 0.0f, 0.6f), 0.015f, 0.8f);
 
         // Knees strict hinge (forward only)
-        leftKnee().configure(Vec3(0.0f, 0.0f, 0.0f), Vec3(2.4f, 0.0f, 0.0f), 0.08f, 0.6f);
-        rightKnee().configure(Vec3(0.0f, 0.0f, 0.0f), Vec3(2.4f, 0.0f, 0.0f), 0.08f, 0.6f);
+        leftKnee().configure(Vec3(-2.4f, 0.0f, 0.0f), Vec3(0.0f, 0.0f, 0.0f), 0.08f, 0.6f);
+        rightKnee().configure(Vec3(-2.4f, 0.0f, 0.0f), Vec3(0.0f, 0.0f, 0.0f), 0.08f, 0.6f);
 
         // Ankles flex and roll, no yaw
         leftAnkle().configure(Vec3(-0.8f, 0.0f, -0.3f), Vec3(0.8f, 0.0f, 0.3f), 0.04f, 0.85f);

@@ -23,7 +23,23 @@ struct SphereCommand {
 };
 
 namespace Debug {
+    enum class Channel {
+        General,
+        IK,
+        Constraint,
+        Footwork,
+        Pose
+    };
 
+    bool isChannelEnabled(Channel ch);
+
+    void event(
+        Channel ch,
+        const std::string& tag,
+        std::initializer_list<std::pair<std::string, float>> floats = {},
+        std::initializer_list<std::pair<std::string, Vec3>> vecs = {},
+        std::initializer_list<std::pair<std::string, std::string>> strings = {}
+    );
     // Stored globally for end-of-frame rendering
     extern std::vector<ArrowCommand> queuedArrows;
     extern std::vector<LineCommand> queuedLines;
@@ -43,11 +59,11 @@ namespace Debug {
     void clearArrows();
 
     // Debug print helpers (duplicate-suppressed)
-    void debugPrint(std::string varName, Vec2 varValue);
-    void debugPrint(std::string varName, Vec3 varValue);
-    void debugPrint(std::string varName, float varValue);
-    void debugPrint(std::string varName, std::string varValue);
-    void debugPrint(std::string str);
+    void debugPrint(std::string varName, Vec2 varValue, bool checkLast = true);
+    void debugPrint(std::string varName, Vec3 varValue, bool checkLast = true);
+    void debugPrint(std::string varName, float varValue, bool checkLast = true);
+    void debugPrint(std::string varName, std::string varValue, bool checkLast = true);
+    void debugPrint(std::string str, bool checkLast = false);
     void debugPrint(std::string varName, const sf::Transform& transform);
 
     // Low-level draw helper

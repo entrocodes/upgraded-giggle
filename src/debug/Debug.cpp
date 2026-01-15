@@ -6,6 +6,20 @@
 
 namespace Debug {
 
+    static std::unordered_map<Channel, bool> channelEnabled = {
+        { Channel::General,    true },
+        { Channel::IK,         true },
+        { Channel::Constraint, true },
+        { Channel::Footwork,   true },
+        { Channel::Pose,       true }
+    };
+
+    bool isChannelEnabled(Channel ch) {
+        auto it = channelEnabled.find(ch);
+        if (it == channelEnabled.end())
+            return false;
+        return it->second;
+    }
     std::vector<ArrowCommand> queuedArrows;
     std::vector<LineCommand> queuedLines;
     std::vector<SphereCommand> queuedSpheres;
@@ -134,42 +148,42 @@ namespace Debug {
         context->window.draw(head, 4, sf::Lines);
     }
 
-    void debugPrint(std::string varName, float varValue) {
+    void debugPrint(std::string varName, float varValue, bool checkLast) {
         auto it = lastFloat.find(varName);
-        if (it != lastFloat.end() && nearlyEqual(it->second, varValue))
+        if (it != lastFloat.end() && nearlyEqual(it->second, varValue) && checkLast)
             return;
         lastFloat[varName] = varValue;
         std::cout << varName << ": " << varValue << "\n";
     }
 
-    void debugPrint(std::string varName, Vec2 varValue) {
+    void debugPrint(std::string varName, Vec2 varValue, bool checkLast) {
         auto it = lastVec2.find(varName);
-        if (it != lastVec2.end() && nearlyEqual(it->second, varValue))
+        if (it != lastVec2.end() && nearlyEqual(it->second, varValue) && checkLast)
             return;
         lastVec2[varName] = varValue;
         std::cout << varName << ": (" << varValue.x << ", " << varValue.y << ")\n";
     }
 
-    void debugPrint(std::string varName, Vec3 varValue) {
+    void debugPrint(std::string varName, Vec3 varValue, bool checkLast) {
         auto it = lastVec3.find(varName);
-        if (it != lastVec3.end() && nearlyEqual(it->second, varValue))
+        if (it != lastVec3.end() && nearlyEqual(it->second, varValue) && checkLast)
             return;
         lastVec3[varName] = varValue;
         std::cout << varName << ": (" << varValue.x << ", "
             << varValue.y << ", " << varValue.z << ")\n";
     }
 
-    void debugPrint(std::string varName, std::string varValue) {
+    void debugPrint(std::string varName, std::string varValue, bool checkLast) {
         auto it = lastString.find(varName);
-        if (it != lastString.end() && it->second == varValue)
+        if (it != lastString.end() && it->second == varValue && checkLast)
             return;
         lastString[varName] = varValue;
         std::cout << varName << ": " << varValue << "\n";
     }
 
-    void debugPrint(std::string str) {
+    void debugPrint(std::string str, bool checkLast) {
         static std::string last;
-        if (last == str) return;
+        if (last == str && checkLast) return;
         last = str;
         std::cout << str << "\n";
     }
@@ -182,4 +196,26 @@ namespace Debug {
         std::cout << "  [" << m[3] << ", " << m[7] << ", " << m[15] << "]\n";
     }
 
+    void event(
+        Channel ch,
+        const std::string& tag,
+        std::initializer_list<std::pair<std::string, float>> floats,
+        std::initializer_list<std::pair<std::string, Vec3>> vecs,
+        std::initializer_list<std::pair<std::string, std::string>> strings
+    ) {
+        if (!isChannelEnabled(ch)) return;
+
+        std::cout << "[" << tag << "] ";
+
+        for (auto& [k, v] : floats)
+            std::cout << k << "=" << v << " ";
+
+        for (auto& [k, v] : vecs)
+            std::cout << k << "=(" << v.x << "," << v.y << "," << v.z << ") ";
+
+        for (auto& [k, v] : strings)
+            std::cout << k << "=" << v << " ";
+
+        std::cout << "\n";
+    }
 }

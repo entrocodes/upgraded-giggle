@@ -37,8 +37,8 @@ SystemExec FootworkMovementSystem::update(GameContext* context) {
 
         if (cFootworkState->active) {
             if (cFootworkState->frame < cFootworkState->current.totalFrames) {
-                float prevT = float(cFootworkState->frame - 1) / cFootworkState->current.totalFrames;
-                float currT = float(cFootworkState->frame) / cFootworkState->current.totalFrames;
+                float prevT = float(cFootworkState->frame - 1) / cFootworkState->current.shiftEndFrame;
+                float currT = float(cFootworkState->frame) / cFootworkState->current.shiftEndFrame;
 
                 float currW = std::sin(currT * PI * 0.5f); // fast start
                 float prevW = std::sin(prevT * PI * 0.5f);
@@ -100,11 +100,12 @@ SystemExec FootworkMovementSystem::update(GameContext* context) {
                     PoseJointID trailAnkle = reachRight ? PoseJointID::LeftAnkle : PoseJointID::RightAnkle;
 
                     //// 1) Pull center of mass first (THIS is what makes it feel like a save)
-                    //cPoseIntentBuffer->intents.push_back({
-                    //    PoseJointID::CenterPelvis,PoseIntentPhase::Translate, 0, PoseIntentType::ShiftBody,cFootworkState->direction * stride,.5f});
-                    //cPoseIntentBuffer->intents.push_back({
-                    //    PoseJointID::CenterPelvis,PoseIntentPhase::Support, 0, PoseIntentType::ShiftBody,cFootworkState->direction* stride,.5f});
-
+                    if (cFootworkState->frame == 0) {
+                        cPoseIntentBuffer->intents.push_back({PoseJointID::CenterPelvis,PoseIntentPhase::Translate, 0, PoseIntentType::ShiftBody,cFootworkState->direction * stride * .5f });
+                    }
+                    if (cFootworkState->frame <= cFootworkState->current.shiftEndFrame) {
+                        cPoseIntentBuffer->intents.push_back({ PoseJointID::CenterPelvis,PoseIntentPhase::Support, 0, PoseIntentType::ShiftBody,cFootworkState->direction * stride * .5f });
+                    }
                     //cPoseIntentBuffer->intents.push_back({
                     //    reachAnkle,PoseIntentPhase::Translate, 1, PoseIntentType::ShiftBody,cFootworkState->direction * stride,.15f });
                     //// 2) Small pelvis yaw ONLY for balance, not reach
@@ -113,13 +114,13 @@ SystemExec FootworkMovementSystem::update(GameContext* context) {
                     //    reachPelvis,
                     //    PoseIntentType::Rotate,Vec3{ 0.f, pelvisYaw, 0.f },0.6f,8.f});
 
-
-                    cPoseIntentBuffer->intents.push_back({
-                        PoseJointID::CenterPelvis, PoseIntentPhase::Support, 2, PoseIntentType::LoadBody});                    
-                    cPoseIntentBuffer->intents.push_back({
-                        PoseJointID::CenterPelvis, PoseIntentPhase::Translate, 2, PoseIntentType::LoadBody, Vec3{ 0.f, 0.f, 0.f }, .08});
-                    Debug::debugPrint("Reach Triggered");
-
+                    if (cFootworkState->frame == cFootworkState->current.shiftEndFrame + 1) {
+                        float squatAmount = .08f;
+                        cPoseIntentBuffer->intents.push_back({
+                            PoseJointID::CenterPelvis, PoseIntentPhase::Support, 2, PoseIntentType::LoadBody });
+                        cPoseIntentBuffer->intents.push_back({
+                            PoseJointID::CenterPelvis, PoseIntentPhase::Translate, 2, PoseIntentType::LoadBody, Vec3( 0.f, squatAmount, 0.f )});
+                    }
 
                     // 4) Reach foot slides forward to cat
                     //cPoseIntentBuffer->intents.push_back({
@@ -171,6 +172,7 @@ StepProfile FootworkMovementSystem::convertStepFromRaw(GameContext* context, con
         step.staminaCost = 5; }
     if (rawStep.kind == StepKind::Reach) {
         step.totalFrames = 5;
+        step.shiftEndFrame = 3;
         step.recoveryFrames = 2;
         step.maxStride_m = rawStep.strength * context->playerMovement.footworkMovement.reachStrength;
         step.staminaCost = 5; }

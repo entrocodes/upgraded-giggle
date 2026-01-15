@@ -8,8 +8,8 @@ PoseSystemGroup::PoseSystemGroup(SystemFactory& factory)
     m_stagedGraph.add<SupportResolutionSystem>(m_factory, 45, TickPhase::Fixed); //we want to lock at original position, before any transformations are made
     m_stagedGraph.add<PoseRootMotionSystem>(m_factory, 30, TickPhase::Fixed); // moves pelvis
     m_stagedGraph.add<PoseAnkleLockIKSystem>(m_factory, 60, TickPhase::Fixed);
+    m_stagedGraph.add<PoseConstraintSystem>(m_factory, 65, TickPhase::Fixed);
     m_stagedGraph.add<PoseForwardKinematicsSystem>(m_factory, 70, TickPhase::Fixed);
-    //m_stagedGraph.add<PoseConstraintSystem>(m_factory, 75, TickPhase::Fixed);
     //m_stagedGraph.add<PoseStageDeltaClearSystem>(m_factory, 90, TickPhase::Fixed);
     m_finalClearGraph.add<PoseCommitSystem>(m_factory, 80, TickPhase::Fixed);
     m_finalClearGraph.add<PoseDeltaClearerSystem>(m_factory, 100, TickPhase::Fixed);
@@ -29,7 +29,6 @@ SystemExec PoseSystemGroup::update(GameContext* context)
     // 2) Run stage pipeline
     for (int stage = 0; stage <= maxStage; ++stage) {
         context->poseRuntime.currentStage = stage;
-
         m_stagedGraph.run(context, TickPhase::Fixed);
     }
 

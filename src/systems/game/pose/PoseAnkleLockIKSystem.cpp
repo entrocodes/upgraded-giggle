@@ -56,12 +56,8 @@ static void solveLeg(Pose& pose, PoseJointID id) {
     knee.deltaRotation_rad.x = kneePitch1 - knee.restRotation_rad.x;
     ankle.deltaRotation_rad.x = anklePitch1 - ankle.restRotation_rad.x;
 
-
-
 }
-// ------------------------------------------------------------
 // System entry
-// ------------------------------------------------------------
 SystemExec PoseAnkleLockIKSystem::update(GameContext* context) {
     for (auto [eBody, cTransform3D, cPose] :
 
@@ -72,7 +68,6 @@ SystemExec PoseAnkleLockIKSystem::update(GameContext* context) {
         const bool leftLocked = pose.leftAnkle().locked;
         const bool rightLocked = pose.rightAnkle().locked;
 
-        // Double-foot support: solve pelvis Z sit-back and pelvis X correction
         if (leftLocked && rightLocked) {
             solvePelvisZ(pose);
             solveLeg(pose, PoseJointID::LeftAnkle);
