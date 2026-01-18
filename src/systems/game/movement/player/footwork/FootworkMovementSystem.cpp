@@ -24,6 +24,7 @@ SystemExec FootworkMovementSystem::update(GameContext* context) {
             raw.strength = cFootworkIntent->directionalStrength * (cFootworkIntent->heldFrames / 60.f);
             cFootworkState->current = convertStepFromRaw(context, raw);
             cFootworkState->direction = cFootworkIntent->direction;
+            Debug::debugPrint("direction", cFootworkState->direction);
             if (cFootworkState->direction.x > 0) { //LEFTY Logic Only
                 cFootworkState->current.dominantFoot = DominantFoot::Right;
             }
@@ -44,51 +45,25 @@ SystemExec FootworkMovementSystem::update(GameContext* context) {
                 float prevW = std::sin(prevT * PI * 0.5f);
 
                 float stride = (currW - prevW) * cFootworkState->current.maxStride_m;
-
+                Debug::debugPrint("footwork stride", stride);
                 if (cFootworkState->current.kind == StepKind::Tap) {
                     bool stepRight = (cFootworkState->current.dominantFoot == DominantFoot::Right);
                     PoseJointID swingAnkle = stepRight ? PoseJointID::RightAnkle : PoseJointID::LeftAnkle;
                     PoseJointID hip = stepRight ? PoseJointID::RightHip : PoseJointID::LeftHip;
 
                     // Pelvis leads (small)
-                    //cPoseIntentBuffer->intents.push_back({
-                    //    PoseJointID::CenterPelvis, PoseIntentPhase::Translate, 0, PoseIntentType::ShiftBody, cFootworkState->direction * stride, .6f});
-
-                    //// Tiny hip open
-                    //float yaw = stepRight ? 0.15f : -0.15f;
-                    //cPoseIntentBuffer->intents.push_back({
-                    //    hip, PoseIntentType::Rotate, Vec3{0.f,yaw,0.f}, 0.8f, 9.f
-                    //    });
-
-                    //// Swing foot
-                    //cPoseIntentBuffer->intents.push_back({
-                    //    swingAnkle, PoseIntentType::Translate,
-                    //    cFootworkState->direction * stride, 0.8f, 7.f
-                    //    });
+                    Vec3 shiftAmount = cFootworkState->direction * stride * .6f;
+                    Debug::debugPrint("footwork tap shift amount", shiftAmount);
+                    cPoseIntentBuffer->intents.push_back({PoseJointID::CenterPelvis, PoseIntentPhase::Translate, 0, PoseIntentType::ShiftBody, shiftAmount});
+                    // Swing foot
+                    cPoseIntentBuffer->intents.push_back({swingAnkle, PoseIntentPhase::Translate, 1, PoseIntentType::ShiftBody, cFootworkState->direction * stride * 0.15f});
                 }
 
                 else if (cFootworkState->current.kind == StepKind::Hop) {
                     // Strong pelvis shift
-                    //cPoseIntentBuffer->intents.push_back({
-                    //    PoseJointID::CenterPelvis, PoseIntentPhase::Translate, 0, PoseIntentType::ShiftBody, cFootworkState->direction * stride, 1.2f});
-
-                    //// Both feet follow
-                    //cPoseIntentBuffer->intents.push_back({
-                    //    PoseJointID::LeftAnkle, PoseIntentType::Translate,
-                    //    cFootworkState->direction * stride * 0.7f, 0.7f, 7.f
-                    //    });
-
-                    //cPoseIntentBuffer->intents.push_back({
-                    //    PoseJointID::RightAnkle, PoseIntentType::Translate,
-                    //    cFootworkState->direction * stride * 0.7f, 0.7f, 7.f
-                    //    });
-
-                    //// Optional tiny hip yaw to prevent inward collapse
-                    //float yaw = (cFootworkState->direction.x > 0) ? 0.1f : -0.1f;
-                    //cPoseIntentBuffer->intents.push_back({
-                    //    PoseJointID::CenterPelvis, PoseIntentType::Rotate,
-                    //    Vec3{0.f,yaw,0.f}, 0.5f, 9.f
-                    //    });
+                    Vec3 shiftAmount = cFootworkState->direction * stride * 1.2f;
+                    Debug::debugPrint("footwork hop shift amount", shiftAmount);
+                    cPoseIntentBuffer->intents.push_back({PoseJointID::CenterPelvis, PoseIntentPhase::Translate, 0, PoseIntentType::ShiftBody, shiftAmount});
                 }
 
                 else if (cFootworkState->current.kind == StepKind::Reach) {
@@ -106,13 +81,6 @@ SystemExec FootworkMovementSystem::update(GameContext* context) {
                     if (cFootworkState->frame <= cFootworkState->current.shiftEndFrame) {
                         cPoseIntentBuffer->intents.push_back({ PoseJointID::CenterPelvis,PoseIntentPhase::Support, 0, PoseIntentType::ShiftBody,cFootworkState->direction * stride * .5f });
                     }
-                    //cPoseIntentBuffer->intents.push_back({
-                    //    reachAnkle,PoseIntentPhase::Translate, 1, PoseIntentType::ShiftBody,cFootworkState->direction * stride,.15f });
-                    //// 2) Small pelvis yaw ONLY for balance, not reach
-                    //float pelvisYaw = reachRight ? +0.15f : -0.15f;
-                    //cPoseIntentBuffer->intents.push_back({
-                    //    reachPelvis,
-                    //    PoseIntentType::Rotate,Vec3{ 0.f, pelvisYaw, 0.f },0.6f,8.f});
 
                     if (cFootworkState->frame == cFootworkState->current.shiftEndFrame + 1) {
                         float squatAmount = .08f;
@@ -122,29 +90,18 @@ SystemExec FootworkMovementSystem::update(GameContext* context) {
                             PoseJointID::CenterPelvis, PoseIntentPhase::Translate, 2, PoseIntentType::LoadBody, Vec3( 0.f, squatAmount, 0.f )});
                     }
 
-                    // 4) Reach foot slides forward to cat
-                    //cPoseIntentBuffer->intents.push_back({
-                    //    reachAnkle,PoseIntentPhase::Recover, 2, PoseIntentType::ShiftBody,cFootworkState->direction * stride ,.1f,3.0f});
-                    //cPoseIntentBuffer->intents.push_back({
-                    //    reachAnkle,PoseIntentPhase::Support, 2, PoseIntentType::ShiftBody,cFootworkState->direction * stride ,.1f,3.0f});
+                    // 4) Reach foot slides forward
+                    cPoseIntentBuffer->intents.push_back({
+                        reachAnkle,PoseIntentPhase::Recover, 3, PoseIntentType::ShiftBody,cFootworkState->direction * stride * .3});
+                    cPoseIntentBuffer->intents.push_back({
+                        reachAnkle,PoseIntentPhase::Recover, 3, PoseIntentType::ShiftBody,cFootworkState->direction * stride * .3});
 
-                    //// 5) Trail foot drags slightly (don’t let it stick)
-                    //cPoseIntentBuffer->intents.push_back({
-                    //    trailAnkle, PoseIntentType::Translate,cFootworkState->direction * stride ,0.3f * .15,6.f});
                 }
 
                 else { // LEAP
-                    //cPoseIntentBuffer->intents.push_back({
-                    //    PoseJointID::CenterPelvis,  PoseIntentPhase::Translate, 0, PoseIntentType::Translate,
-                    //    cFootworkState->direction * stride * 3f, 1.0f});
-
-                    //cPoseIntentBuffer->intents.push_back({
-                    //    PoseJointID::LeftAnkle, PoseIntentPhase::Translate, 0, PoseIntentType::Translate,
-                    //    cFootworkState->direction * stride, 0.8f, 7.f});
-
-                    //cPoseIntentBuffer->intents.push_back({
-                    //    PoseJointID::RightAnkle, PoseIntentPhase::Translate, 0, PoseIntentType::Translate,
-                    //    cFootworkState->direction * stride, 0.8f, 7.f});
+                    cPoseIntentBuffer->intents.push_back({
+                        PoseJointID::CenterPelvis,  PoseIntentPhase::Translate, 0, PoseIntentType::ShiftBody,
+                        cFootworkState->direction * stride * 3.f});
                 }
 
                 cFootworkState->recentStepKind = cFootworkState->current.kind;
@@ -152,9 +109,8 @@ SystemExec FootworkMovementSystem::update(GameContext* context) {
 
             }
             cFootworkState->frame += 1;
+            //need to make reach only trigger directly after previous input
             if (cFootworkState->frame >= cFootworkState->current.totalFrames + cFootworkState->current.recoveryFrames) { 
-                //cFootworkState->recentStepKind = StepKind::None;
-                //cFootworkState->recentDirection = { 0,0,0 };
                 cFootworkState->active = false;
             }
         }
