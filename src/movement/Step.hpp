@@ -16,10 +16,10 @@ struct StepProfile {
     float maxStride_m;     // replaces maxSpeed
     float staminaCost;
 
-    int shiftEndFrame;   // body shift completes here
-    int squatStartFrame; // squat begins here
-    int lockFrame;       // foot lock
-    int recoverFrame;
+    int shiftEndFrame = 0;   // body shift completes here
+    int squatStartFrame = 6; // squat begins here
+    int lockFrame = 6;       // foot lock
+    int recoverFrame = 10;
 
 };
 

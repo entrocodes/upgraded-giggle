@@ -47,6 +47,16 @@ static void applyIntent(const PoseIntent& intent, Pose& pose) {
             }
             return;
         }
+        if (intent.type == PoseIntentType::Recover) {
+            if (intent.phase == PoseIntentPhase::Support) {
+                pose.supportMode = SupportMode::Grounded;
+            }
+            if (intent.phase == PoseIntentPhase::Translate) {
+                pose.requestedRaise = intent.desiredDelta_m.y;
+                Debug::debugPrint("raise amount", pose.requestedRaise);
+            }
+            return;
+        }
 }
 SystemExec PoseIntentConsumerSystem::update(GameContext* context) {
     int stage = context->poseRuntime.currentStage;

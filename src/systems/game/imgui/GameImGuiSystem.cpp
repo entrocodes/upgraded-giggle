@@ -225,6 +225,7 @@ void GameImGuiSystem::drawDeveloperPanel(GameContext* context) {
             if (cPlayerFootworkState) {
                 if (ImGui::TreeNodeEx("Footwork State", ImGuiTreeNodeFlags_DefaultOpen)) {
                     ImGui::Text("Status: %s", cPlayerFootworkState->active ? "MOVING" : "IDLE");
+                    ImGui::Text("Footwork Frame: %i/%i", cPlayerFootworkState->frame, cPlayerFootworkState->current.totalFrames);
                     const char* names[] = { "None", "Tap", "Hop", "Leap", "Reach"};
                     // Cast the enum to int to index the names array
                     int typeIdx = static_cast<int>(cPlayerFootworkState->current.kind);

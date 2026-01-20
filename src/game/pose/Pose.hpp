@@ -7,6 +7,7 @@
 
 struct Pose {
     float requestedSquat = 0.f;
+    float requestedRaise = 0.f;
     SupportMode prevSupportMode = SupportMode::Airborne;
     SupportMode supportMode = SupportMode::Airborne;
     PoseJoint joints[JointCount];

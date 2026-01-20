@@ -26,7 +26,11 @@ SystemExec PoseRootMotionSystem::update(GameContext* context) {
 
         if (pose.requestedSquat > 0) {
             pelvis.desiredDeltaOffset_m.y -= pose.requestedSquat;
-            Debug::debugPrint("desired delta offset", pelvis.desiredDeltaOffset_m);
+            Debug::debugPrint("desired delta offset by squat", pelvis.desiredDeltaOffset_m);
+        }
+        if (pose.requestedRaise > 0) {
+            pelvis.desiredDeltaOffset_m.y += pose.requestedRaise;
+            Debug::debugPrint("desired delta offset by raise", pelvis.desiredDeltaOffset_m);
         }
 
         // Build proposal (driver space)
@@ -56,7 +60,7 @@ SystemExec PoseRootMotionSystem::update(GameContext* context) {
         pelvis.deltaOffset_m.y = proposedY - pelvis.restOffset_m.y;
 
         //// Convert overflow into transform locomotion
-        //cTransform3D->pos_m += Vec3(overflowXZ.x, 0.f, overflowXZ.y);
+        cTransform3D->pos_m += Vec3(overflowXZ.x, 0.f, overflowXZ.y);
 
         pelvis.pos_m = cTransform3D->pos_m + compMul(pelvis.baseOffset_m + pelvis.restOffset_m + pelvis.deltaOffset_m, pose.scale);
     }

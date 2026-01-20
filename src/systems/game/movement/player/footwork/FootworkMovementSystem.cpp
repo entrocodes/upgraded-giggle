@@ -9,35 +9,27 @@
 SystemExec FootworkMovementSystem::update(GameContext* context) {
     for (auto [eCharacter, cFootworkState, cPoseIntentBuffer] : context->registry.getEntitiesWithComponents<CFootworkState, CPoseIntentBuffer>()) {
         auto [cFootworkIntent] = context->registry.getComponents<CFootworkIntent>(eCharacter);
-        if (cFootworkIntent && !cFootworkState->active) {
+        if (cFootworkIntent) {
+
             StepRaw raw{};
-
-            raw.kind = (cFootworkIntent->heldFrames < context->playerMovement.footworkMovement.tapFrameLimit) ? StepKind::Tap :
-                (cFootworkIntent->heldFrames < context->playerMovement.footworkMovement.hopFrameLimit) ? StepKind::Hop : StepKind::Leap;
-
-            bool isReach = (raw.kind == StepKind::Tap && cFootworkState->recentStepKind == StepKind::Tap);
-
-            if (isReach) {
-                raw.kind = StepKind::Reach;
-            }
-
+            raw.kind = (cFootworkIntent->heldFrames < context->playerMovement.footworkMovement.tapFrameLimit) ? StepKind::Tap : (cFootworkIntent->heldFrames < context->playerMovement.footworkMovement.hopFrameLimit) ? StepKind::Hop : StepKind::Leap;
             raw.strength = cFootworkIntent->directionalStrength * (cFootworkIntent->heldFrames / 60.f);
-            cFootworkState->current = convertStepFromRaw(context, raw);
-            cFootworkState->direction = cFootworkIntent->direction;
-            Debug::debugPrint("direction", cFootworkState->direction);
-            if (cFootworkState->direction.x > 0) { //LEFTY Logic Only
-                cFootworkState->current.dominantFoot = DominantFoot::Right;
+
+            if (!cFootworkState->active) {
+                startStep(context, eCharacter, *cFootworkState, *cPoseIntentBuffer, raw, cFootworkIntent->direction);
             }
             else {
-                cFootworkState->current.dominantFoot = DominantFoot::Left;
+                if (raw.kind == StepKind::Tap) raw.kind = StepKind::Reach;
+                cFootworkState->buffered = true;
+                cFootworkState->bufferedStep = raw;
+                cFootworkState->bufferedDirection = cFootworkIntent->direction;
             }
-            cFootworkState->frame = 0;
-            cFootworkState->active = true;
+
             context->registry.removeComponent<CFootworkIntent>(eCharacter);
         }
 
         if (cFootworkState->active) {
-            if (cFootworkState->frame < cFootworkState->current.totalFrames) {
+            if (cFootworkState->frame <= cFootworkState->current.totalFrames) {
                 float prevT = float(cFootworkState->frame - 1) / cFootworkState->current.shiftEndFrame;
                 float currT = float(cFootworkState->frame) / cFootworkState->current.shiftEndFrame;
 
@@ -45,24 +37,24 @@ SystemExec FootworkMovementSystem::update(GameContext* context) {
                 float prevW = std::sin(prevT * PI * 0.5f);
 
                 float stride = (currW - prevW) * cFootworkState->current.maxStride_m;
-                Debug::debugPrint("footwork stride", stride);
                 if (cFootworkState->current.kind == StepKind::Tap) {
                     bool stepRight = (cFootworkState->current.dominantFoot == DominantFoot::Right);
                     PoseJointID swingAnkle = stepRight ? PoseJointID::RightAnkle : PoseJointID::LeftAnkle;
                     PoseJointID hip = stepRight ? PoseJointID::RightHip : PoseJointID::LeftHip;
 
+                    cPoseIntentBuffer->intents.push_back({ PoseJointID::CenterPelvis,PoseIntentPhase::Support, 0, PoseIntentType::ShiftBody });
                     // Pelvis leads (small)
                     Vec3 shiftAmount = cFootworkState->direction * stride * .6f;
-                    Debug::debugPrint("footwork tap shift amount", shiftAmount);
                     cPoseIntentBuffer->intents.push_back({PoseJointID::CenterPelvis, PoseIntentPhase::Translate, 0, PoseIntentType::ShiftBody, shiftAmount});
                     // Swing foot
                     cPoseIntentBuffer->intents.push_back({swingAnkle, PoseIntentPhase::Translate, 1, PoseIntentType::ShiftBody, cFootworkState->direction * stride * 0.15f});
                 }
 
                 else if (cFootworkState->current.kind == StepKind::Hop) {
+                    // unlock feet by changing support mode
+                    cPoseIntentBuffer->intents.push_back({ PoseJointID::CenterPelvis,PoseIntentPhase::Support, 0, PoseIntentType::ShiftBody});
                     // Strong pelvis shift
                     Vec3 shiftAmount = cFootworkState->direction * stride * 1.2f;
-                    Debug::debugPrint("footwork hop shift amount", shiftAmount);
                     cPoseIntentBuffer->intents.push_back({PoseJointID::CenterPelvis, PoseIntentPhase::Translate, 0, PoseIntentType::ShiftBody, shiftAmount});
                 }
 
@@ -74,9 +66,9 @@ SystemExec FootworkMovementSystem::update(GameContext* context) {
                     PoseJointID reachAnkle = reachRight ? PoseJointID::RightAnkle : PoseJointID::LeftAnkle;
                     PoseJointID trailAnkle = reachRight ? PoseJointID::LeftAnkle : PoseJointID::RightAnkle;
 
-                    //// 1) Pull center of mass first (THIS is what makes it feel like a save)
+                    // 1) Pull center of mass first (THIS is what makes it feel like a save)
                     if (cFootworkState->frame == 0) {
-                        cPoseIntentBuffer->intents.push_back({PoseJointID::CenterPelvis,PoseIntentPhase::Translate, 0, PoseIntentType::ShiftBody,cFootworkState->direction * stride * .5f });
+                        cPoseIntentBuffer->intents.push_back({PoseJointID::CenterPelvis,PoseIntentPhase::Translate, 0, PoseIntentType::ShiftBody});
                     }
                     if (cFootworkState->frame <= cFootworkState->current.shiftEndFrame) {
                         cPoseIntentBuffer->intents.push_back({ PoseJointID::CenterPelvis,PoseIntentPhase::Support, 0, PoseIntentType::ShiftBody,cFootworkState->direction * stride * .5f });
@@ -99,20 +91,82 @@ SystemExec FootworkMovementSystem::update(GameContext* context) {
                 }
 
                 else { // LEAP
-                    cPoseIntentBuffer->intents.push_back({
-                        PoseJointID::CenterPelvis,  PoseIntentPhase::Translate, 0, PoseIntentType::ShiftBody,
-                        cFootworkState->direction * stride * 3.f});
-                }
+                    if (cFootworkState->frame == 0) {
+                        float preload = 0.05f;
+                        cPoseIntentBuffer->intents.push_back({
+                            PoseJointID::CenterPelvis,
+                            PoseIntentPhase::Support,
+                            0,
+                            PoseIntentType::LoadBody
+                            });
+                        cPoseIntentBuffer->intents.push_back({
+                            PoseJointID::CenterPelvis,
+                            PoseIntentPhase::Translate,
+                            0,
+                            PoseIntentType::LoadBody,
+                            Vec3(0.f, preload, 0.f)
+                            });
+                        if (cFootworkState->frame < cFootworkState->current.shiftEndFrame) {
+                            cPoseIntentBuffer->intents.push_back({
+                                PoseJointID::CenterPelvis,
+                                PoseIntentPhase::Translate,
+                                1,
+                                PoseIntentType::ShiftBody,
+                                cFootworkState->direction * stride * 0.5f
+                                });
+                        }
+                        if (cFootworkState->frame >= cFootworkState->current.shiftEndFrame &&
+                            cFootworkState->frame < cFootworkState->current.shiftEndFrame + 3) {
 
+                            float absorb = 0.03f;
+                            cPoseIntentBuffer->intents.push_back({
+                                PoseJointID::CenterPelvis,
+                                PoseIntentPhase::Recover,
+                                2,
+                                PoseIntentType::LoadBody,
+                                Vec3(0.f, absorb, 0.f)
+                                });
+                        }
+                        float yaw = (cFootworkState->direction.x > 0 ? 1.f : -1.f) * 0.15f;
+
+                        cPoseIntentBuffer->intents.push_back({
+                            PoseJointID::RightAnkle,
+                            PoseIntentPhase::Translate,
+                            1,
+                            PoseIntentType::Rotate,
+                            Vec3(0.f, yaw, 0.f)
+                            });
+                        cPoseIntentBuffer->intents.push_back({
+                            PoseJointID::LeftAnkle,
+                            PoseIntentPhase::Translate,
+                            1,
+                            PoseIntentType::Rotate,
+                            Vec3(0.f, -yaw, 0.f)
+                            });
+
+
+                    }
+
+                }
+                Debug::debugPrint("cFootWork Frame", float(cFootworkState->frame));
                 cFootworkState->recentStepKind = cFootworkState->current.kind;
                 cFootworkState->recentDirection = cFootworkState->direction;
 
             }
             cFootworkState->frame += 1;
             //need to make reach only trigger directly after previous input
-            if (cFootworkState->frame >= cFootworkState->current.totalFrames + cFootworkState->current.recoveryFrames) { 
+            if (cFootworkState->frame >= cFootworkState->current.totalFrames + cFootworkState->current.recoveryFrames) {
+
                 cFootworkState->active = false;
+                cFootworkState->frame = 0;
+
+                if (cFootworkState->buffered) {
+                    cFootworkState->buffered = false;
+
+                    startStep(context, eCharacter, *cFootworkState, *cPoseIntentBuffer, cFootworkState->bufferedStep, cFootworkState->bufferedDirection);
+                }
             }
+
         }
     }
     return{ SystemExecResult::Ran };
@@ -138,10 +192,36 @@ StepProfile FootworkMovementSystem::convertStepFromRaw(GameContext* context, con
         step.maxStride_m = rawStep.strength * context->playerMovement.footworkMovement.hopStrength;
         step.staminaCost = 12;
     }
-    else {
-        step.totalFrames = 10;
-        step.recoveryFrames = 12;
+    else if (rawStep.kind == StepKind::Leap) {
+        step.totalFrames = 9;
+        step.shiftEndFrame = 6;
+        step.recoveryFrames = 6;
         step.maxStride_m = rawStep.strength * context->playerMovement.footworkMovement.leapStrength;
-        step.staminaCost = 20; }
+        step.staminaCost = 20;
+    }
+    if (step.shiftEndFrame == 0) {
+        step.shiftEndFrame = step.totalFrames;
+    }
     return step;
+}
+
+void FootworkMovementSystem::startStep(GameContext* context, Entity eCharacter, CFootworkState& state, CPoseIntentBuffer& poseBuffer, StepRaw raw, const Vec3& direction) {
+    // Reach logic will live here later
+    state.current = convertStepFromRaw(context, raw);
+    state.direction = direction;
+
+    // Dominant foot logic
+    if (direction.x > 0) {
+        state.current.dominantFoot = DominantFoot::Right;
+    }
+    else {
+        state.current.dominantFoot = DominantFoot::Left;
+    }
+
+    state.frame = 0;
+    state.active = true;
+
+    // History
+    state.recentStepKind = state.current.kind;
+    state.recentDirection = direction;
 }
