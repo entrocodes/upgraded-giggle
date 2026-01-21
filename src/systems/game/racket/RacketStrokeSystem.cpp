@@ -1,10 +1,10 @@
 ﻿#include "RacketStrokeSystem.hpp"
+#include "game/pose/PoseIntent.hpp"
 #include "components/Components.hpp"
 #include <algorithm>
 
 SystemExec RacketStrokeSystem::update(GameContext* context) {
-    for (auto entity : context->registry.getEntitiesWith<CRacketHandle, CArm>()) {
-        auto [cRacketHandle, cArm] = context->registry.getComponents<CRacketHandle, CArm>(entity);
+    for (auto [entity, cRacketHandle, cArm, cPoseIntentBuffer] : context->registry.getEntitiesWithComponents<CRacketHandle, CArm, CPoseIntentBuffer>()) {
 
         Entity eRacket = cRacketHandle->racketEntity;
         auto [cRacketSwing] = context->registry.getComponents<CRacketSwing>(eRacket);
@@ -55,12 +55,14 @@ SystemExec RacketStrokeSystem::update(GameContext* context) {
 
         if (strokeState == StrokeState::Push || strokeState == StrokeState::Idle) {
             float sensitivity = 0.8f;
-            if (strokeState == StrokeState::Push) {
-                float sensitivityZ = 2.0f;
-                cRacketHandle->pushOffset_m.z += cRacketSwing->manualReachZ * sensitivity * sensitivityZ * dt;
-            }
-            cRacketHandle->freeOffset_m.x += steer.x * sensitivity * dt;
-            cRacketHandle->freeOffset_m.y += -steer.y * sensitivity * dt;
+            Vec3 freeDelta{steer.x * sensitivity * dt,-steer.y * sensitivity * dt,0.0f};
+            cPoseIntentBuffer->intents.push_back({PoseJointID::Racket,PoseIntentPhase::Translate, 1, PoseIntentType::Translate, freeDelta});
+            //if (strokeState == StrokeState::Push) {
+            //    float sensitivityZ = 2.0f;
+            //    cRacketHandle->pushOffset_m.z += cRacketSwing->manualReachZ * sensitivity * sensitivityZ * dt;
+            //}
+            //cRacketHandle->freeOffset_m.x += steer.x * sensitivity * dt;
+            //cRacketHandle->freeOffset_m.y += -steer.y * sensitivity * dt;
         }
 
         if (strokeState == StrokeState::PushRecovery) {

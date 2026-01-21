@@ -15,17 +15,11 @@ static void applyIntent(const PoseIntent& intent, Pose& pose) {
         if (intent.type == PoseIntentType::Translate) {
             PoseJoint& j = pose.joint(intent.joint);
             j.deltaOffset_m += intent.desiredDelta_m;
-            Debug::debugPrint("transform intent consumed", j.deltaOffset_m);
             return;
         }
         if (intent.type == PoseIntentType::ShiftBody) {
             if (intent.phase == PoseIntentPhase::Support) {
                 pose.supportMode = SupportMode::Airborne;
-            }
-            else if (intent.phase == PoseIntentPhase::Translate) {
-                PoseJoint& j = pose.joint(intent.joint);
-                j.deltaOffset_m += intent.desiredDelta_m;
-                Debug::debugPrint("shift body translate intent consumed", j.deltaOffset_m);
             }
             return;
         }

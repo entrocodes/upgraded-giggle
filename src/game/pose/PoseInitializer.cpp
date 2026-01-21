@@ -36,16 +36,16 @@ void PoseInitializer::initialize(GameContext* context) {
         pose.rightAnkle().lockWeight = 1;
 
         // Arms
-        pose.leftShoulder().baseOffset_m = { -0.18f, 0.18f, 0.0f };
-        pose.leftElbow().baseOffset_m = { -0.28f, 0.0f, 0.0f };
+        pose.leftShoulder().baseOffset_m = { -0.18f, 0.03f, 0.0f };
+        pose.leftElbow().baseOffset_m = { -0.21f, -.15f, 0.0f };
         pose.leftWrist().baseOffset_m = { -0.05f, -0.25f,0.0f };
 
-        pose.rightShoulder().baseOffset_m = { 0.18f, 0.18f, 0.0f };
-        pose.rightElbow().baseOffset_m = { 0.28f, 0.0f, 0.0f };
+        pose.rightShoulder().baseOffset_m = { 0.18f, 0.03f, 0.0f };
+        pose.rightElbow().baseOffset_m = { 0.21f, -0.15f, 0.0f };
         pose.rightWrist().baseOffset_m = { 0.05f, -0.25f, 0.0f };
 
         // Racket (relative to wrist)
-        pose.racket().baseOffset_m = { 0.18f, -0.02f, 0.0f };
+        pose.racket().baseOffset_m = { 0.00f, -0.02f, 0.18f };
 
         // Clear overflow + propagate positions
         pose.forEachJoint([&](PoseJoint& j, PoseJointID) {

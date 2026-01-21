@@ -597,11 +597,17 @@ void GameImGuiSystem::drawPoseIntentTest(GameContext* context)
 
     ImGui::Text("Left Ankle: %s", pose.leftAnkle().locked ? "Locked" : "Unlocked");
     ImGui::Text("Right Ankle: %s", pose.rightAnkle().locked ? "Locked" : "Unlocked");
-    ImGui::SliderFloat("Center pelvis Rest Offset Y", &pose.centerPelvis().restOffset_m.y, -1, .25, "%.2f");
-    ImGui::SliderFloat("center pelvis rest offset Z", &pose.centerPelvis().restOffset_m.z, -1, .25, "%.2f");
-    ImGui::SliderFloat("Right Pelvis Angle", &pose.rightHip().restRotation_rad.x, -3.14, 3.14, "%.2f");
-    ImGui::SliderFloat("Right Knee Angle", &pose.rightKnee().restRotation_rad.x, -3.14, 3.14, "%.2f");
-    ImGui::SliderFloat("Right Ankle Angle", &pose.rightAnkle().restRotation_rad.x, -3.14, 3.14, "%.2f");
+    //ImGui::SliderFloat("Center pelvis Rest Offset Y", &pose.centerPelvis().restOffset_m.y, -1, .25, "%.2f");
+    //ImGui::SliderFloat("center pelvis rest offset Z", &pose.centerPelvis().restOffset_m.z, -1, .25, "%.2f");
+    ImGui::SliderFloat("Right Elbow Angle X", &pose.rightElbow().restRotation_rad.x, -3.14, 3.14, "%.2f");
+    ImGui::SliderFloat("Right Elbow Angle Y", &pose.rightElbow().restRotation_rad.y, -3.14, 3.14, "%.2f");
+    ImGui::SliderFloat("Right Elbow Angle Z", &pose.rightElbow().restRotation_rad.z, -3.14, 3.14, "%.2f");
+    ImGui::SliderFloat("Right Wrist Angle X", &pose.rightWrist().restRotation_rad.x, -3.14, 3.14, "%.2f");
+    ImGui::SliderFloat("Right Wrist Angle Y", &pose.rightWrist().restRotation_rad.y, -3.14, 3.14, "%.2f");
+    ImGui::SliderFloat("Right Wrist Angle Z", &pose.rightWrist().restRotation_rad.z, -3.14, 3.14, "%.2f");
+    //ImGui::SliderFloat("Right Pelvis Angle", &pose.rightHip().restRotation_rad.x, -3.14, 3.14, "%.2f");
+    //ImGui::SliderFloat("Right Knee Angle", &pose.rightKnee().restRotation_rad.x, -3.14, 3.14, "%.2f");
+    //ImGui::SliderFloat("Right Ankle Angle", &pose.rightAnkle().restRotation_rad.x, -3.14, 3.14, "%.2f");
     // C) INTENT BUFFER INSPECTOR
     ImGui::Separator();
     ImGui::Text("Intent Buffer");

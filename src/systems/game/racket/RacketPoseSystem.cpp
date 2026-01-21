@@ -4,8 +4,7 @@
 #include <algorithm>
 
 SystemExec RacketPoseSystem::update(GameContext* context) {
-    for (auto entity : context->registry.getEntitiesWith<CArm, CRacketHandle>()) {
-        auto [cArm, cHandle] = context->registry.getComponents<CArm, CRacketHandle>(entity);
+    for (auto [entity, cArm, cHandle, cPose] : context->registry.getEntitiesWithComponents<CArm, CRacketHandle, CPose>()) {
 
         Entity eRacket = cHandle->racketEntity;
         auto [cRacketPhysical, cRacketTransform3D, cRacketVel, cRacketBoundingBox3D, cRacketSwing] = context->registry.getComponents<CRacketPhysical, CTransform3D, CVelocity3D, CBoundingBox3D, CRacketSwing>(eRacket);
@@ -17,7 +16,8 @@ SystemExec RacketPoseSystem::update(GameContext* context) {
         Vec3 finalPos = cArm->shoulderPos_m + cHandle->resolvedOffset_m;
 
         cRacketTransform3D->lastPos_m = lastPos;
-        cRacketTransform3D->pos_m = finalPos;
+        //cRacketTransform3D->pos_m = finalPos;
+        cRacketTransform3D->pos_m = cPose->pose.racket().pos_m;
 
         Vec3 instantVel = (finalPos - lastPos) / dt;
         cRacketVel->vel_mps = instantVel * 0.5f + cRacketVel->vel_mps * 0.5f;

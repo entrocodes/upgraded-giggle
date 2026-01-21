@@ -23,8 +23,16 @@ static void solveLeg(Pose& pose, PoseJointID id) {
     PoseBone& upperLeg = (id == PoseJointID::LeftAnkle) ? pose.bone(PoseBoneID::LeftUpperLeg) : pose.bone(PoseBoneID::RightUpperLeg);
     PoseBone& lowerLeg = (id == PoseJointID::LeftAnkle) ? pose.bone(PoseBoneID::LeftLowerLeg) : pose.bone(PoseBoneID::RightLowerLeg); 
 
-    float lowerLegLength = (lowerLeg.baseLength + lowerLeg.restStretch + lowerLeg.deltaStretch) / 2;
-    float upperLegLength = (upperLeg.baseLength + upperLeg.restStretch + upperLeg.deltaStretch) / 2;
+    auto worldLen = [&](PoseBone& bone) {
+        PoseJoint& child = pose.joint(bone.joint2);
+        Vec3 bindWorld = MathHelpers::compMul(child.baseOffset_m, pose.scale);
+        return bindWorld.length();
+        };
+    float upperLegLength = worldLen(upperLeg);
+    float lowerLegLength = worldLen(lowerLeg);
+
+    //float lowerLegLength = (lowerLeg.baseLength + lowerLeg.restStretch + lowerLeg.deltaStretch) / 2;
+    //float upperLegLength = (upperLeg.baseLength + upperLeg.restStretch + upperLeg.deltaStretch) / 2;
     Vec3 hipPos_m = hip.pos_m + pelvis.deltaOffset_m;
     Debug::queueSphere3D(hipPos_m, .02, sf::Color::Yellow);
     Vec3 anklePos_m = ankle.pos_m;

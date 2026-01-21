@@ -15,6 +15,13 @@
 #include "BallSpawnDebug.hpp"
 #include "ecs/SceneManager.hpp"
 
+struct Versioning {
+    std::string stage = "Pre-Alpha";
+    int major = 0;
+    int minor = 0;
+    int patch = 1;
+};
+
 struct PoseRuntime {
     float currentStage = 0;
     float lastLeftAnkleErr = 0;

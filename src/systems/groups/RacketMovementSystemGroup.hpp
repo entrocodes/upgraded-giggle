@@ -15,7 +15,7 @@ public:
         : m_factory(factory)
     {
         m_graph.add<RacketInputSystem>(m_factory, 0, TickPhase::Fixed);
-        m_graph.add<RacketOrientationSystem>(m_factory, 25, TickPhase::Fixed);
+        m_graph.add<RacketOrientationSystem>(m_factory, 25, TickPhase::Fixed); //will become wrist rotation
         m_graph.add<RacketStrokeSystem>(m_factory, 50, TickPhase::Fixed);
         m_graph.add<RacketReachSystem>(m_factory, 100, TickPhase::Fixed);
         m_graph.add<RacketPoseSystem>(m_factory, 150, TickPhase::Fixed);

@@ -45,9 +45,9 @@ SystemExec FootworkMovementSystem::update(GameContext* context) {
                     cPoseIntentBuffer->intents.push_back({ PoseJointID::CenterPelvis,PoseIntentPhase::Support, 0, PoseIntentType::ShiftBody });
                     // Pelvis leads (small)
                     Vec3 shiftAmount = cFootworkState->direction * stride * .6f;
-                    cPoseIntentBuffer->intents.push_back({PoseJointID::CenterPelvis, PoseIntentPhase::Translate, 0, PoseIntentType::ShiftBody, shiftAmount});
+                    cPoseIntentBuffer->intents.push_back({PoseJointID::CenterPelvis, PoseIntentPhase::Translate, 0, PoseIntentType::Translate, shiftAmount});
                     // Swing foot
-                    cPoseIntentBuffer->intents.push_back({swingAnkle, PoseIntentPhase::Translate, 1, PoseIntentType::ShiftBody, cFootworkState->direction * stride * 0.15f});
+                    cPoseIntentBuffer->intents.push_back({swingAnkle, PoseIntentPhase::Translate, 1, PoseIntentType::Translate, cFootworkState->direction * stride * 0.15f});
                 }
 
                 else if (cFootworkState->current.kind == StepKind::Hop) {
@@ -55,7 +55,7 @@ SystemExec FootworkMovementSystem::update(GameContext* context) {
                     cPoseIntentBuffer->intents.push_back({ PoseJointID::CenterPelvis,PoseIntentPhase::Support, 0, PoseIntentType::ShiftBody});
                     // Strong pelvis shift
                     Vec3 shiftAmount = cFootworkState->direction * stride * 1.2f;
-                    cPoseIntentBuffer->intents.push_back({PoseJointID::CenterPelvis, PoseIntentPhase::Translate, 0, PoseIntentType::ShiftBody, shiftAmount});
+                    cPoseIntentBuffer->intents.push_back({PoseJointID::CenterPelvis, PoseIntentPhase::Translate, 0, PoseIntentType::Translate, shiftAmount});
                 }
 
                 else if (cFootworkState->current.kind == StepKind::Reach) {
@@ -68,7 +68,7 @@ SystemExec FootworkMovementSystem::update(GameContext* context) {
 
                     // 1) Pull center of mass first (THIS is what makes it feel like a save)
                     if (cFootworkState->frame == 0) {
-                        cPoseIntentBuffer->intents.push_back({PoseJointID::CenterPelvis,PoseIntentPhase::Translate, 0, PoseIntentType::ShiftBody});
+                        cPoseIntentBuffer->intents.push_back({PoseJointID::CenterPelvis,PoseIntentPhase::Translate, 0, PoseIntentType::Translate});
                     }
                     if (cFootworkState->frame <= cFootworkState->current.shiftEndFrame) {
                         cPoseIntentBuffer->intents.push_back({ PoseJointID::CenterPelvis,PoseIntentPhase::Support, 0, PoseIntentType::ShiftBody,cFootworkState->direction * stride * .5f });
@@ -90,68 +90,27 @@ SystemExec FootworkMovementSystem::update(GameContext* context) {
 
                 }
 
-                else { // LEAP
-                    if (cFootworkState->frame == 0) {
-                        float preload = 0.05f;
-                        cPoseIntentBuffer->intents.push_back({
-                            PoseJointID::CenterPelvis,
-                            PoseIntentPhase::Support,
-                            0,
-                            PoseIntentType::LoadBody
-                            });
-                        cPoseIntentBuffer->intents.push_back({
-                            PoseJointID::CenterPelvis,
-                            PoseIntentPhase::Translate,
-                            0,
-                            PoseIntentType::LoadBody,
-                            Vec3(0.f, preload, 0.f)
-                            });
-                        if (cFootworkState->frame < cFootworkState->current.shiftEndFrame) {
-                            cPoseIntentBuffer->intents.push_back({
-                                PoseJointID::CenterPelvis,
-                                PoseIntentPhase::Translate,
-                                1,
-                                PoseIntentType::ShiftBody,
-                                cFootworkState->direction * stride * 0.5f
-                                });
-                        }
-                        if (cFootworkState->frame >= cFootworkState->current.shiftEndFrame &&
-                            cFootworkState->frame < cFootworkState->current.shiftEndFrame + 3) {
-
-                            float absorb = 0.03f;
-                            cPoseIntentBuffer->intents.push_back({
-                                PoseJointID::CenterPelvis,
-                                PoseIntentPhase::Recover,
-                                2,
-                                PoseIntentType::LoadBody,
-                                Vec3(0.f, absorb, 0.f)
-                                });
-                        }
-                        float yaw = (cFootworkState->direction.x > 0 ? 1.f : -1.f) * 0.15f;
-
-                        cPoseIntentBuffer->intents.push_back({
-                            PoseJointID::RightAnkle,
-                            PoseIntentPhase::Translate,
-                            1,
-                            PoseIntentType::Rotate,
-                            Vec3(0.f, yaw, 0.f)
-                            });
-                        cPoseIntentBuffer->intents.push_back({
-                            PoseJointID::LeftAnkle,
-                            PoseIntentPhase::Translate,
-                            1,
-                            PoseIntentType::Rotate,
-                            Vec3(0.f, -yaw, 0.f)
-                            });
-
-
+                else if (cFootworkState->current.kind == StepKind::Leap) { // LEAP
+                    //if (cFootworkState->frame == 0) {
+                    //    float preload = 0.05f;
+                    //    cPoseIntentBuffer->intents.push_back({ PoseJointID::CenterPelvis,PoseIntentPhase::Support,0,PoseIntentType::LoadBody });
+                    //    cPoseIntentBuffer->intents.push_back({ PoseJointID::CenterPelvis,PoseIntentPhase::Translate,0,PoseIntentType::LoadBody,Vec3(0.f, preload, 0.f) });
+                    //}
+                    if (cFootworkState->frame < cFootworkState->current.shiftEndFrame) {
+                        //shift body
+                        cPoseIntentBuffer->intents.push_back({ PoseJointID::CenterPelvis,PoseIntentPhase::Support, 1, PoseIntentType::ShiftBody });
+                        cPoseIntentBuffer->intents.push_back({PoseJointID::CenterPelvis, PoseIntentPhase::Translate,1,PoseIntentType::Translate,cFootworkState->direction * stride * 0.5f});
                     }
-
+                    if (cFootworkState->frame >= cFootworkState->current.shiftEndFrame && cFootworkState->frame < cFootworkState->current.shiftEndFrame + 3) {
+                        float absorb = 0.03f;
+                        cPoseIntentBuffer->intents.push_back({PoseJointID::CenterPelvis,PoseIntentPhase::Recover,2, PoseIntentType::LoadBody,Vec3(0.f, absorb, 0.f)});
+                    }
+                    //float yaw = (cFootworkState->direction.x > 0 ? 1.f : -1.f) * 0.15f;
+                    //cPoseIntentBuffer->intents.push_back({PoseJointID::RightAnkle, PoseIntentPhase::Translate, 1, PoseIntentType::Rotate,Vec3(0.f, yaw, 0.f)});
+                    //cPoseIntentBuffer->intents.push_back({ PoseJointID::LeftAnkle, PoseIntentPhase::Translate, 1, PoseIntentType::Rotate, Vec3(0.f, -yaw, 0.f) });      
                 }
-                Debug::debugPrint("cFootWork Frame", float(cFootworkState->frame));
                 cFootworkState->recentStepKind = cFootworkState->current.kind;
                 cFootworkState->recentDirection = cFootworkState->direction;
-
             }
             cFootworkState->frame += 1;
             //need to make reach only trigger directly after previous input
@@ -162,7 +121,6 @@ SystemExec FootworkMovementSystem::update(GameContext* context) {
 
                 if (cFootworkState->buffered) {
                     cFootworkState->buffered = false;
-
                     startStep(context, eCharacter, *cFootworkState, *cPoseIntentBuffer, cFootworkState->bufferedStep, cFootworkState->bufferedDirection);
                 }
             }
