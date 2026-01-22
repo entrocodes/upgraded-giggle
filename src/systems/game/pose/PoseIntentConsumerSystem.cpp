@@ -1,6 +1,7 @@
 ﻿// PoseIntentConsumerSystem.cpp
 #include "PoseIntentConsumerSystem.hpp"
 #include "game/pose/PoseIntentPhase.hpp"
+#include "math/MathHelpers.hpp"
 #include "components/Components.hpp"
 #include "debug/Debug.hpp"
 #include <algorithm>
@@ -14,8 +15,11 @@ static PoseJointID pelvisFromAnkle(PoseJointID ankle) {
 static void applyIntent(const PoseIntent& intent, Pose& pose) {
         if (intent.type == PoseIntentType::Translate) {
             PoseJoint& j = pose.joint(intent.joint);
-            j.deltaOffset_m += intent.desiredDelta_m;
-            return;
+
+            Vec3 worldDelta = MathHelpers::compMul(intent.desiredDelta_m, pose.scale);
+
+            j.ikTargetWorldPos = j.pos_m + worldDelta;
+            j.ikTargetActive = true;
         }
         if (intent.type == PoseIntentType::ShiftBody) {
             if (intent.phase == PoseIntentPhase::Support) {

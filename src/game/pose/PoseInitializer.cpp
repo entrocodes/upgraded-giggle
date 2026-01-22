@@ -45,11 +45,13 @@ void PoseInitializer::initialize(GameContext* context) {
         pose.rightWrist().baseOffset_m = { 0.05f, -0.25f, 0.0f };
 
         // Racket (relative to wrist)
-        pose.racket().baseOffset_m = { 0.00f, -0.02f, 0.18f };
+        pose.racket().baseOffset_m = { 0.00f, -0.02f, 0.02f };
 
         // Clear overflow + propagate positions
         pose.forEachJoint([&](PoseJoint& j, PoseJointID) {
             j.overflow_m = { 0, 0, 0 };
+            j.ikTargetWorldPos = j.pos_m;
+            j.ikTargetActive = false;
             });
 
         pose.forEachBone([&](PoseBone& b, PoseBoneID id) {

@@ -1,6 +1,7 @@
 ﻿#include "RacketStrokeSystem.hpp"
 #include "game/pose/PoseIntent.hpp"
 #include "components/Components.hpp"
+#include "debug/Debug.hpp"
 #include <algorithm>
 
 SystemExec RacketStrokeSystem::update(GameContext* context) {
@@ -54,10 +55,12 @@ SystemExec RacketStrokeSystem::update(GameContext* context) {
         }
 
         if (strokeState == StrokeState::Push || strokeState == StrokeState::Idle) {
-            float sensitivity = 0.8f;
-            Vec3 freeDelta{steer.x * sensitivity * dt,-steer.y * sensitivity * dt,0.0f};
-            cPoseIntentBuffer->intents.push_back({PoseJointID::Racket,PoseIntentPhase::Translate, 1, PoseIntentType::Translate, freeDelta});
-            //if (strokeState == StrokeState::Push) {
+            float sensitivity = .8f;
+            Vec3 desiredHandDelta = {steer.x * sensitivity * dt, -steer.y * sensitivity * dt, 0.0f};
+            if (steer.length() != 0) {
+                cPoseIntentBuffer->intents.push_back(PoseIntent{ PoseJointID::LeftWrist, PoseIntentPhase::Translate, 0, PoseIntentType::Translate, desiredHandDelta });
+            }
+            
             //    float sensitivityZ = 2.0f;
             //    cRacketHandle->pushOffset_m.z += cRacketSwing->manualReachZ * sensitivity * sensitivityZ * dt;
             //}

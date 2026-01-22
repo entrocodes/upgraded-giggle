@@ -11,7 +11,7 @@ SystemExec PoseDeltaClearerSystem::update(GameContext* context) {
             j.deltaOffset_m = { 0,0,0 };
             j.deltaRotation_rad = { 0,0,0 };
             j.desiredDeltaOffset_m = { 0,0,0 };
-
+            j.ikTargetActive = false;
             });
 
         pose.forEachBone([&](PoseBone& b, PoseBoneID) {

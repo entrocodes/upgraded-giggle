@@ -19,7 +19,7 @@ struct Versioning {
     std::string stage = "Pre-Alpha";
     int major = 0;
     int minor = 0;
-    int patch = 1;
+    int patch = 02;
 };
 
 struct PoseRuntime {

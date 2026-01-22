@@ -46,16 +46,16 @@ struct Pose {
         rightHip().configure(Vec3(-1.0f, -0.6f, 0.0f), Vec3(1.0f, 0.6f, 0.0f), 0.3f, 0.4f);
 
         // Shoulders ?reach with limited twist
-        leftShoulder().configure(Vec3(-0.6f, -0.8f, -0.4f), Vec3(1.0f, 0.8f, 0.4f), 0.04f, 0.4f);
+        leftShoulder().configure(Vec3(-0.9f, -0.8f, -0.9f), Vec3(1.2f, 0.8f, 0.9f), 0.04f, 0.4f);
         rightShoulder().configure(Vec3(-0.6f, -0.8f, -0.4f), Vec3(1.0f, 0.8f, 0.4f), 0.04f, 0.4f);
 
-        leftElbow().configure(Vec3(0.0f, 0.0f, 0.0f), Vec3(2.5f, 0.0f, 0.0f), 0.01f, 0.6f);
-        //rightElbow().configure(Vec3(-2.5f, 0.0f, 0.0f), Vec3(2.5f, 0.0f, 0.0f), 0.01f, 0.6f);
-        rightElbow().configure(testMinRot, testMaxRot, 4.f, 0.6f);
+        leftElbow().configure(Vec3(0.0f, -0.12f, -0.12f), Vec3(2.5f, 0.12f, 0.12f), 0.01f, 0.6f);
+        rightElbow().configure(Vec3(0.0f, -0.12f, -0.12f), Vec3(2.5f, 0.12f, 0.12f), 0.01f, 0.6f);
 
-        leftWrist().configure(Vec3(-0.15f, -0.35f, -0.45f), Vec3(0.15f, 0.35f, 0.45f), 0.01f, 0.8f);
-        //rightWrist().configure(Vec3(-0.6f, 0.0f, -0.6f), Vec3(0.6f, 0.0f, 0.6f), 0.015f, 0.8f);
-        rightWrist().configure(testMinRot, testMaxRot, 4., 0.8f);
+        leftWrist().configure(Vec3(-0.9f, -0.25f, -0.6f), Vec3(0.9f, 0.25f, 0.6f), 0.005f, 0.45f);
+        rightWrist().configure(Vec3(-0.9f, -0.25f, -0.15f), Vec3(0.9f, 0.25f, 0.15f), 0.005f, 0.45f);
+        //leftWrist().configure(testMinRot, testMaxRot, 4., 0.8f);
+        //rightWrist().configure(testMinRot, testMaxRot, 4., 0.8f);
 
         // Knees strict hinge (forward only)
         leftKnee().configure(Vec3(-2.4f, 0.0f, 0.0f), Vec3(0.0f, 0.0f, 0.0f), 0.08f, 0.6f);

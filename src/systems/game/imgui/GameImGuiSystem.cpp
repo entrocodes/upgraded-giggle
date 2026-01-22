@@ -32,6 +32,35 @@ struct PoseIntentTestUI {
 
 static PoseIntentTestUI g_poseIntentTest;
 
+struct BoneInspectorState {
+    bool open = false;
+    PoseBoneID bone = PoseBoneID::Spine;
+};
+
+static BoneInspectorState g_boneInspector;
+\
+enum class BoneLenState {
+    Ok,
+    OverStretch,
+    OverCompress
+};
+
+static float boneWorldLength(Pose& pose, PoseBoneID id) {
+    PoseBone& b = pose.bone(id);
+    PoseJoint& p = pose.joint(b.joint1);
+    PoseJoint& c = pose.joint(b.joint2);
+    return (c.pos_m - p.pos_m).length();
+}
+
+static BoneLenState boneLenState(Pose& pose, PoseBoneID id) {
+    PoseBone& b = pose.bone(id);
+    float len = boneWorldLength(pose, id);
+    if (len > b.maxLenLocal()) return BoneLenState::OverStretch;
+    if (len < b.minLenLocal()) return BoneLenState::OverCompress;
+    return BoneLenState::Ok;
+}
+
+
 SystemExec GameImGuiSystem::update(GameContext* context) {
     if (context->renderSettings.hideImGui) {
         context->inputBlocked = false;
@@ -533,7 +562,8 @@ void GameImGuiSystem::drawPoseIntentTest(GameContext* context)
     if (!cBuffer || !cPose) return;
 
     Pose& pose = cPose->pose;
-
+    drawBoneGrid(pose);
+    drawBoneInspector(pose);
     ImGui::Begin("Pose Intent Test (Staged)##Dev");
 
     // A) INTENT EMITTER
@@ -597,17 +627,7 @@ void GameImGuiSystem::drawPoseIntentTest(GameContext* context)
 
     ImGui::Text("Left Ankle: %s", pose.leftAnkle().locked ? "Locked" : "Unlocked");
     ImGui::Text("Right Ankle: %s", pose.rightAnkle().locked ? "Locked" : "Unlocked");
-    //ImGui::SliderFloat("Center pelvis Rest Offset Y", &pose.centerPelvis().restOffset_m.y, -1, .25, "%.2f");
-    //ImGui::SliderFloat("center pelvis rest offset Z", &pose.centerPelvis().restOffset_m.z, -1, .25, "%.2f");
-    ImGui::SliderFloat("Right Elbow Angle X", &pose.rightElbow().restRotation_rad.x, -3.14, 3.14, "%.2f");
-    ImGui::SliderFloat("Right Elbow Angle Y", &pose.rightElbow().restRotation_rad.y, -3.14, 3.14, "%.2f");
-    ImGui::SliderFloat("Right Elbow Angle Z", &pose.rightElbow().restRotation_rad.z, -3.14, 3.14, "%.2f");
-    ImGui::SliderFloat("Right Wrist Angle X", &pose.rightWrist().restRotation_rad.x, -3.14, 3.14, "%.2f");
-    ImGui::SliderFloat("Right Wrist Angle Y", &pose.rightWrist().restRotation_rad.y, -3.14, 3.14, "%.2f");
-    ImGui::SliderFloat("Right Wrist Angle Z", &pose.rightWrist().restRotation_rad.z, -3.14, 3.14, "%.2f");
-    //ImGui::SliderFloat("Right Pelvis Angle", &pose.rightHip().restRotation_rad.x, -3.14, 3.14, "%.2f");
-    //ImGui::SliderFloat("Right Knee Angle", &pose.rightKnee().restRotation_rad.x, -3.14, 3.14, "%.2f");
-    //ImGui::SliderFloat("Right Ankle Angle", &pose.rightAnkle().restRotation_rad.x, -3.14, 3.14, "%.2f");
+
     // C) INTENT BUFFER INSPECTOR
     ImGui::Separator();
     ImGui::Text("Intent Buffer");
@@ -668,6 +688,97 @@ void GameImGuiSystem::drawPoseIntentTest(GameContext* context)
             });
         ImGui::TreePop();
     }
+    
+    ImGui::End();
+}
+
+
+void GameImGuiSystem::drawBoneGrid(Pose& pose) {
+    ImGui::Separator();
+    ImGui::Text("Bone Length Monitor");
+
+    float availX = ImGui::GetContentRegionAvail().x;
+    float cellW = 140.0f;   // width per cell
+    float cellH = 48.0f;
+    int columns = std::max(1, (int)(availX / cellW));
+
+    ImGui::Columns(columns, nullptr, false);
+
+    pose.forEachBone([&](PoseBone& b, PoseBoneID id) {
+        float len = boneWorldLength(pose, id);
+        BoneLenState state = boneLenState(pose, id);
+
+        ImVec4 col;
+        switch (state) {
+        case BoneLenState::Ok:
+            col = ImVec4(0.2f, 0.75f, 0.3f, 1.0f); break;
+        case BoneLenState::OverStretch:
+            col = ImVec4(0.9f, 0.2f, 0.2f, 1.0f); break;
+        case BoneLenState::OverCompress:
+            col = ImVec4(0.2f, 0.4f, 0.9f, 1.0f); break;
+        }
+
+        ImGui::PushID((int)id);
+        ImGui::PushStyleColor(ImGuiCol_Button, col);
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, col);
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, col);
+
+        std::string label =
+            std::string(PoseBoneIDNames[(int)id]) +
+            "\n" +
+            std::to_string(len).substr(0, 5) + " m";
+
+        if (ImGui::Button(label.c_str(), ImVec2(cellW - 6, cellH))) {
+            g_boneInspector.open = true;
+            g_boneInspector.bone = id;
+        }
+
+        ImGui::PopStyleColor(3);
+        ImGui::PopID();
+
+        ImGui::NextColumn();
+        });
+
+    ImGui::Columns(1);
+}
+
+void GameImGuiSystem::drawBoneInspector(Pose& pose) {
+    if (!g_boneInspector.open)
+        return;
+
+    PoseBoneID id = g_boneInspector.bone;
+    PoseBone& b = pose.bone(id);
+    PoseJoint& p = pose.joint(b.joint1);
+    PoseJoint& c = pose.joint(b.joint2);
+
+    float worldLen = boneWorldLength(pose, id);
+
+    ImGui::Begin("Bone Inspector", &g_boneInspector.open);
+
+    ImGui::Text("Bone: %s", PoseBoneIDNames[(int)id]);
+    ImGui::Separator();
+
+    ImGui::Text("World Length: %.4f m", worldLen);
+    ImGui::Text("Base Length:  %.4f", b.baseLength);
+    ImGui::Text("Rest Stretch: %.4f", b.restStretch);
+    ImGui::Text("Min Length:   %.4f", b.minLenLocal());
+    ImGui::Text("Max Length:   %.4f", b.maxLenLocal());
+
+    ImGui::Separator();
+
+    ImGui::Text("Parent Joint: %s", PoseJointIDNames[(int)b.joint1]);
+    ImGui::Text("  Pos: %.3f %.3f %.3f",
+        p.pos_m.x, p.pos_m.y, p.pos_m.z);
+
+    ImGui::Text("Child Joint:  %s", PoseJointIDNames[(int)b.joint2]);
+    ImGui::Text("  Pos: %.2f %.2f %.2f",
+        c.pos_m.x, c.pos_m.y, c.pos_m.z);
+    if (&c.ikTargetActive) {
+        ImGui::Text("  Target World Pos: %.2f %.2f %.2f", c.ikTargetWorldPos.x, c.ikTargetWorldPos.y, c.ikTargetWorldPos.z);
+    }
+    ImGui::SliderFloat("  Rot X", &c.restRotation_rad.x, -3.14, 3.14, "%.2f");
+    ImGui::SliderFloat("  Rot Y", &c.restRotation_rad.y, -3.14, 3.14, "%.2f");
+    ImGui::SliderFloat("  Rot Z", &c.restRotation_rad.z, -3.14, 3.14, "%.2f");
 
     ImGui::End();
 }

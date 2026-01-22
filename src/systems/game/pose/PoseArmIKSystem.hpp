@@ -6,7 +6,6 @@
 class PoseArmIKSystem : public ISystem {
 public:
     SystemExec update(GameContext* context);
-private:
-    void solveArmElbowIK(Pose& pose);
+
 
 };
