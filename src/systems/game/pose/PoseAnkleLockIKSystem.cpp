@@ -10,73 +10,75 @@ static void solvePelvisZ(Pose& pose) {
     PoseJoint& pelvis = pose.centerPelvis();
 
     pelvis.deltaOffset_m.y = pelvis.desiredDeltaOffset_m.y;
-
     pelvis.deltaOffset_m.z = pelvis.deltaOffset_m.y * squatRatioZ;
-    Debug::debugPrint("delta offset Y", pelvis.desiredDeltaOffset_m.y);
+
+    Debug::debugPrint("pelvisY", pelvis.deltaOffset_m.y);
 }
+static void solveLeg(Pose& pose, PoseJointID ankleId) {
 
-static void solveLeg(Pose& pose, PoseJointID id) {
-    PoseJoint& knee = (id == PoseJointID::LeftAnkle) ? pose.leftKnee() : pose.rightKnee();
-    PoseJoint& ankle = (id == PoseJointID::LeftAnkle) ? pose.leftAnkle() : pose.rightAnkle();
-    PoseJoint& hip = (id == PoseJointID::LeftAnkle) ? pose.leftHip() : pose.rightHip();
-    PoseJoint& pelvis = pose.centerPelvis();
-    PoseBone& upperLeg = (id == PoseJointID::LeftAnkle) ? pose.bone(PoseBoneID::LeftUpperLeg) : pose.bone(PoseBoneID::RightUpperLeg);
-    PoseBone& lowerLeg = (id == PoseJointID::LeftAnkle) ? pose.bone(PoseBoneID::LeftLowerLeg) : pose.bone(PoseBoneID::RightLowerLeg); 
+    const bool left = (ankleId == PoseJointID::LeftAnkle);
 
-    auto worldLen = [&](PoseBone& bone) {
-        PoseJoint& child = pose.joint(bone.joint2);
-        Vec3 bindWorld = MathHelpers::compMul(child.baseOffset_m, pose.scale);
-        return bindWorld.length();
+    PoseJoint& hip = left ? pose.leftHip() : pose.rightHip();
+    PoseJoint& knee = left ? pose.leftKnee() : pose.rightKnee();
+    PoseJoint& ankle = left ? pose.leftAnkle() : pose.rightAnkle();
+
+    PoseBone& upperLeg = left ? pose.bone(PoseBoneID::LeftUpperLeg)
+        : pose.bone(PoseBoneID::RightUpperLeg);
+    PoseBone& lowerLeg = left ? pose.bone(PoseBoneID::LeftLowerLeg)
+        : pose.bone(PoseBoneID::RightLowerLeg);
+
+    auto worldLen = [&](PoseBone& b) {
+        PoseJoint& child = pose.joint(b.joint2);
+        return MathHelpers::compMul(child.baseOffset_m, pose.scale).length();
         };
-    float upperLegLength = worldLen(upperLeg);
-    float lowerLegLength = worldLen(lowerLeg);
 
-    //float lowerLegLength = (lowerLeg.baseLength + lowerLeg.restStretch + lowerLeg.deltaStretch) / 2;
-    //float upperLegLength = (upperLeg.baseLength + upperLeg.restStretch + upperLeg.deltaStretch) / 2;
-    Vec3 hipPos_m = hip.pos_m + pelvis.deltaOffset_m;
-    Debug::queueSphere3D(hipPos_m, .02, sf::Color::Yellow);
-    Vec3 anklePos_m = ankle.pos_m;
+    float L1 = worldLen(upperLeg);
+    float L2 = worldLen(lowerLeg);
 
-    float Dy = (anklePos_m.y - hipPos_m.y);
-    float Dz = (anklePos_m.z - hipPos_m.z);
+    Vec3 hipPos = hip.pos_m;
+    Vec3 anklePos = ankle.pos_m;
+
+    Debug::queueSphere3D(hipPos, 0.02f, sf::Color::Yellow);
+    Debug::queueSphere3D(anklePos, 0.02f, sf::Color::Cyan);
+
+    // Solve in YZ plane (your existing convention)
+    Vec3 v = anklePos - hipPos;
+    float Dy = v.y;
+    float Dz = v.z;
+
     float d = std::sqrt(Dy * Dy + Dz * Dz);
+    if (d < 1e-6f) return;
 
-    d = std::clamp(d, std::fabs(upperLegLength - lowerLegLength) + 1e-5f, (upperLegLength + lowerLegLength) - 1e-5f);
+    d = std::clamp(d, std::fabs(L1 - L2) + 1e-5f, (L1 + L2) - 1e-5f);
 
-    float pitchFromYZ = std::atan2(-Dz, -Dy);
-    
-    float cosAlpha = (upperLegLength * upperLegLength + d * d - lowerLegLength * lowerLegLength) / (2.f * upperLegLength * d);
-    cosAlpha = std::clamp(cosAlpha, -1.f, 1.f);
-    float alpha = std::acos(cosAlpha);     // offset from phi for the first segment
+    float phi = std::atan2(-Dz, -Dy);
 
-    float cosBeta = (upperLegLength * upperLegLength + lowerLegLength * lowerLegLength - d * d) / (2.f * upperLegLength * lowerLegLength);
-    cosBeta = std::clamp(cosBeta, -1.f, 1.f);
-    float beta = std::acos(cosBeta);       // interior angle between segments
+    float cosA = (L1 * L1 + d * d - L2 * L2) / (2.f * L1 * d);
+    cosA = std::clamp(cosA, -1.f, 1.f);
+    float alpha = std::acos(cosA);
 
-    // Solution 1
-    float kneePitch1 = pitchFromYZ - alpha;
-    float anklePitch1 = kneePitch1 + M_PI - beta;
+    float cosB = (L1 * L1 + L2 * L2 - d * d) / (2.f * L1 * L2);
+    cosB = std::clamp(cosB, -1.f, 1.f);
+    float beta = std::acos(cosB);
 
-    //// Solution 2 (mirror)
-    float kneePitch2 = pitchFromYZ + alpha;
-    float anklePitch2 = kneePitch2 - (M_PI - beta);
+    // Primary solution (knee forward)
+    float hipPitch = phi - alpha;
+    float kneePitch = M_PI - beta;
 
-    knee.deltaRotation_rad.x = kneePitch1 - knee.restRotation_rad.x;
-    ankle.deltaRotation_rad.x = anklePitch1 - ankle.restRotation_rad.x;
+    // Apply rotations (parent-driven!)
+    hip.deltaRotation_rad.x = hipPitch - hip.restRotation_rad.x;
+    knee.deltaRotation_rad.x = kneePitch - knee.restRotation_rad.x;
 
+    Debug::event(Debug::Channel::IK, "LegIK",
+        { {"d", d}, {"L1", L1}, {"L2", L2}, {"hipPitch", hipPitch}, {"kneePitch", kneePitch} });
 }
-// System entry
 SystemExec PoseAnkleLockIKSystem::update(GameContext* context) {
-    for (auto [eBody, cTransform3D, cPose] :
-
+    for (auto [e, cTransform, cPose] :
         context->registry.getEntitiesWithComponents<CTransform3D, CPose>()) {
+
         Pose& pose = cPose->pose;
-        float dt = context->frameStats.dt;
 
-        const bool leftLocked = pose.leftAnkle().locked;
-        const bool rightLocked = pose.rightAnkle().locked;
-
-        if (leftLocked && rightLocked) {
+        if (pose.leftAnkle().locked && pose.rightAnkle().locked) {
             solvePelvisZ(pose);
             solveLeg(pose, PoseJointID::LeftAnkle);
             solveLeg(pose, PoseJointID::RightAnkle);

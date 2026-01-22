@@ -11,10 +11,9 @@ PoseSystemGroup::PoseSystemGroup(SystemFactory& factory)
     m_stagedGraph.add<PoseConstraintSystem>(m_factory, 62, TickPhase::Fixed);
     m_stagedGraph.add<PoseArmIKSystem>(m_factory, 64, TickPhase::Fixed);
     m_stagedGraph.add<PoseConstraintSystem>(m_factory, 65, TickPhase::Fixed);
-    //m_stagedGraph.add<PoseOverflowPropagationSystem>(m_factory, 66, TickPhase::Fixed);
-    //m_stagedGraph.add<PoseConstraintSystem>(m_factory, 67, TickPhase::Fixed);
+    m_stagedGraph.add<PoseOverflowPropagationSystem>(m_factory, 66, TickPhase::Fixed);
+    m_stagedGraph.add<PoseConstraintSystem>(m_factory, 67, TickPhase::Fixed);
     m_stagedGraph.add<PoseForwardKinematicsSystem>(m_factory, 70, TickPhase::Fixed);
-    //m_stagedGraph.add<PoseStageDeltaClearSystem>(m_factory, 90, TickPhase::Fixed);
     m_finalClearGraph.add<PoseCommitSystem>(m_factory, 80, TickPhase::Fixed);
     m_finalClearGraph.add<PoseDeltaClearerSystem>(m_factory, 100, TickPhase::Fixed);
 }

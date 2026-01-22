@@ -133,5 +133,15 @@ public:
 
         return out;
     }
+    static Vec3 rotationFromToEuler(const Vec3& from, const Vec3& to) {
+        Vec3 f = from.normalized();
+        Vec3 t = to.normalized();
+        Vec3 axis = f.cross(t);
+        float d = std::clamp(f.dot(t), -1.f, 1.f);
+        float angle = std::acos(d);
+        if (axis.lengthSq() < 1e-6f || angle < 1e-6f) return { 0,0,0 };
+        axis = axis.normalized();
+        return axis * angle;
+    }
 
 };

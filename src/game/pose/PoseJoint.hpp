@@ -4,6 +4,7 @@
 #include <algorithm>
 
 struct PoseJoint {
+    Vec3 rotWorld_rad = { 0,0,0 };
     Vec3 ikTargetWorldPos = { 0,0,0};
     bool ikTargetActive = false;
     Vec3 lockBendNormalW = { 0,0,0 };

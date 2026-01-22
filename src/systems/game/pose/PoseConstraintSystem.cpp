@@ -23,6 +23,8 @@ SystemExec PoseConstraintSystem::update(GameContext* context) {
 
         // A) JOINT ROTATION + TRANSLATION CONSTRAINTS
         pose.forEachJoint([&](PoseJoint& j, PoseJointID id) {
+            if (j.ikTargetActive)
+                return; // IK owns this joint this frame
 
             // --- Center pelvis: XZ sway clamp ---
             if (id == PoseJointID::CenterPelvis) {

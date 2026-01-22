@@ -95,30 +95,37 @@ SystemExec PlayerIntentSystem::update(GameContext* context)
         cInput->actions["StopPush"] = raw.isAxisReleased("LT");
         cInput->actions["StopBackswing"] = raw.isAxisReleased("RT");
 
-        if (raw.isKeyReleased(sf::Keyboard::A)) {
-            cInput->axes["J1X"] -= 5;
-        }
-        if (raw.isKeyReleased(sf::Keyboard::D)) {
-            cInput->axes["J1X"] += 5;
-        }
-        if (raw.isKeyReleased(sf::Keyboard::W)) {
-            cInput->axes["J1Y"] -= 5;
-        }
-        if (raw.isKeyReleased(sf::Keyboard::S)) {
-            cInput->axes["J1Y"] += 5;
-        }
-        if (raw.isKeyReleased(sf::Keyboard::I)) {
-            cInput->axes["J2X"] -= 5;
-        }
-        if (raw.isKeyReleased(sf::Keyboard::K)) {
-            cInput->axes["J2X"] += 5;
-        }
-        if (raw.isKeyReleased(sf::Keyboard::J)) {
-            cInput->axes["J2Y"] -= 5;
-        }
-        if (raw.isKeyReleased(sf::Keyboard::L)) {
-            cInput->axes["J2Y"] += 5;
-        }
+        float kbJ1X = 0.f;
+        float kbJ1Y = 0.f;
+        float kbJ2X = 0.f;
+        float kbJ2Y = 0.f;
+
+        float keyAxisX = 0.f;
+        float keyAxisY = 0.f;
+
+        if (raw.isKeyDown(sf::Keyboard::A)) keyAxisX -= 1.f;
+        if (raw.isKeyDown(sf::Keyboard::D)) keyAxisX += 1.f;
+        if (raw.isKeyDown(sf::Keyboard::W)) keyAxisY -= 1.f;
+        if (raw.isKeyDown(sf::Keyboard::S)) keyAxisY += 1.f;
+
+        // Blend with controller
+        cInput->axes["J1X"] += keyAxisX;
+        cInput->axes["J1Y"] += keyAxisY;
+
+        // Clamp
+        cInput->axes["J1X"] = std::clamp(cInput->axes["J1X"], -1.f, 1.f);
+        cInput->axes["J1Y"] = std::clamp(cInput->axes["J1Y"], -1.f, 1.f);
+
+
+        if (raw.isKeyDown(sf::Keyboard::J)) kbJ2X -= 1.f;
+        if (raw.isKeyDown(sf::Keyboard::L)) kbJ2X += 1.f;
+        if (raw.isKeyDown(sf::Keyboard::I)) kbJ2Y -= 1.f;
+        if (raw.isKeyDown(sf::Keyboard::K)) kbJ2Y += 1.f;
+
+        cInput->axes["J2X"] = std::clamp(cInput->axes["J2X"] + kbJ2X, -1.f, 1.f);
+        cInput->axes["J2Y"] = std::clamp(cInput->axes["J2Y"] + kbJ2Y, -1.f, 1.f);
+
+
     }
 
     return { SystemExecResult::Ran };

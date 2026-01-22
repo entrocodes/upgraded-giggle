@@ -16,10 +16,9 @@ static void applyIntent(const PoseIntent& intent, Pose& pose) {
         if (intent.type == PoseIntentType::Translate) {
             PoseJoint& j = pose.joint(intent.joint);
 
-            Vec3 worldDelta = MathHelpers::compMul(intent.desiredDelta_m, pose.scale);
-
-            j.ikTargetWorldPos = j.pos_m + worldDelta;
+            j.desiredDeltaOffset_m += intent.desiredDelta_m;
             j.ikTargetActive = true;
+
         }
         if (intent.type == PoseIntentType::ShiftBody) {
             if (intent.phase == PoseIntentPhase::Support) {
