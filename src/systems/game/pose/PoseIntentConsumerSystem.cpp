@@ -33,7 +33,6 @@ static void applyIntent(const PoseIntent& intent, Pose& pose) {
             return;
         }
 
-        //// New: "LoadBody" means "compress down into the floor" (squat/lunge driver)
         if (intent.type == PoseIntentType::LoadBody) {
             if (intent.phase == PoseIntentPhase::Support) {
                 pose.supportMode = SupportMode::Grounded;

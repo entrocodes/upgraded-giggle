@@ -30,7 +30,7 @@ SystemExec PoseArmIKSystem::update(GameContext* context) {
             bindWorld + MathHelpers::compMul(wr.desiredDeltaOffset_m, pose.scale);
 
         Debug::queueSphere3D(ikTargetWorld, 0.06f, sf::Color::Red);
-        if (!wr.ikTargetActive) continue;
+        //if (!wr.ikTargetActive) continue;
         Vec3 wristTarget = ikTargetWorld;
         Vec3 shoulderPos = sh.pos_m;
 
@@ -44,9 +44,41 @@ SystemExec PoseArmIKSystem::update(GameContext* context) {
         d = std::clamp(d, std::fabs(L1 - L2) + 1e-4f, (L1 + L2) - 1e-4f);
 
         Vec3 dir = v.normalized();
-        Vec3 bendNormal = Vec3(0, 0, 1); // temporary, later: shoulder space normal
-        Vec3 perp = dir.cross(bendNormal).normalized();
-        Vec3 bendDir = perp.cross(dir).normalized();
+
+        Vec3 bendNormal;
+
+        // 1) Prefer cached bend plane
+        if (el.lockBendValid && el.lockBendNormalW.length() > 1e-4f) {
+            bendNormal = el.lockBendNormalW.normalized();
+        }
+        else {
+            // 2) Derive from last elbow position
+            Vec3 lastElbowDir = el.lastPos_m - sh.pos_m;
+            if (lastElbowDir.length() > 1e-4f) {
+                bendNormal = lastElbowDir.cross(v).normalized();
+            }
+            else {
+                // 3) Absolute fallback (never ideal, but safe)
+                bendNormal = Vec3(0, 0, 1);
+            }
+        }
+
+        Vec3 perp = v.cross(bendNormal);
+        float perpLen = perp.length();
+        if (perpLen < 1e-5f) {
+            // Target is aligned with bend plane → freeze elbow this frame
+            continue;
+        }
+        perp /= perpLen;
+
+        Vec3 bendDir = perp.cross(v).normalized();
+        Vec3 newBendNormal = (elbowPos - sh.pos_m).cross(wristTarget - sh.pos_m);
+        if (newBendNormal.length() > 1e-4f) {
+            el.lockBendNormalW = newBendNormal.normalized();
+            el.lockBendValid = true;
+        }
+
+
 
         float cosA = (L1 * L1 + d * d - L2 * L2) / (2.f * L1 * d);
         cosA = std::clamp(cosA, -1.f, 1.f);

@@ -9,7 +9,7 @@ SystemExec BoundingBoxUpdateSystem::update(GameContext* context) {
 		cBoundingBox3D->lastBox = cBoundingBox3D->box;
 		Vec3 pos_m = cTransform3D->pos_m;
 		Vec3 halfSize = cBoundingBox3D->halfSize;
-		cBoundingBox3D->box = Bounds3D(pos_m - halfSize, pos_m + halfSize);
+		cBoundingBox3D->box = Bounds3D(pos_m - halfSize, pos_m + halfSize / 2);
 
 	}
 	return { SystemExecResult::Ran };

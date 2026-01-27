@@ -12,12 +12,10 @@ static constexpr PoseBoneID kSolveDownOrder[] = {
 };
 
 SystemExec PoseForwardKinematicsSystem::update(GameContext* context) {
-    for (auto [e, cTransform3D, cPose] :
-        context->registry.getEntitiesWithComponents<CTransform3D, CPose>()) {
+    for (auto [e, cPose] : context->registry.getEntitiesWithComponents<CPose>()) {
 
         Pose& pose = cPose->pose;
 
-        pose.centerPelvis().pos_m = cTransform3D->pos_m;
         pose.centerPelvis().rotWorld_rad = pose.centerPelvis().restRotation_rad + pose.centerPelvis().deltaRotation_rad;
 
         for (PoseBoneID id : kSolveDownOrder) {

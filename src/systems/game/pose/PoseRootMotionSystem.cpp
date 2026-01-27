@@ -33,6 +33,9 @@ SystemExec PoseRootMotionSystem::update(GameContext* context) {
             Debug::debugPrint("desired delta offset by raise", pelvis.desiredDeltaOffset_m);
         }
 
+        pelvis.deltaOffset_m.x += pelvis.desiredDeltaOffset_m.x;
+        pelvis.deltaOffset_m.z += pelvis.desiredDeltaOffset_m.z;
+        pelvis.desiredDeltaOffset_m = { 0,0,0 };
         // Build proposal (driver space)
         Vec2 proposedXZ(
             pelvis.restOffset_m.x + pelvis.deltaOffset_m.x,
@@ -59,10 +62,13 @@ SystemExec PoseRootMotionSystem::update(GameContext* context) {
         pelvis.deltaOffset_m.z = proposedXZ.y - pelvis.restOffset_m.z;
         pelvis.deltaOffset_m.y = proposedY - pelvis.restOffset_m.y;
 
+        Vec3 playerPosOffset_m = Vec3(overflowXZ.x, 0.f, overflowXZ.y);
+        Vec3 pelvisOffset_m = compMul(pelvis.baseOffset_m + pelvis.restOffset_m + pelvis.deltaOffset_m, pose.scale);
         //// Convert overflow into transform locomotion
-        cTransform3D->pos_m += Vec3(overflowXZ.x, 0.f, overflowXZ.y);
+        cTransform3D->pos_m += playerPosOffset_m;
 
-        pelvis.pos_m = cTransform3D->pos_m + compMul(pelvis.baseOffset_m + pelvis.restOffset_m + pelvis.deltaOffset_m, pose.scale);
+        pelvis.pos_m = cTransform3D->pos_m + pelvisOffset_m;
+
     }
     return { SystemExecResult::Ran };
 }

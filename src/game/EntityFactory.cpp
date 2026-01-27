@@ -134,6 +134,7 @@ Entity EntityFactory::createPlayer() {
 
     m_registry.addComponent<CBoundingBox>(ePlayer, s.getLocalBounds());
     m_registry.addComponent<CFootworkState>(ePlayer);
+    m_registry.addComponent<CStrokeState>(ePlayer);
 
 
     // Player world position
@@ -200,6 +201,7 @@ Entity EntityFactory::createOpponent() {
     // --- Render ---
     m_registry.addComponent<CRenderLayer>(eOpponent, 20);
     m_registry.addComponent<CLocalPPM>(eOpponent, eOpponent);
+    m_registry.addComponent<CStrokeState>(eOpponent);
     // --- Animation ---
     const Animation& aStand = m_assets.getAnimation("OpponentStand");
     auto& cOpponentAnimation = m_registry.addComponent<CAnimation>(eOpponent, aStand, false);

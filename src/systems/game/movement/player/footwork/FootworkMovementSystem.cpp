@@ -98,7 +98,7 @@ SystemExec FootworkMovementSystem::update(GameContext* context) {
                     //}
                     if (cFootworkState->frame < cFootworkState->current.shiftEndFrame) {
                         //shift body
-                        cPoseIntentBuffer->intents.push_back({ PoseJointID::CenterPelvis,PoseIntentPhase::Support, 1, PoseIntentType::ShiftBody });
+                        cPoseIntentBuffer->intents.push_back({ PoseJointID::CenterPelvis,PoseIntentPhase::Support, 1, PoseIntentType::ShiftBody }); //unlocks feet
                         cPoseIntentBuffer->intents.push_back({PoseJointID::CenterPelvis, PoseIntentPhase::Translate,1,PoseIntentType::Translate,cFootworkState->direction * stride * 0.5f});
                     }
                     if (cFootworkState->frame >= cFootworkState->current.shiftEndFrame && cFootworkState->frame < cFootworkState->current.shiftEndFrame + 3) {

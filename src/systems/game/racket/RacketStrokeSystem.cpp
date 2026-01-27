@@ -5,7 +5,7 @@
 #include <algorithm>
 
 SystemExec RacketStrokeSystem::update(GameContext* context) {
-    for (auto [entity, cRacketHandle, cArm, cPoseIntentBuffer] : context->registry.getEntitiesWithComponents<CRacketHandle, CArm, CPoseIntentBuffer>()) {
+    for (auto [entity, cRacketHandle, cArm, cPoseIntentBuffer, cStrokeState] : context->registry.getEntitiesWithComponents<CRacketHandle, CArm, CPoseIntentBuffer, CStrokeState>()) {
 
         Entity eRacket = cRacketHandle->racketEntity;
         auto [cRacketSwing] = context->registry.getComponents<CRacketSwing>(eRacket);
@@ -60,12 +60,12 @@ SystemExec RacketStrokeSystem::update(GameContext* context) {
             if (steer.length() != 0) {
                 cPoseIntentBuffer->intents.push_back(PoseIntent{ PoseJointID::LeftWrist, PoseIntentPhase::Translate, 0, PoseIntentType::Translate, desiredHandDelta });
             }
-            
-            //    float sensitivityZ = 2.0f;
-            //    cRacketHandle->pushOffset_m.z += cRacketSwing->manualReachZ * sensitivity * sensitivityZ * dt;
-            //}
-            //cRacketHandle->freeOffset_m.x += steer.x * sensitivity * dt;
-            //cRacketHandle->freeOffset_m.y += -steer.y * sensitivity * dt;
+            if (cRacketSwing->manualReachZ > 0) {
+                float sensitivityZ = 2.0f;
+                cRacketHandle->pushOffset_m.z += cRacketSwing->manualReachZ * sensitivity * sensitivityZ * dt;
+                cPoseIntentBuffer->intents.push_back(PoseIntent{ PoseJointID::LeftWrist, PoseIntentPhase::Translate, 0, PoseIntentType::Translate, {0,0,  cRacketSwing->manualReachZ * sensitivity * sensitivityZ * dt} });
+
+            }
         }
 
         if (strokeState == StrokeState::PushRecovery) {

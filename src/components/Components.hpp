@@ -29,3 +29,5 @@
 #include "CPose.hpp"
 #include "CLocalPPM.hpp"
 #include "CPoseIntentBuffer.hpp"
+#include "CStrokeIntent.hpp"
+#include "CStrokeState.hpp"
