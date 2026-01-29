@@ -72,7 +72,7 @@ SystemExec PoseArmIKSystem::update(GameContext* context) {
         perp /= perpLen;
 
         Vec3 bendDir = perp.cross(v).normalized();
-        Vec3 newBendNormal = (elbowPos - sh.pos_m).cross(wristTarget - sh.pos_m);
+        Vec3 newBendNormal = (el.pos_m - sh.pos_m).cross(wristTarget - sh.pos_m);
         if (newBendNormal.length() > 1e-4f) {
             el.lockBendNormalW = newBendNormal.normalized();
             el.lockBendValid = true;

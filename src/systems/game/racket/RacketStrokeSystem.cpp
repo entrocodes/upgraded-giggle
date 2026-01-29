@@ -72,8 +72,15 @@ SystemExec RacketStrokeSystem::update(GameContext* context) {
             float pushResetRate = 4.0f;
             float freeResetRate = 5.5f;
 
-            if (cRacketHandle->pushOffset_m.z > 0.0f) cRacketHandle->pushOffset_m.z -= pushResetRate * dt;
-            else if (cRacketHandle->freeOffset_m.z > 0.0f) cRacketHandle->freeOffset_m.z -= freeResetRate * dt;
+            if (cRacketHandle->pushOffset_m.z > 0.0f)
+            {
+                cRacketHandle->pushOffset_m.z -= pushResetRate * dt;
+                cPoseIntentBuffer->intents.push_back(PoseIntent{ PoseJointID::LeftWrist, PoseIntentPhase::Translate, 0, PoseIntentType::Translate, {0,0,  -pushResetRate * dt} });
+            }
+            else if (cRacketHandle->freeOffset_m.z > 0.0f) {
+                cRacketHandle->freeOffset_m.z -= freeResetRate * dt;
+                cPoseIntentBuffer->intents.push_back(PoseIntent{ PoseJointID::LeftWrist, PoseIntentPhase::Translate, 0, PoseIntentType::Translate, {0,0,  -freeResetRate * dt} });
+            }
 
             if (cRacketHandle->freeOffset_m.z <= 0.0f) cRacketHandle->freeOffset_m.z = 0.0f;
             if (cRacketHandle->pushOffset_m.z <= 0.0f) cRacketHandle->pushOffset_m.z = 0.0f;
