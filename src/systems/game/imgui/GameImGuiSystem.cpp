@@ -138,6 +138,7 @@ void GameImGuiSystem::drawDeveloperPanel(GameContext* context) {
         }
 
         ImGui::Checkbox("Show Bounding Boxes", &context->renderSettings.draw3DBoundingBoxes);
+        ImGui::Checkbox("Show Character Sprites", &context->renderSettings.renderCharacters);
         ImGui::Checkbox("Show Homography Grid", &context->camera.homography.drawGrid);
         ImGui::Checkbox("Show Debug Shapes", &context->physicsDebug.debugShapes);
     }

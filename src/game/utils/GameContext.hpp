@@ -148,7 +148,7 @@ struct LogoDebug {
 };
 struct RenderSettings {
     bool draw3DBoundingBoxes = false;
-
+    bool renderCharacters = false;
     std::vector<std::pair<std::string, Vec2>> resolutions = {
         { "1280x720",   {1280.f, 720.f} },
         { "1600x900",   {1600.f, 900.f} },
@@ -215,6 +215,7 @@ struct GameContext {
     MetaInputState metaInputState;
     bool inputBlocked = true;
     bool showLayerEditor = false;
+
     GameContext()
         : camera(renderSettings.pixelsPerMeter, renderSettings.pixelsPerMeterPlayerSideX, renderSettings.pixelsPerMeterPlayerSideY), entityFactory(registry, display, assets, camera, tableParameters) {
     }

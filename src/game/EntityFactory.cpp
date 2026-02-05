@@ -121,19 +121,20 @@ Entity EntityFactory::createPlayer() {
     m_registry.addComponent<CRenderLayer>(ePlayer, 90);
     m_registry.addComponent<CBoundingBox3D>(ePlayer, Bounds3D(startPlayerPos_m - (playerSize_m / 2), startPlayerPos_m + (playerSize_m / 2)));
     // --- Animation ---
-    //const Animation& aStand = m_assets.getAnimation("PlayerStand");
-    //auto& cPlayerAnimation = m_registry.addComponent<CAnimation>(ePlayer, aStand, false);
+    const Animation& aStand = m_assets.getAnimation("PlayerStand");
+    auto& cPlayerAnimation = m_registry.addComponent<CAnimation>(ePlayer, aStand, false);
 
-    //sf::Sprite& s = cPlayerAnimation.animation.getSprite();
-    //Vec2 spriteBounds = {
-    //    s.getLocalBounds().width,
-    //    s.getLocalBounds().height
-    //};
-    //s.setOrigin(spriteBounds.x / 2.f, spriteBounds.y / 2.f);
+    sf::Sprite& s = cPlayerAnimation.animation.getSprite();
+    Vec2 spriteBounds = {
+        s.getLocalBounds().width,
+        s.getLocalBounds().height
+    };
+    s.setOrigin(spriteBounds.x / 2.f, spriteBounds.y / 2.f);
 
-    //m_registry.addComponent<CBoundingBox>(ePlayer, s.getLocalBounds());
+    m_registry.addComponent<CBoundingBox>(ePlayer, s.getLocalBounds());
     m_registry.addComponent<CFootworkState>(ePlayer);
     m_registry.addComponent<CStrokeState>(ePlayer);
+    m_registry.addComponent<CCharacter>(ePlayer);
 
 
     // Player world position
@@ -201,6 +202,7 @@ Entity EntityFactory::createOpponent() {
     m_registry.addComponent<CRenderLayer>(eOpponent, 20);
     m_registry.addComponent<CLocalPPM>(eOpponent, eOpponent);
     m_registry.addComponent<CStrokeState>(eOpponent);
+    m_registry.addComponent<CCharacter>(eOpponent);
     // --- Animation ---
     const Animation& aStand = m_assets.getAnimation("OpponentStand");
     auto& cOpponentAnimation = m_registry.addComponent<CAnimation>(eOpponent, aStand, false);

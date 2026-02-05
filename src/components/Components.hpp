@@ -31,3 +31,4 @@
 #include "CPoseIntentBuffer.hpp"
 #include "CStrokeIntent.hpp"
 #include "CStrokeState.hpp"
+#include "CCharacter.hpp"

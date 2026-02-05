@@ -54,8 +54,11 @@ SystemExec FootworkMovementSystem::update(GameContext* context) {
                     // unlock feet by changing support mode
                     cPoseIntentBuffer->intents.push_back({ PoseJointID::CenterPelvis,PoseIntentPhase::Support, 0, PoseIntentType::ShiftBody});
                     // Strong pelvis shift
-                    Vec3 shiftAmount = cFootworkState->direction * stride * 1.2f;
-                    cPoseIntentBuffer->intents.push_back({PoseJointID::CenterPelvis, PoseIntentPhase::Translate, 0, PoseIntentType::Translate, shiftAmount});
+                    Vec3 shiftAmount = cFootworkState->direction * stride * .9f;
+                    if (cFootworkState->frame <= cFootworkState->current.shiftEndFrame) {
+                        cPoseIntentBuffer->intents.push_back({ PoseJointID::CenterPelvis, PoseIntentPhase::Translate, 0, PoseIntentType::Translate, shiftAmount });
+                    }
+
                 }
 
                 else if (cFootworkState->current.kind == StepKind::Reach) {
@@ -145,7 +148,8 @@ StepProfile FootworkMovementSystem::convertStepFromRaw(GameContext* context, con
         step.maxStride_m = rawStep.strength * context->playerMovement.footworkMovement.reachStrength;
         step.staminaCost = 5; }
     else if (rawStep.kind == StepKind::Hop) {
-        step.totalFrames = 6;
+        step.totalFrames = 4;
+        step.shiftEndFrame = 3;
         step.recoveryFrames = 5;
         step.maxStride_m = rawStep.strength * context->playerMovement.footworkMovement.hopStrength;
         step.staminaCost = 12;

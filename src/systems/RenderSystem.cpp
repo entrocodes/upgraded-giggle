@@ -15,7 +15,9 @@ SystemExec RenderSystem::update(GameContext* context) {
 
         CTransform3D* cTransform3D = context->registry.getComponent<CTransform3D>(e);
         bool isShadow = context->registry.hasComponent<CBallShadow>(e);
-
+        if (context->registry.hasComponent<CCharacter>(e) && !context->renderSettings.renderCharacters) {
+            continue;
+        }
         drawList.push_back({ cRenderLayer->layer, e, DrawType::Sprite, cTransform3D, cTransform, cRenderLayer, cAnimation, nullptr, nullptr, isShadow });
     }
 
