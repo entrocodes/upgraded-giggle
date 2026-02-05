@@ -216,6 +216,6 @@ struct GameContext {
     bool inputBlocked = true;
     bool showLayerEditor = false;
     GameContext()
-        : camera(renderSettings.pixelsPerMeter), entityFactory(registry, display, assets, camera, tableParameters) {
+        : camera(renderSettings.pixelsPerMeter, renderSettings.pixelsPerMeterPlayerSideX, renderSettings.pixelsPerMeterPlayerSideY), entityFactory(registry, display, assets, camera, tableParameters) {
     }
 };

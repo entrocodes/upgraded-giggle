@@ -4,8 +4,12 @@
 #include "PoseIDs.hpp"
 #include "footwork/SupportMode.hpp"
 #include "math/Vec3.hpp"
-
+enum class ArmState {
+    FreeMove,
+    Swing
+};
 struct Pose {
+    ArmState armState = ArmState::FreeMove;
     float requestedSquat = 0.f;
     float requestedRaise = 0.f;
     SupportMode prevSupportMode = SupportMode::Airborne;

@@ -13,9 +13,8 @@ public:
     void render(GameContext* context) {
         if (!context->renderSettings.draw3DBoundingBoxes) return;
 
-        for (auto e : context->registry.getEntitiesWith<CBoundingBox3D>()) {
-            auto* bb = context->registry.getComponent<CBoundingBox3D>(e);
-            if (!bb) continue;
+        for (auto [e, bb] : context->registry.getEntitiesWithComponents<CBoundingBox3D>()) {
+
 
             const Bounds3D& b = bb->box;
 
@@ -34,6 +33,7 @@ public:
             Vec2 p2[8];
             for (int i = 0; i < 8; ++i)
                 p2[i] = context->camera.homography.worldToImage(c3[i]);
+
 
             // 12 edges (pairs of corner indices)
             static constexpr int E[12][2] = {

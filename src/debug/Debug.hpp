@@ -6,6 +6,7 @@
 #include <string>
 #include "game/utils/GameContext.hpp"
 
+
 struct ArrowCommand {
     Vec3 from;
     Vec3 to;
@@ -28,10 +29,16 @@ namespace Debug {
         IK,
         Constraint,
         Footwork,
-        Pose
+        Pose,
+        RacketContact
     };
 
+
     bool isChannelEnabled(Channel ch);
+    void setChannelEnabled(Channel ch, bool enabled);
+    bool* getChannelEnabledPtr(Channel ch); // optional convenience
+
+    const char* channelName(Channel ch);
 
     void event(
         Channel ch,

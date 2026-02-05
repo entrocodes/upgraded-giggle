@@ -11,9 +11,7 @@ SystemExec RenderSystem::update(GameContext* context) {
     std::vector<DrawItem> drawList;
 
     // Sprites
-    for (auto e : context->registry.getEntitiesWith<CTransform, CAnimation, CRenderLayer>()) {
-        auto [cTransform, cAnimation, cRenderLayer] = context->registry.getComponents<CTransform, CAnimation, CRenderLayer>(e);
-        if (!cTransform || !cAnimation || !cRenderLayer) continue;
+    for (auto [e, cTransform, cAnimation, cRenderLayer] : context->registry.getEntitiesWithComponents<CTransform, CAnimation, CRenderLayer>()) {
 
         CTransform3D* cTransform3D = context->registry.getComponent<CTransform3D>(e);
         bool isShadow = context->registry.hasComponent<CBallShadow>(e);

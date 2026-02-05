@@ -9,11 +9,8 @@ public:
     float zoom = 1.0f;
     TableHomography homography;
 
-    explicit Camera(float& pixelsPerMeter)
-        : m_pixelsPerMeter(pixelsPerMeter),
-        homography(pixelsPerMeter) {
-    }
-
+    explicit Camera(float& pixelsPerMeter, float& pixelsPerMeterX, float& pixelsPerMeterY)
+        : m_pixelsPerMeter(pixelsPerMeter), m_pixelsPerMeterX(pixelsPerMeterX), m_pixelsPerMeterY(pixelsPerMeterY),homography(pixelsPerMeter, pixelsPerMeterX, pixelsPerMeterY) {}
     // Build a view in logical coordinates
     sf::View makeView(const DisplayConfig& display) const {
         sf::View view;
@@ -25,4 +22,6 @@ public:
 
 private:
     float& m_pixelsPerMeter;
+    float& m_pixelsPerMeterX;
+    float& m_pixelsPerMeterY;
 };

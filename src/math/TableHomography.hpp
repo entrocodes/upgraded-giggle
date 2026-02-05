@@ -7,8 +7,8 @@
 
 class TableHomography {
 public:
-    explicit TableHomography(float& pixelsPerMeter)
-        :m_pixelsPerMeter(pixelsPerMeter)
+    explicit TableHomography(float& pixelsPerMeter, float& pixelsPerMeterX, float& pixelsPerMeterY)
+        :m_pixelsPerMeter(pixelsPerMeter), m_pixelsPerMeterX(pixelsPerMeterX), m_pixelsPerMeterY(pixelsPerMeterY)
     {
     }
     // Each table corner in image pixel space (top-left, top-right, bottom-right, bottom-left)
@@ -41,4 +41,6 @@ public:
     void drawDebugGrid(sf::RenderWindow& window, int divX = 10, int divY = 10) const ;
 private:
     float& m_pixelsPerMeter;
+    float& m_pixelsPerMeterX;
+    float& m_pixelsPerMeterY;
 };

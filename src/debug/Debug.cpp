@@ -11,7 +11,8 @@ namespace Debug {
         { Channel::IK,         true },
         { Channel::Constraint, true },
         { Channel::Footwork,   true },
-        { Channel::Pose,       true }
+        { Channel::Pose,       true },
+        { Channel::RacketContact,       true },
     };
 
     bool isChannelEnabled(Channel ch) {
@@ -20,6 +21,30 @@ namespace Debug {
             return false;
         return it->second;
     }
+
+    void setChannelEnabled(Channel ch, bool enabled) {
+        channelEnabled[ch] = enabled;
+    }
+
+    bool* getChannelEnabledPtr(Channel ch) {
+        auto it = channelEnabled.find(ch);
+        if (it == channelEnabled.end())
+            return nullptr;
+        return &it->second;
+    }
+
+    const char* channelName(Channel ch) {
+        switch (ch) {
+        case Channel::General:    return "General";
+        case Channel::IK:         return "IK";
+        case Channel::Constraint: return "Constraint";
+        case Channel::Footwork:   return "Footwork";
+        case Channel::Pose:       return "Pose";
+        case Channel::RacketContact:       return "RacketContact";
+        default:                  return "Unknown";
+        }
+    }
+
     std::vector<ArrowCommand> queuedArrows;
     std::vector<LineCommand> queuedLines;
     std::vector<SphereCommand> queuedSpheres;

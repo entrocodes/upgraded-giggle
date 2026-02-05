@@ -41,9 +41,9 @@ GameScene::GameScene(GameContext* context)
     systemGraph.add<DebugActionSystem>(m_factory, 18, TickPhase::Fixed, NotPausable);
     systemGraph.add<PlayerActionSystem>(m_factory, 50, TickPhase::Fixed, NotPausable);
     systemGraph.add<MovementSystemGroup>(m_factory, 100, TickPhase::Fixed, Pausable, m_factory);
-    systemGraph.add<CollisionsSystemGroup>(m_factory, 150, TickPhase::Fixed, Pausable, m_factory);
     systemGraph.add<PoseIntentConsumerSystem>(m_factory, 155, TickPhase::Fixed, Pausable);
     systemGraph.add<PoseSystemGroup>(m_factory, 160, TickPhase::Fixed, NotPausable, m_factory);
+    systemGraph.add<CollisionsSystemGroup>(m_factory, 165, TickPhase::Fixed, Pausable, m_factory);
     systemGraph.add<PoseDebugDrawSystem>(m_factory, 170, TickPhase::Fixed, NotPausable);
     systemGraph.add<BallRemovalSystem>(m_factory, 200, TickPhase::Fixed);
     systemGraph.add<AnimationSystem>(m_factory, 300, TickPhase::Fixed);

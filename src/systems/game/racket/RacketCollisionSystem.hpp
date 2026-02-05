@@ -6,6 +6,4 @@
 class RacketCollisionSystem : public ISystem{
 public:
     SystemExec update(GameContext* context);
-private:
-    void checkIntersection(GameContext* context, const CTransform3D* cRacketTransform3D, const CTransform3D* cBallTransform3D);
 };

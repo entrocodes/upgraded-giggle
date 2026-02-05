@@ -5,5 +5,6 @@ class CPose : public Component
 {
 public:
 	Pose pose;
+
 	CPose() {}
 };

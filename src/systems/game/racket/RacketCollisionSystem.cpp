@@ -1,4 +1,5 @@
 ﻿#include "RacketCollisionSystem.hpp"
+#include "debug/Debug.hpp"
 #include "components/Components.hpp"
 #include "math/Constants.hpp"
 #include "math/MathHelpers.hpp"
@@ -30,6 +31,15 @@ SystemExec RacketCollisionSystem::update(GameContext* context)
             auto [cRacketPhysical, cRacketSwing, cRacketTransform3D, cRacketVelocity3D] = context->registry.getComponents<CRacketPhysical, CRacketSwing, CTransform3D, CVelocity3D>(eRacket);
             Vec3 rStart = cRacketTransform3D->lastPos_m;
             Vec3 rEnd = cRacketTransform3D->pos_m;
+            Debug::event(
+                Debug::Channel::RacketContact,
+                "Racket Disposition",
+                {},
+                {
+                    {"Start", rStart},
+                    {"End",rEnd},
+                    {"Disposition",rStart - rEnd}
+                });
             // 1. CCD closest approach
             MathHelpers::ClosestPoints cp = MathHelpers::findClosestPoints(bStart, bEnd, rStart, rEnd);
             if ((rEnd - rStart).lengthSq() < .00001) //if racket is still
@@ -145,26 +155,32 @@ SystemExec RacketCollisionSystem::update(GameContext* context)
             float stickiness = std::clamp(authority * spinGain, 0.0f, 1.0f);
             Vec3 targetSpin = cBall->spin + spinRev * powerMult;
 
-            // blend: low authority => keep old spin, high => approach target spin
-            cBall->spin = cBall->spin * (1.0f - stickiness) + targetSpin * stickiness;
+            //// blend: low authority => keep old spin, high => approach target spin
+            //cBall->spin = cBall->spin * (1.0f - stickiness) + targetSpin * stickiness;
 
 
             // 9. DEBUG OUTPUT
-            ImGuiConsoleQueue("=== RACKET CONTACT ===");
-            ImGuiConsoleQueue("tBall", cp.tBall);
-            ImGuiConsoleQueue("worldNormal", n);
-
-            ImGuiConsoleQueue("vBall", vBall);
-            ImGuiConsoleQueue("vBall dot N", vDotN);
-            ImGuiConsoleQueue("vNormal component", n * vDotN);
-
-            ImGuiConsoleQueue("vTanBall", vTanBall);
-            ImGuiConsoleQueue("vTanRacket", vTanRacket);
-            ImGuiConsoleQueue("vTanRel", vTanRel);
-            ImGuiConsoleQueue("Tangential speed", tanSpeed);
-
-            ImGuiConsoleQueue("Normal impulse jn", jn);
-            ImGuiConsoleQueue("Spin rev/frame", spinRev);
+            Debug::event(
+                Debug::Channel::RacketContact,
+                "RacketContact",
+                {
+                    {"tBall", cp.tBall},
+                    {"vDotN", vDotN},
+                    {"jn", jn},
+                    {"tanSpeed", tanSpeed},
+                    {"spinGain", spinGain}
+                },
+                {
+                    {"normal", n},
+                    {"vBall", vBall},
+                    {"vRacket", vRacket},
+                    {"vTanBall", vTanBall},
+                    {"vTanRel", vTanRel},
+                    {"spinRev", spinRev}
+                },
+                {
+                    {"strokeState", std::to_string((int)cRacketSwing->strokeState)}
+                });
 
             hitThisFrame = true;
             cBall->lastContactSurface = ContactSurface::Racket;

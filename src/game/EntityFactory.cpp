@@ -119,8 +119,7 @@ Entity EntityFactory::createPlayer() {
     m_registry.addComponent<CAuthorization>(ePlayer);
     // --- Render ---
     m_registry.addComponent<CRenderLayer>(ePlayer, 90);
-    m_registry.addComponent<CLocalPPM>(ePlayer, ePlayer);
-    m_registry.addComponent<CBoundingBox3D>(ePlayer, Bounds3D(startPlayerPos_m - playerSize_m / 2, startPlayerPos_m + playerSize_m / 2));
+    m_registry.addComponent<CBoundingBox3D>(ePlayer, Bounds3D(startPlayerPos_m - (playerSize_m / 2), startPlayerPos_m + (playerSize_m / 2)));
     // --- Animation ---
     //const Animation& aStand = m_assets.getAnimation("PlayerStand");
     //auto& cPlayerAnimation = m_registry.addComponent<CAnimation>(ePlayer, aStand, false);

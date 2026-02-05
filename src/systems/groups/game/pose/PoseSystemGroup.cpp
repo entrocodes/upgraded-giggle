@@ -1,11 +1,27 @@
 #include "PoseSystemGroup.hpp"
 #include "components/Components.hpp"
+#include "systems/game/pose/PoseForwardKinematicsSystem.hpp"
+#include "systems/game/pose/PoseIntentConsumerSystem.hpp"
+#include "systems/game/pose/PoseRootMotionSystem.hpp"
+#include "systems/game/pose/PoseAnkleLockIKSystem.hpp"
+#include "systems/game/pose/PoseDeltaClearerSystem.hpp"
+#include "systems/game/pose/PoseStageDeltaClearSystem.hpp"
+#include "systems/game/pose/PoseConstraintSystem.hpp"
+#include "systems/game/pose/PoseOverflowPropagationSystem.hpp"
+#include "systems/game/pose/PoseForceIntegrationSystem.hpp"
+#include "systems/game/pose/PoseCommitSystem.hpp"
+#include "systems/game/pose/SupportResolutionSystem.hpp"
+#include "systems/game/pose/PoseArmIKSystem.hpp"
+#include "systems/game/pose/PoseArmConstraintSetterSystem.hpp"
+#include "systems/game/pose/RacketFreeMoveTargetSolverSystem.hpp"
 PoseSystemGroup::PoseSystemGroup(SystemFactory& factory)
     : m_factory(factory)
 {
 
     m_stagedGraph.add<PoseIntentConsumerSystem>(m_factory, 10, TickPhase::Fixed);
-    m_stagedGraph.add<SupportResolutionSystem>(m_factory, 45, TickPhase::Fixed); //we want to lock at original position, before any transformations are made
+    m_stagedGraph.add<SupportResolutionSystem>(m_factory, 20, TickPhase::Fixed); //we want to lock at original position, before any transformations are made
+    m_stagedGraph.add<PoseArmConstraintSetterSystem>(m_factory, 25, TickPhase::Fixed); //we want to lock at original position, before any transformations are made
+    m_stagedGraph.add<RacketFreeMoveTargetSolverSystem>(m_factory, 28, TickPhase::Fixed); //we want to lock at original position, before any transformations are made
     m_stagedGraph.add<PoseRootMotionSystem>(m_factory, 30, TickPhase::Fixed); // moves pelvis
     m_stagedGraph.add<PoseAnkleLockIKSystem>(m_factory, 60, TickPhase::Fixed);
     m_stagedGraph.add<PoseConstraintSystem>(m_factory, 62, TickPhase::Fixed);

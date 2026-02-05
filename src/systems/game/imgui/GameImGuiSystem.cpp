@@ -38,7 +38,7 @@ struct BoneInspectorState {
 };
 
 static BoneInspectorState g_boneInspector;
-\
+
 enum class BoneLenState {
     Ok,
     OverStretch,
@@ -90,6 +90,25 @@ void GameImGuiSystem::drawDeveloperPanel(GameContext* context) {
 
     ImGui::Begin("Developer Panel##Game", nullptr,
         ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse);
+    if (ImGui::CollapsingHeader("Debug Channels")) {
+        using Debug::Channel;
+
+        Channel channels[] = {
+            Channel::General,
+            Channel::IK,
+            Channel::Constraint,
+            Channel::Footwork,
+            Channel::Pose,
+            Channel::RacketContact
+        };
+
+        for (Channel ch : channels) {
+            bool* enabled = Debug::getChannelEnabledPtr(ch);
+            if (!enabled) continue;
+
+            ImGui::Checkbox(Debug::channelName(ch), enabled);
+        }
+    }
 
     if (ImGui::CollapsingHeader("Physics Visualizers")) {
         ImGui::Checkbox("Draw Reach Quality", &context->renderSettings.debugDrawReachStiffness);

@@ -2,18 +2,7 @@
 
 #include "game/utils/GameContext.hpp"
 
-#include "systems/game/pose/PoseForwardKinematicsSystem.hpp"
-#include "systems/game/pose/PoseIntentConsumerSystem.hpp"
-#include "systems/game/pose/PoseRootMotionSystem.hpp"
-#include "systems/game/pose/PoseAnkleLockIKSystem.hpp"
-#include "systems/game/pose/PoseDeltaClearerSystem.hpp"
-#include "systems/game/pose/PoseStageDeltaClearSystem.hpp"
-#include "systems/game/pose/PoseConstraintSystem.hpp"
-#include "systems/game/pose/PoseOverflowPropagationSystem.hpp"
-#include "systems/game/pose/PoseForceIntegrationSystem.hpp"
-#include "systems/game/pose/PoseCommitSystem.hpp"
-#include "systems/game/pose/SupportResolutionSystem.hpp"
-#include "systems/game/pose/PoseArmIKSystem.hpp"
+
 #include "ecs/system/ISystemGroup.hpp"
 
 class PoseSystemGroup final : public ISystemGroup {

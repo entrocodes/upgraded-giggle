@@ -66,7 +66,6 @@ SystemExec PoseArmIKSystem::update(GameContext* context) {
         Vec3 perp = v.cross(bendNormal);
         float perpLen = perp.length();
         if (perpLen < 1e-5f) {
-            // Target is aligned with bend plane → freeze elbow this frame
             continue;
         }
         perp /= perpLen;
@@ -99,14 +98,14 @@ SystemExec PoseArmIKSystem::update(GameContext* context) {
         Vec3 shoulderErr = MathHelpers::rotationFromToEuler(upperBind, upperNowLocal);
         Vec3 elbowErr = MathHelpers::rotationFromToEuler(lowerBind, lowerNowLocal);
 
-        const float ikGain = 0.6f;
-
-        sh.deltaRotation_rad += shoulderErr * ikGain;
-        el.deltaRotation_rad += elbowErr * ikGain;
 
 
 
         Debug::event(Debug::Channel::IK, "ArmIK", { {"d",d},{"L1",L1},{"L2",L2} });
+        const float ikGain = 0.6f;
+
+        sh.deltaRotation_rad += shoulderErr * ikGain;
+        el.deltaRotation_rad += elbowErr * ikGain;
 
     }
 

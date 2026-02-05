@@ -17,7 +17,7 @@ SystemExec PoseDebugDrawSystem::update(GameContext* context) {
 			Debug::queueLine3D(j0.pos_m, j1.pos_m, sf::Color::Green);
 			Vec3 parent = pose.joint(b.joint1).pos_m;
 			Vec3 bindW = MathHelpers::compMul(pose.joint(b.joint2).baseOffset_m, pose.scale);
-			Debug::queueLine3D(parent, parent + bindW, sf::Color::White);
+			//Debug::queueLine3D(parent, parent + bindW, sf::Color::White);
 
 			});
 
