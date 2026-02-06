@@ -9,12 +9,13 @@ struct PoseJoint {
     bool ikTargetActive = false;
     Vec3 lockBendNormalW = { 0,0,0 };
     bool lockBendValid = true;
+    Vec3 lockBendDirW = { 0,0,0 };
     float lockRefPelvisY = 0.f;
     float lockRefPelvisZ = 0.f;
     bool  lockRefPelvisValid = false;
     float lockRefDistanceYZ = -1;
     float lockRefDzSign = -1;
-
+    bool wasClampedLastFrame = true;
     // --- Driver state (persistent) ---
     Vec3 baseOffset_m{ 0,0,0 };        // bind/local socket offset from parent (pre-scale)
     Vec3 restOffset_m{ 0,0,0 };        // persistent local translation offset (pre-scale)

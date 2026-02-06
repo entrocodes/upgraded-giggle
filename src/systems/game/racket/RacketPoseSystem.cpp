@@ -13,17 +13,12 @@ SystemExec RacketPoseSystem::update(GameContext* context) {
         if (dt <= 0.0f) continue;
 
         Vec3 lastPos = cRacketTransform3D->pos_m;
-        Vec3 finalPos = cArm->shoulderPos_m + cHandle->resolvedOffset_m;
 
         cRacketTransform3D->lastPos_m = lastPos;
-        //cRacketTransform3D->pos_m = finalPos;
         cRacketTransform3D->pos_m = cPose->pose.racket().pos_m;
 
-        Vec3 instantVel = (finalPos - lastPos) / dt;
+        Vec3 instantVel = (cRacketTransform3D->pos_m - lastPos) / dt;
         cRacketVel->vel_mps = instantVel * 0.5f + cRacketVel->vel_mps * 0.5f;
-
-        if (cRacketSwing->strokeState == StrokeState::Swing)
-            Debug::queueLine3D(cArm->shoulderPos_m, finalPos, sf::Color::Yellow);
 
         auto eTable = context->registry.getEntity("table");
         auto cTableBox3D = context->registry.getComponent<CBoundingBox3D>(*eTable);

@@ -13,7 +13,6 @@ static float boneWorldLen(Pose& pose, PoseBoneID id) {
 SystemExec PoseArmIKSystem::update(GameContext* context) {
     for (auto [e, cPose] : context->registry.getEntitiesWithComponents<CPose>()) {
         Pose& pose = cPose->pose;
-        
         PoseJoint& sh = pose.leftShoulder();
         PoseJoint& el = pose.leftElbow();
         PoseJoint& wr = pose.leftWrist();
@@ -70,12 +69,48 @@ SystemExec PoseArmIKSystem::update(GameContext* context) {
         }
         perp /= perpLen;
 
-        Vec3 bendDir = perp.cross(v).normalized();
+        Vec3 rawBendDir = perp.cross(v);
+        float rawLen = rawBendDir.length();
+
+        Vec3 bendDirCandidate;
+        if (rawLen < 1e-4f) {
+            // no meaningful bend — reuse last
+            bendDirCandidate = el.lockBendDirW;
+        }
+        else {
+            bendDirCandidate = rawBendDir / rawLen;
+        }
+
+
+        if (el.lockBendValid) {
+            if (bendDirCandidate.dot(el.lockBendDirW) < 0.0f) {
+                bendDirCandidate = -bendDirCandidate;
+                //Debug::event(Debug::Channel::IK, "flipping sign", { {"last dir current dir bend dot", bendDirCandidate.dot(el.lockBendDirW)} }, { {"bend dir candidate", bendDirCandidate},{"locked dir w", el.lockBendDirW} });
+            }
+        }
+        // --- JITTER DIAGNOSTICS ---
+        float straightness = (L1 + L2) - d;
+        bool nearStraight = straightness < 0.01f;
+        bool weakBendDir = rawLen < 1e-4f;
+        bool weakPerp = perpLen < 1e-4f;
+
+        float elbowDeltaMag = el.deltaRotation_rad.length();
+        float shoulderDeltaMag = sh.deltaRotation_rad.length();
+
+        Vec3 bendDir = bendDirCandidate;
+        el.lockBendDirW = bendDir;
+
         Vec3 newBendNormal = (el.pos_m - sh.pos_m).cross(wristTarget - sh.pos_m);
         if (newBendNormal.length() > 1e-4f) {
-            el.lockBendNormalW = newBendNormal.normalized();
-            el.lockBendValid = true;
+            Vec3 n = newBendNormal.normalized();
+
+            // prevent elbow flip
+            if (!el.lockBendValid || n.dot(el.lockBendNormalW) > 0.0f) {
+                el.lockBendNormalW = n;
+                el.lockBendValid = true;
+            }
         }
+
 
 
 
@@ -101,12 +136,33 @@ SystemExec PoseArmIKSystem::update(GameContext* context) {
 
 
 
-        Debug::event(Debug::Channel::IK, "ArmIK", { {"d",d},{"L1",L1},{"L2",L2} });
+        //Debug::event(Debug::Channel::IK, "ArmIK", { {"d",d},{"L1",L1},{"L2",L2} });
         const float ikGain = 0.6f;
+        if (nearStraight || weakBendDir || weakPerp || elbowDeltaMag > 0.2f) {
+            Debug::event(
+                Debug::Channel::IK,
+                "IK_JITTER_STATE",
+                {
+                    {"d", d},
+                    {"straightness", straightness},
+                    {"rawBendLen", rawLen},
+                    {"perpLen", perpLen},
+                    {"elbowDeltaMag", elbowDeltaMag},
+                    {"shoulderDeltaMag", shoulderDeltaMag}
+                },
+        {
+            {"bendDir", bendDir},
+            {"bendNormal", bendNormal},
+            {"lockBendDir", el.lockBendDirW},
+
+        }, {{"nearStraight", nearStraight ? "true" : "false"}}
+            );
+        }
 
         sh.deltaRotation_rad += shoulderErr * ikGain;
         el.deltaRotation_rad += elbowErr * ikGain;
 
+        //Debug::event(Debug::Channel::IK, "ArmIK", {}, { { "bendDir", bendDir }, {"shoulder rot", sh.deltaRotation_rad}, {"elbow rot", el.deltaRotation_rad}}, {{"lockbendvalid", el.lockBendValid ? "True" : "False"}});
     }
 
     return { SystemExecResult::Ran };

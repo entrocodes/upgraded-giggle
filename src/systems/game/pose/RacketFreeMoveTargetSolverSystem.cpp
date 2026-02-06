@@ -9,6 +9,8 @@ SystemExec RacketFreeMoveTargetSolverSystem::update(GameContext* context) {
         auto& desiredOffset = wrist.desiredDeltaOffset_m;
         float constraintY = .25;
         float constraintX = .75;
+        float constraintZ = 1.25;
+        float negConstraintZ = -.05;
         if (desiredOffset.x < -constraintX) {
             desiredOffset.x = -constraintX;
         }
@@ -21,7 +23,13 @@ SystemExec RacketFreeMoveTargetSolverSystem::update(GameContext* context) {
         else if (desiredOffset.y > constraintY) {
             desiredOffset.y = constraintY;
         }
-        Debug::debugPrint("Desired Offset", desiredOffset);
+        if (desiredOffset.z < negConstraintZ) {
+            desiredOffset.z = negConstraintZ;
+        }
+        else if (desiredOffset.z > constraintZ) {
+            desiredOffset.z = constraintZ;
+        }
+        //Debug::event(Debug::Channel::Pose, "Desired Offset", {}, { { "Desired Offset", desiredOffset } });
     }
     return { SystemExecResult::Ran };
 }

@@ -7,12 +7,12 @@
 namespace Debug {
 
     static std::unordered_map<Channel, bool> channelEnabled = {
-        { Channel::General,    true },
-        { Channel::IK,         true },
-        { Channel::Constraint, true },
-        { Channel::Footwork,   true },
-        { Channel::Pose,       true },
-        { Channel::RacketContact,       true },
+        { Channel::General,    false },
+        { Channel::IK,         false },
+        { Channel::Constraint, false },
+        { Channel::Footwork,   false },
+        { Channel::Pose,       false },
+        { Channel::RacketContact,       false },
     };
 
     bool isChannelEnabled(Channel ch) {

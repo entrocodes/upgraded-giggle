@@ -6,7 +6,8 @@
 #include "math/Vec3.hpp"
 enum class ArmState {
     FreeMove,
-    Swing
+    Swing,
+    Push
 };
 struct Pose {
     ArmState armState = ArmState::FreeMove;

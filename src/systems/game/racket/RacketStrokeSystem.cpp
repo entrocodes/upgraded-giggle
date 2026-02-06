@@ -5,7 +5,7 @@
 #include <algorithm>
 
 SystemExec RacketStrokeSystem::update(GameContext* context) {
-    for (auto [entity, cRacketHandle, cArm, cPoseIntentBuffer, cStrokeState] : context->registry.getEntitiesWithComponents<CRacketHandle, CArm, CPoseIntentBuffer, CStrokeState>()) {
+    for (auto [entity, cPose, cRacketHandle, cArm, cPoseIntentBuffer, cStrokeState] : context->registry.getEntitiesWithComponents<CPose, CRacketHandle, CArm, CPoseIntentBuffer, CStrokeState>()) {
 
         Entity eRacket = cRacketHandle->racketEntity;
         auto [cRacketSwing] = context->registry.getComponents<CRacketSwing>(eRacket);
@@ -55,13 +55,15 @@ SystemExec RacketStrokeSystem::update(GameContext* context) {
         }
 
         if (strokeState == StrokeState::Push || strokeState == StrokeState::Idle) {
+            cPose->pose.armState = ArmState::FreeMove;
             float sensitivity = .8f;
             Vec3 desiredHandDelta = {steer.x * sensitivity * dt, -steer.y * sensitivity * dt, 0.0f};
             if (steer.length() != 0) {
                 cPoseIntentBuffer->intents.push_back(PoseIntent{ PoseJointID::LeftWrist, PoseIntentPhase::Translate, 0, PoseIntentType::Translate, desiredHandDelta });
             }
             if (cRacketSwing->manualReachZ > 0) {
-                float sensitivityZ = 2.0f;
+                cPose->pose.armState = ArmState::Push;
+                float sensitivityZ = 3.2f;
                 cRacketHandle->pushOffset_m.z += cRacketSwing->manualReachZ * sensitivity * sensitivityZ * dt;
                 cPoseIntentBuffer->intents.push_back(PoseIntent{ PoseJointID::LeftWrist, PoseIntentPhase::Translate, 0, PoseIntentType::Translate, {0,0,  cRacketSwing->manualReachZ * sensitivity * sensitivityZ * dt} });
 

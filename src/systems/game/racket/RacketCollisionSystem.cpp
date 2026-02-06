@@ -31,15 +31,15 @@ SystemExec RacketCollisionSystem::update(GameContext* context)
             auto [cRacketPhysical, cRacketSwing, cRacketTransform3D, cRacketVelocity3D] = context->registry.getComponents<CRacketPhysical, CRacketSwing, CTransform3D, CVelocity3D>(eRacket);
             Vec3 rStart = cRacketTransform3D->lastPos_m;
             Vec3 rEnd = cRacketTransform3D->pos_m;
-            Debug::event(
-                Debug::Channel::RacketContact,
-                "Racket Disposition",
-                {},
-                {
-                    {"Start", rStart},
-                    {"End",rEnd},
-                    {"Disposition",rStart - rEnd}
-                });
+            //Debug::event(
+            //    Debug::Channel::RacketContact,
+            //    "Racket Disposition",
+            //    {},
+            //    {
+            //        {"Start", rStart},
+            //        {"End",rEnd},
+            //        {"Disposition",rStart - rEnd}
+            //    });
             // 1. CCD closest approach
             MathHelpers::ClosestPoints cp = MathHelpers::findClosestPoints(bStart, bEnd, rStart, rEnd);
             if ((rEnd - rStart).lengthSq() < .00001) //if racket is still

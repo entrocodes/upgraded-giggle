@@ -41,7 +41,7 @@ SystemExec BallRemovalSystem::update(GameContext* context) {
         context->registry.deleteEntity(e);
     }
 
-    if (didWork) Debug::debugPrint("Deleted off-screen ball(s).");
+    //if (didWork) Debug::debugPrint("Deleted off-screen ball(s).");
 
     if (context->physicsDebug.debugRemoveAllBalls) {
         removeAll(context);

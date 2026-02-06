@@ -54,7 +54,7 @@ SystemExec FootworkMovementSystem::update(GameContext* context) {
                     // unlock feet by changing support mode
                     cPoseIntentBuffer->intents.push_back({ PoseJointID::CenterPelvis,PoseIntentPhase::Support, 0, PoseIntentType::ShiftBody});
                     // Strong pelvis shift
-                    Vec3 shiftAmount = cFootworkState->direction * stride * .9f;
+                    Vec3 shiftAmount = cFootworkState->direction * stride * .6f;
                     if (cFootworkState->frame <= cFootworkState->current.shiftEndFrame) {
                         cPoseIntentBuffer->intents.push_back({ PoseJointID::CenterPelvis, PoseIntentPhase::Translate, 0, PoseIntentType::Translate, shiftAmount });
                     }
