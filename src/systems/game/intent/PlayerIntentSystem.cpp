@@ -89,8 +89,8 @@ SystemExec PlayerIntentSystem::update(GameContext* context)
         // -------------------------------------------------
         // Semantic attack states
         // -------------------------------------------------
-        cInput->actions["StartBackswing"] = raw.isAxisJustPressed("LT");
-        cInput->actions["EnableBackswing"] = raw.isAxisDown("RT");
+        cInput->actions["StartBackswing"] = (raw.isAxisJustPressed("LT") || raw.isKeyJustPressed(sf::Keyboard::Z));
+        cInput->actions["EnableBackswing"] = (raw.isAxisDown("RT") || raw.isKeyDown(sf::Keyboard::C));
         cInput->actions["StartAttack"] = raw.isAxisReleased("LT");
         cInput->actions["StopPush"] = raw.isAxisReleased("LT");
         cInput->actions["StopBackswing"] = raw.isAxisReleased("RT");

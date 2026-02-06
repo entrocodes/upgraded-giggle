@@ -7,7 +7,8 @@
 enum class ArmState {
     FreeMove,
     Swing,
-    Push
+    Push,
+    Backswing
 };
 struct Pose {
     ArmState armState = ArmState::FreeMove;

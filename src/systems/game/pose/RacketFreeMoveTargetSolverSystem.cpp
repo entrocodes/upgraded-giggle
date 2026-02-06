@@ -29,7 +29,7 @@ SystemExec RacketFreeMoveTargetSolverSystem::update(GameContext* context) {
         else if (desiredOffset.z > constraintZ) {
             desiredOffset.z = constraintZ;
         }
-        //Debug::event(Debug::Channel::Pose, "Desired Offset", {}, { { "Desired Offset", desiredOffset } });
+        Debug::event(Debug::Channel::Pose, "Desired Racket Offset", {}, { { "Offset", desiredOffset } });
     }
     return { SystemExecResult::Ran };
 }
