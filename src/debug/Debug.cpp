@@ -13,6 +13,7 @@ namespace Debug {
         { Channel::Footwork,   false },
         { Channel::Pose,       false },
         { Channel::RacketContact,       false },
+        { Channel::Stroke,       false }
     };
 
     bool isChannelEnabled(Channel ch) {
@@ -41,6 +42,7 @@ namespace Debug {
         case Channel::Footwork:   return "Footwork";
         case Channel::Pose:       return "Pose";
         case Channel::RacketContact:       return "RacketContact";
+        case Channel::Stroke: return "Stroke";
         default:                  return "Unknown";
         }
     }

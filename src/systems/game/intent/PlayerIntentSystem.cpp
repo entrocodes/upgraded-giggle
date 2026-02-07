@@ -48,7 +48,7 @@ SystemExec PlayerIntentSystem::update(GameContext* context)
 
             // This will be true ONLY on the frame the button is let go
             cInput->actions[action] = isReleased;
-        };
+            };
 
         // -------------------------------------------------
         // Movement
@@ -93,7 +93,7 @@ SystemExec PlayerIntentSystem::update(GameContext* context)
         cInput->actions["EnableBackswing"] = (raw.isAxisDown("RT") || raw.isKeyDown(sf::Keyboard::C));
         cInput->actions["StartAttack"] = raw.isAxisReleased("LT");
         cInput->actions["StopPush"] = raw.isAxisReleased("LT");
-        cInput->actions["StopBackswing"] = raw.isAxisReleased("RT");
+        cInput->actions["StopBackswing"] = (raw.isAxisReleased("RT") || raw.isKeyReleased(sf::Keyboard::C));
 
         float kbJ1X = 0.f;
         float kbJ1Y = 0.f;

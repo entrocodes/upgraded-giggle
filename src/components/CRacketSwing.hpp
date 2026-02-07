@@ -6,7 +6,7 @@ struct CRacketSwing : public Component {
     StrokeState strokeState = StrokeState::Idle;
     StrokeState prevStrokeState = StrokeState::Idle;
     float backswingTime = 0.f;
-    float maxBackswing = 0.6f;  // ~600ms max power
+    float maxBackswing = 6;  // ~1200ms max power
     bool nowDown = false;
     float swingSpeed = 0.f;
     bool isCharging = false;

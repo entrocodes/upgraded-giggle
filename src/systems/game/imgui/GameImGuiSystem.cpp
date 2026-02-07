@@ -99,7 +99,8 @@ void GameImGuiSystem::drawDeveloperPanel(GameContext* context) {
             Channel::Constraint,
             Channel::Footwork,
             Channel::Pose,
-            Channel::RacketContact
+            Channel::RacketContact,
+            Channel::Stroke
         };
 
         for (Channel ch : channels) {
@@ -632,9 +633,9 @@ void GameImGuiSystem::drawPoseIntentTest(GameContext* context)
         intent.type = (PoseIntentType)g_poseIntentTest.typeIdx;
         intent.phase = (PoseIntentPhase)g_poseIntentTest.phaseIdx;
         intent.stage = (uint8_t)g_poseIntentTest.stage;
-        intent.desiredDelta_m.y = g_poseIntentTest.weight;
+        intent.worldTargetShift.y = g_poseIntentTest.weight;
 
-        intent.desiredDelta_m = g_poseIntentTest.delta;
+        intent.worldTargetShift = g_poseIntentTest.delta;
 
         cBuffer->intents.push_back(intent);
     }
@@ -662,7 +663,7 @@ void GameImGuiSystem::drawPoseIntentTest(GameContext* context)
                 kPoseIntentPhaseNames[(int)intent.phase],
                 PoseJointIDNames[intent.joint],
                 (int)intent.type,
-                intent.desiredDelta_m.y
+                intent.worldTargetShift.y
             );
         }
         ImGui::TreePop();

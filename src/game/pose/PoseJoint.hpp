@@ -4,12 +4,17 @@
 #include <algorithm>
 
 struct PoseJoint {
+    bool ikWasActiveLastFrame = false;
+    bool nearStraightLatched = false; // optional but recommended
+
+    Vec3 lockBendNormalW = { 0,0,1 };
+    Vec3 lockBendDirW = { 0,1,0 };
+    bool lockBendValid = false;
+
+    bool rotClampedThisFrame = false;
     Vec3 rotWorld_rad = { 0,0,0 };
     Vec3 ikTargetWorldPos = { 0,0,0};
     bool ikTargetActive = false;
-    Vec3 lockBendNormalW = { 0,0,0 };
-    bool lockBendValid = true;
-    Vec3 lockBendDirW = { 0,0,0 };
     float lockRefPelvisY = 0.f;
     float lockRefPelvisZ = 0.f;
     bool  lockRefPelvisValid = false;
@@ -23,7 +28,10 @@ struct PoseJoint {
 
     // --- Per-frame deltas (cleared each frame) ---
     Vec3 deltaOffset_m{ 0,0,0 };
-    Vec3 desiredDeltaOffset_m{ 0,0,0 };
+    Vec3 lastTargetOffset{ 0,0,0 };
+    Vec3 lastTargetOffsetFromBind{ 0,0,0 };
+    Vec3 lastWristWorldPos{ 0,0,0 };
+    Vec3 targetOffsetFromBind{ 0,0,0 };
     Vec3 deltaRotation_rad{ 0,0,0 };
 
     // --- Solver outputs (computed) ---

@@ -7,7 +7,8 @@ SystemExec PoseDeltaClearerSystem::update(GameContext* context) {
         auto& pose = cPose->pose;
         pose.requestedSquat = 0;
         pose.requestedRaise = 0;
-        pose.forEachJoint([&](PoseJoint& j, PoseJointID) {
+        pose.forEachJoint([&](PoseJoint& j, PoseJointID id) {
+            j.lastTargetOffset = j.targetOffsetFromBind;
             j.deltaOffset_m = { 0,0,0 };
             j.deltaRotation_rad = { 0,0,0 };
             });

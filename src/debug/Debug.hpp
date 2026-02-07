@@ -30,7 +30,8 @@ namespace Debug {
         Constraint,
         Footwork,
         Pose,
-        RacketContact
+        RacketContact,
+        Stroke
     };
 
 

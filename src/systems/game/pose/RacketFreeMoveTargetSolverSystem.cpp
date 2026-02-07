@@ -6,7 +6,7 @@ SystemExec RacketFreeMoveTargetSolverSystem::update(GameContext* context) {
     for (auto [e, cPose] : context->registry.getEntitiesWithComponents<CPose>()) {
         auto& pose = cPose->pose;
         auto& wrist = pose.leftWrist();
-        auto& desiredOffset = wrist.desiredDeltaOffset_m;
+        auto& desiredOffset = wrist.targetOffsetFromBind;
         float constraintY = .25;
         float constraintX = .75;
         float constraintZ = 1.25;

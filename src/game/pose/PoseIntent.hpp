@@ -17,5 +17,5 @@ struct PoseIntent {
     PoseIntentPhase phase;
     int stage = 0;
     PoseIntentType type;
-    Vec3 desiredDelta_m = Vec3(0,0,0);
+    Vec3 worldTargetShift = Vec3(0,0,0);
 };

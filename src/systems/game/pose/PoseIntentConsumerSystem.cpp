@@ -16,7 +16,7 @@ static void applyIntent(const PoseIntent& intent, Pose& pose) {
         if (intent.type == PoseIntentType::Translate) {
             PoseJoint& j = pose.joint(intent.joint);
 
-            j.desiredDeltaOffset_m += intent.desiredDelta_m;
+            j.targetOffsetFromBind += intent.worldTargetShift;
             j.ikTargetActive = true;
 
         }
@@ -29,7 +29,7 @@ static void applyIntent(const PoseIntent& intent, Pose& pose) {
 
         if (intent.type == PoseIntentType::Rotate) {
             PoseJoint& j = pose.joint(intent.joint);
-            j.deltaRotation_rad += intent.desiredDelta_m;
+            j.deltaRotation_rad += intent.worldTargetShift;
             return;
         }
 
@@ -38,7 +38,7 @@ static void applyIntent(const PoseIntent& intent, Pose& pose) {
                 pose.supportMode = SupportMode::Grounded;
             }
             if (intent.phase == PoseIntentPhase::Translate) {
-                pose.requestedSquat = intent.desiredDelta_m.y;
+                pose.requestedSquat = intent.worldTargetShift.y;
                 Debug::debugPrint("squat amount", pose.requestedSquat);
             }
             return;
@@ -48,7 +48,7 @@ static void applyIntent(const PoseIntent& intent, Pose& pose) {
                 pose.supportMode = SupportMode::Grounded;
             }
             if (intent.phase == PoseIntentPhase::Translate) {
-                pose.requestedRaise = intent.desiredDelta_m.y;
+                pose.requestedRaise = intent.worldTargetShift.y;
                 Debug::debugPrint("raise amount", pose.requestedRaise);
             }
             return;

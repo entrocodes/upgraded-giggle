@@ -9,7 +9,7 @@ static void solvePelvisZ(Pose& pose) {
     constexpr float squatRatioZ = 0.4f;
     PoseJoint& pelvis = pose.centerPelvis();
 
-    pelvis.deltaOffset_m.y = pelvis.desiredDeltaOffset_m.y;
+    pelvis.deltaOffset_m.y = pelvis.targetOffsetFromBind.y;
     pelvis.deltaOffset_m.z = pelvis.deltaOffset_m.y * squatRatioZ;
 
     Debug::debugPrint("pelvisY", pelvis.deltaOffset_m.y);

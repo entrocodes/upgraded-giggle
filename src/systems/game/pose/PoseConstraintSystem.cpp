@@ -75,12 +75,15 @@ SystemExec PoseConstraintSystem::update(GameContext* context) {
             Vec3 clampedRot = clampVec3(proposedRot, j.minRot, j.maxRot);
             Vec3 rotCorrection = clampedRot - proposedRot;
 
-            if (rotCorrection.lengthSq() > 1e-8f) {Debug::event(Debug::Channel::Constraint,"RotClampX",{{"req", proposedRot.x},{"min", j.minRot.x},{"max", j.maxRot.x}},{},{ {"joint", poseJointName(id)} }); }
-            if (rotCorrection.lengthSq() > 1e-8f) {Debug::event(Debug::Channel::Constraint,"RotClampY",{{"req", proposedRot.y},{"min", j.minRot.y},{"max", j.maxRot.y}},{},{ {"joint", poseJointName(id)} }); }
-            if (rotCorrection.lengthSq() > 1e-8f) {Debug::event(Debug::Channel::Constraint,"RotClampZ",{{"req", proposedRot.z},{"min", j.minRot.z},{"max", j.maxRot.z}},{},{ {"joint", poseJointName(id)} }); }
+            if (rotCorrection.x > 1e-8f || rotCorrection.x < -1e-8f) { Debug::event(Debug::Channel::Constraint, "RotClampX", { {"req", proposedRot.x},{"min", j.minRot.x},{"max", j.maxRot.x} }, {}, { {"joint", poseJointName(id)} }); }
+            if (rotCorrection.y > 1e-8f || rotCorrection.y < -1e-8f) {Debug::event(Debug::Channel::Constraint,"RotClampY",{{"req", proposedRot.y},{"min", j.minRot.y},{"max", j.maxRot.y}},{},{ {"joint", poseJointName(id)} }); }
+            if (rotCorrection.z > 1e-8f || rotCorrection.z < -1e-8f) {Debug::event(Debug::Channel::Constraint,"RotClampZ",{{"req", proposedRot.z},{"min", j.minRot.z},{"max", j.maxRot.z}},{},{ {"joint", poseJointName(id)} }); }
 
             j.deltaRotation_rad = clampedRot - j.restRotation_rad;
 
+            if (rotCorrection.lengthSq() > 1e-8f) {
+                j.rotClampedThisFrame = true;
+            }
             // --- Translation clamp ---
             
             if (j.maxOffset > 0.f) {

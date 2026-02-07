@@ -42,6 +42,7 @@ SystemExec RacketStrokeSystem::update(GameContext* context) {
             cRacketSwing->backswingOffset_m = Vec3{ 0,0,0 };
             cRacketHandle->strokeWeight = 1.0f;
             cRacketSwing->backswingTime = 0.0f;
+            Debug::debugPrint("swing release requested, backswing time reset!");
 
         }
 
@@ -54,16 +55,15 @@ SystemExec RacketStrokeSystem::update(GameContext* context) {
             }
             if (strokeState != StrokeState::BrakedBackSwing) {
                 cRacketSwing->backswingTime =  std::min(cRacketSwing->backswingTime + dt, cRacketSwing->maxBackswing);
-                Debug::debugPrint("increasing backswing time", cRacketSwing->backswingTime);
-                Debug::debugPrint("increasing backswing time", cRacketSwing->maxBackswing);
+                Debug::event(Debug::Channel::Stroke, "Backswing", { {"Backswing Time", cRacketSwing->backswingTime}, {"Maximum Backswing", cRacketSwing->maxBackswing} });
             }
 
             float t = cRacketSwing->backswingTime / cRacketSwing->maxBackswing;
 
-            Vec3 pocketPos = { steer.x * 0.4f, -steer.y * 0.4f, -0.3f };
+            Vec3 pocketPos = { steer.x * 0.4f, -steer.y * 0.4f, -1.0f };
             cRacketSwing->backswingOffset_m = pocketPos * t;
             cPoseIntentBuffer->intents.push_back(PoseIntent{ PoseJointID::LeftWrist, PoseIntentPhase::Translate, 0, PoseIntentType::Translate, cRacketSwing->backswingOffset_m });
-            Debug::event(Debug::Channel::Pose, "Desired Racket Offset", { {"backstroke time", t} }, { {"backSwingOffset", cRacketSwing->backswingOffset_m} });
+            Debug::event(Debug::Channel::Stroke, "Desired Racket Offset", { {"backstroke time", t} }, { {"backSwingOffset", cRacketSwing->backswingOffset_m} });
             cRacketHandle->strokeWeight = 0.0f;
         }
 

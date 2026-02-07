@@ -3,6 +3,8 @@
 #include "components/Components.hpp"
 #include "math/MathHelpers.hpp"
 #include "debug/Debug.hpp"
+#include <algorithm>
+#include <cmath>
 
 static float boneWorldLen(Pose& pose, PoseBoneID id) {
     PoseBone& b = pose.bone(id);
@@ -10,159 +12,157 @@ static float boneWorldLen(Pose& pose, PoseBoneID id) {
     return MathHelpers::compMul(child.baseOffset_m, pose.scale).length();
 }
 
+static Vec3 reject(const Vec3& v, const Vec3& dirUnit) {
+    return v - dirUnit * v.dot(dirUnit);
+}
+
+static Vec3 safeNormalized(const Vec3& v, const Vec3& fallback) {
+    float len = v.length();
+    if (len < 1e-6f) return fallback;
+    return v / len;
+}
+
 SystemExec PoseArmIKSystem::update(GameContext* context) {
+
+    const float straightEnter = 0.015f;
+    const float straightExit = 0.030f;
+
     for (auto [e, cPose] : context->registry.getEntitiesWithComponents<CPose>()) {
+
         Pose& pose = cPose->pose;
+
         PoseJoint& sh = pose.leftShoulder();
         PoseJoint& el = pose.leftElbow();
         PoseJoint& wr = pose.leftWrist();
 
-        PoseJoint& parent = el; // elbow is wrist parent
+        // --------------------------------------------------
+        // Build world-space IK target
+        // --------------------------------------------------
+        const Vec3 elbowWorldPos = el.lastPos_m;
+        const Vec3 wristBindOffsetWorld =
+            MathHelpers::compMul(wr.baseOffset_m + wr.restOffset_m, pose.scale);
 
-        Vec3 parentBindWorld =
-            parent.lastPos_m; // or parent.bindWorldPos if you add one
-
-        Vec3 bindWorld =
-            parentBindWorld + MathHelpers::compMul(wr.baseOffset_m + wr.restOffset_m, pose.scale);
-
-        Vec3 ikTargetWorld =
-            bindWorld + MathHelpers::compMul(wr.desiredDeltaOffset_m, pose.scale);
+        const Vec3 wristBindWorldPos = elbowWorldPos + wristBindOffsetWorld;
+        const Vec3 ikTargetWorld =
+            wristBindWorldPos + MathHelpers::compMul(wr.targetOffsetFromBind, pose.scale);
 
         Debug::queueSphere3D(ikTargetWorld, 0.06f, sf::Color::Red);
-        //if (!wr.ikTargetActive) continue;
-        Vec3 wristTarget = ikTargetWorld;
-        Vec3 shoulderPos = sh.pos_m;
 
-        float L1 = boneWorldLen(pose, PoseBoneID::LeftUpperArm);
-        float L2 = boneWorldLen(pose, PoseBoneID::LeftLowerArm);
+        // --------------------------------------------------
+        // Geometry
+        // --------------------------------------------------
+        const Vec3 shoulderPos = sh.pos_m;
 
-        Vec3 v = wristTarget - shoulderPos;
-        float d = v.length();
-        if (d < 1e-6f) continue;
+        const float L1 = boneWorldLen(pose, PoseBoneID::LeftUpperArm);
+        const float L2 = boneWorldLen(pose, PoseBoneID::LeftLowerArm);
 
-        d = std::clamp(d, std::fabs(L1 - L2) + 1e-4f, (L1 + L2) - 1e-4f);
+        Vec3 toTarget = ikTargetWorld - shoulderPos;
+        float dist = toTarget.length();
+        if (dist < 1e-6f) continue;
 
-        Vec3 dir = v.normalized();
+        const float minReach = std::fabs(L1 - L2) + 1e-4f;
+        const float maxReach = (L1 + L2) - 1e-4f;
+        dist = std::clamp(dist, minReach, maxReach);
 
-        Vec3 bendNormal;
+        const Vec3 dir = toTarget.normalized();
 
-        // 1) Prefer cached bend plane
-        if (el.lockBendValid && el.lockBendNormalW.length() > 1e-4f) {
-            bendNormal = el.lockBendNormalW.normalized();
+        // --------------------------------------------------
+        // IK activation + straightness latch
+        // --------------------------------------------------
+        const bool ikActive = wr.ikTargetActive;
+        const bool ikJustEnabled = ikActive && !el.ikWasActiveLastFrame;
+        el.ikWasActiveLastFrame = ikActive;
+
+        const float straightness = (L1 + L2) - dist;
+
+        if (!el.nearStraightLatched) {
+            if (straightness < straightEnter)
+                el.nearStraightLatched = true;
         }
         else {
-            // 2) Derive from last elbow position
-            Vec3 lastElbowDir = el.lastPos_m - sh.pos_m;
-            if (lastElbowDir.length() > 1e-4f) {
-                bendNormal = lastElbowDir.cross(v).normalized();
-            }
-            else {
-                // 3) Absolute fallback (never ideal, but safe)
-                bendNormal = Vec3(0, 0, 1);
-            }
+            if (straightness > straightExit)
+                el.nearStraightLatched = false;
         }
 
-        Vec3 perp = v.cross(bendNormal);
-        float perpLen = perp.length();
-        if (perpLen < 1e-5f) {
-            continue;
+        const bool nearStraight = el.nearStraightLatched;
+
+        // --------------------------------------------------
+        // Bend plane locking
+        // --------------------------------------------------
+        auto chooseSeedNormal = [&]() -> Vec3 {
+            Vec3 shToEl = el.lastPos_m - sh.pos_m;
+            Vec3 n = shToEl.cross(toTarget);
+            if (n.length() > 1e-5f) return n;
+
+            Vec3 worldUp(0, 1, 0);
+            n = worldUp.cross(dir);
+            if (n.length() > 1e-5f) return n;
+
+            return Vec3(0, 0, 1);
+            };
+
+        const bool reseedPlane =
+            ikJustEnabled || nearStraight || !el.lockBendValid;
+
+        if (reseedPlane) {
+            Vec3 seed = reject(chooseSeedNormal(), dir);
+            el.lockBendNormalW = safeNormalized(seed, Vec3(0, 0, 1));
+
+            Vec3 initBendDir = el.lockBendNormalW.cross(dir);
+            el.lockBendDirW = safeNormalized(initBendDir, Vec3(0, 1, 0));
+
+            el.lockBendValid = true;
         }
-        perp /= perpLen;
 
-        Vec3 rawBendDir = perp.cross(v);
-        float rawLen = rawBendDir.length();
+        Vec3 bendNormal =
+            safeNormalized(reject(el.lockBendNormalW, dir), Vec3(0, 0, 1));
+        el.lockBendNormalW = bendNormal;
 
-        Vec3 bendDirCandidate;
-        if (rawLen < 1e-4f) {
-            // no meaningful bend — reuse last
-            bendDirCandidate = el.lockBendDirW;
-        }
-        else {
-            bendDirCandidate = rawBendDir / rawLen;
-        }
+        Vec3 bendDir =
+            safeNormalized(bendNormal.cross(dir), el.lockBendDirW);
 
+        if (bendDir.dot(el.lockBendDirW) < 0.0f)
+            bendDir = -bendDir;
 
-        if (el.lockBendValid) {
-            if (bendDirCandidate.dot(el.lockBendDirW) < 0.0f) {
-                bendDirCandidate = -bendDirCandidate;
-                //Debug::event(Debug::Channel::IK, "flipping sign", { {"last dir current dir bend dot", bendDirCandidate.dot(el.lockBendDirW)} }, { {"bend dir candidate", bendDirCandidate},{"locked dir w", el.lockBendDirW} });
-            }
-        }
-        // --- JITTER DIAGNOSTICS ---
-        float straightness = (L1 + L2) - d;
-        bool nearStraight = straightness < 0.01f;
-        bool weakBendDir = rawLen < 1e-4f;
-        bool weakPerp = perpLen < 1e-4f;
-
-        float elbowDeltaMag = el.deltaRotation_rad.length();
-        float shoulderDeltaMag = sh.deltaRotation_rad.length();
-
-        Vec3 bendDir = bendDirCandidate;
         el.lockBendDirW = bendDir;
 
-        Vec3 newBendNormal = (el.pos_m - sh.pos_m).cross(wristTarget - sh.pos_m);
-        if (newBendNormal.length() > 1e-4f) {
-            Vec3 n = newBendNormal.normalized();
+        // --------------------------------------------------
+        // Two-bone solve
+        // --------------------------------------------------
+        float cosA =
+            (L1 * L1 + dist * dist - L2 * L2) / (2.f * L1 * dist);
 
-            // prevent elbow flip
-            if (!el.lockBendValid || n.dot(el.lockBendNormalW) > 0.0f) {
-                el.lockBendNormalW = n;
-                el.lockBendValid = true;
-            }
-        }
-
-
-
-
-        float cosA = (L1 * L1 + d * d - L2 * L2) / (2.f * L1 * d);
         cosA = std::clamp(cosA, -1.f, 1.f);
         float a = std::acos(cosA);
 
-        Vec3 elbowPos = shoulderPos + dir * (std::cos(a) * L1) + bendDir * (std::sin(a) * L1);
+        const Vec3 elbowPos =
+            shoulderPos
+            + dir * (std::cos(a) * L1)
+            + bendDir * (std::sin(a) * L1);
 
-        // Convert world vectors into parent-local space
-        Vec3 shoulderInvRot = -sh.rotWorld_rad;
-        Vec3 elbowInvRot = -el.rotWorld_rad;
+        // --------------------------------------------------
+        // Convert to rotation deltas
+        // --------------------------------------------------
+        const Vec3 shoulderInvRot = -sh.rotWorld_rad;
+        const Vec3 elbowInvRot = -el.rotWorld_rad;
 
-        Vec3 upperBind = el.baseOffset_m;
-        Vec3 upperNowLocal = MathHelpers::rotateByEuler(elbowPos - shoulderPos, shoulderInvRot);
+        const Vec3 upperBind = el.baseOffset_m;
+        const Vec3 upperNowLocal =
+            MathHelpers::rotateByEuler(elbowPos - shoulderPos, shoulderInvRot);
 
-        Vec3 lowerBind = wr.baseOffset_m;
-        Vec3 lowerNowLocal = MathHelpers::rotateByEuler(wristTarget - elbowPos, elbowInvRot);
+        const Vec3 lowerBind = wr.baseOffset_m;
+        const Vec3 lowerNowLocal =
+            MathHelpers::rotateByEuler(ikTargetWorld - elbowPos, elbowInvRot);
 
-        Vec3 shoulderErr = MathHelpers::rotationFromToEuler(upperBind, upperNowLocal);
-        Vec3 elbowErr = MathHelpers::rotationFromToEuler(lowerBind, lowerNowLocal);
+        const Vec3 shoulderErr =
+            MathHelpers::rotationFromToEuler(upperBind, upperNowLocal);
 
+        const Vec3 elbowErr =
+            MathHelpers::rotationFromToEuler(lowerBind, lowerNowLocal);
 
-
-
-        //Debug::event(Debug::Channel::IK, "ArmIK", { {"d",d},{"L1",L1},{"L2",L2} });
         const float ikGain = 0.6f;
-        if (nearStraight || weakBendDir || weakPerp || elbowDeltaMag > 0.2f) {
-            Debug::event(
-                Debug::Channel::IK,
-                "IK_JITTER_STATE",
-                {
-                    {"d", d},
-                    {"straightness", straightness},
-                    {"rawBendLen", rawLen},
-                    {"perpLen", perpLen},
-                    {"elbowDeltaMag", elbowDeltaMag},
-                    {"shoulderDeltaMag", shoulderDeltaMag}
-                },
-        {
-            {"bendDir", bendDir},
-            {"bendNormal", bendNormal},
-            {"lockBendDir", el.lockBendDirW},
-
-        }, {{"nearStraight", nearStraight ? "true" : "false"}}
-            );
-        }
-
         sh.deltaRotation_rad += shoulderErr * ikGain;
         el.deltaRotation_rad += elbowErr * ikGain;
-
-        //Debug::event(Debug::Channel::IK, "ArmIK", {}, { { "bendDir", bendDir }, {"shoulder rot", sh.deltaRotation_rad}, {"elbow rot", el.deltaRotation_rad}}, {{"lockbendvalid", el.lockBendValid ? "True" : "False"}});
     }
 
     return { SystemExecResult::Ran };

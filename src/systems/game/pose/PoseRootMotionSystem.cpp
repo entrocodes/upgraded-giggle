@@ -25,17 +25,17 @@ SystemExec PoseRootMotionSystem::update(GameContext* context) {
         PoseJoint& pelvis = pose.centerPelvis();
 
         if (pose.requestedSquat > 0) {
-            pelvis.desiredDeltaOffset_m.y -= pose.requestedSquat;
-            Debug::debugPrint("desired delta offset by squat", pelvis.desiredDeltaOffset_m);
+            pelvis.targetOffsetFromBind.y -= pose.requestedSquat;
+            Debug::debugPrint("desired delta offset by squat", pelvis.targetOffsetFromBind);
         }
         if (pose.requestedRaise > 0) {
-            pelvis.desiredDeltaOffset_m.y += pose.requestedRaise;
-            Debug::debugPrint("desired delta offset by raise", pelvis.desiredDeltaOffset_m);
+            pelvis.targetOffsetFromBind.y += pose.requestedRaise;
+            Debug::debugPrint("desired delta offset by raise", pelvis.targetOffsetFromBind);
         }
 
-        pelvis.deltaOffset_m.x += pelvis.desiredDeltaOffset_m.x;
-        pelvis.deltaOffset_m.z += pelvis.desiredDeltaOffset_m.z;
-        pelvis.desiredDeltaOffset_m = { 0,0,0 };
+        pelvis.deltaOffset_m.x += pelvis.targetOffsetFromBind.x;
+        pelvis.deltaOffset_m.z += pelvis.targetOffsetFromBind.z;
+        pelvis.targetOffsetFromBind = { 0,0,0 };
         // Build proposal (driver space)
         Vec2 proposedXZ(
             pelvis.restOffset_m.x + pelvis.deltaOffset_m.x,
