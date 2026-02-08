@@ -43,48 +43,48 @@ SystemExec PoseForwardKinematicsSystem::update(GameContext* context) {
                 parent.pos_m + MathHelpers::compMul(rotated, pose.scale);
         }
 
-        // --------------------------------------------------
-        // Rollback validation (LEFT WRIST)
-        // --------------------------------------------------
-        PoseJoint& wr = pose.leftWrist();
+        //// --------------------------------------------------
+        //// Rollback validation (LEFT WRIST)
+        //// --------------------------------------------------
+        //PoseJoint& wr = pose.leftWrist();
 
-        if (wr.ikTargetActive) {
+        //if (wr.ikTargetActive) {
 
-            const Vec3 elbowWorldPos = pose.leftElbow().pos_m;
-            const Vec3 wristBindOffsetWorld =
-                MathHelpers::compMul(wr.baseOffset_m + wr.restOffset_m, pose.scale);
+        //    const Vec3 elbowWorldPos = pose.leftElbow().pos_m;
+        //    const Vec3 wristBindOffsetWorld =
+        //        MathHelpers::compMul(wr.baseOffset_m + wr.restOffset_m, pose.scale);
 
-            const Vec3 wristBindWorldPos =
-                elbowWorldPos + wristBindOffsetWorld;
+        //    const Vec3 wristBindWorldPos =
+        //        elbowWorldPos + wristBindOffsetWorld;
 
-            const Vec3 lastTargetWorld =
-                wristBindWorldPos +
-                MathHelpers::compMul(wr.lastTargetOffsetFromBind, pose.scale);
+        //    const Vec3 lastTargetWorld =
+        //        wristBindWorldPos +
+        //        MathHelpers::compMul(wr.lastTargetOffsetFromBind, pose.scale);
 
-            const Vec3 currTargetWorld =
-                wristBindWorldPos +
-                MathHelpers::compMul(wr.targetOffsetFromBind, pose.scale);
+        //    const Vec3 currTargetWorld =
+        //        wristBindWorldPos +
+        //        MathHelpers::compMul(wr.targetOffsetFromBind, pose.scale);
 
-            const float lastDist =
-                (lastTargetWorld - wr.lastWristWorldPos).length();
+        //    const float lastDist =
+        //        (lastTargetWorld - wr.lastWristWorldPos).length();
 
-            const float currDist =
-                (currTargetWorld - wr.pos_m).length();
+        //    const float currDist =
+        //        (currTargetWorld - wr.pos_m).length();
 
-            const float progressEpsilon = 1e-4f;
+        //    const float progressEpsilon = 1e-4f;
 
-            const bool madeProgress =
-                currDist < (lastDist - progressEpsilon);
+        //    const bool madeProgress =
+        //        currDist < (lastDist - progressEpsilon);
 
-            if (!madeProgress) {
-                wr.targetOffsetFromBind = wr.lastTargetOffsetFromBind;
-            }
-        }
+        //    if (!madeProgress) {
+        //        wr.targetOffsetFromBind = wr.lastTargetOffsetFromBind;
+        //    }
+        //}
 
-        // --------------------------------------------------
-        // Snapshot for next frame
-        // --------------------------------------------------
-        wr.lastWristWorldPos = wr.pos_m;
+        //// --------------------------------------------------
+        //// Snapshot for next frame
+        //// --------------------------------------------------
+        //wr.lastWristWorldPos = wr.pos_m;
     }
 
     return { SystemExecResult::Ran };
