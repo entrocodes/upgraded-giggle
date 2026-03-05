@@ -18,6 +18,7 @@ enum PoseJointID {
     Racket,
     JointCount
 };
+
 static constexpr const char* PoseJointIDNames[JointCount] = {
     "NeckBase",
     "CenterPelvis",

@@ -5,5 +5,6 @@
 
 struct CPoseIntentBuffer : public Component{
     std::vector<PoseIntent> intents;
+    std::vector<PoseIntent> history;
     void clear() { intents.clear(); }
 };

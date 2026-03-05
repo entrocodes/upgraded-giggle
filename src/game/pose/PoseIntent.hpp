@@ -9,9 +9,19 @@ enum class PoseIntentType {
     PushOff,       // explode upward / backward
     Recover,        // return to neutral stance
     Translate,      // NEEDS DECOMPED
-    Rotate          // NEEDS DECOMPED
+    Rotate,          // NEEDS DECOMPED
+    PoseIntentCount
 };
-
+static constexpr const char* PoseIntentTypeIDNames[
+    static_cast<size_t>(PoseIntentType::PoseIntentCount)
+] = {
+    "Load Body",
+    "Shift Body",
+    "Push Off",
+    "Recover",
+    "Translate",
+    "Rotate"
+};
 struct PoseIntent {
     PoseJointID joint;
     PoseIntentPhase phase;

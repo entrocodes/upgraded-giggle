@@ -4,6 +4,7 @@
 #include "ecs/system/TickPhase.hpp"
 #include "ecs/system/SystemGraph.hpp"
 #include "components/Components.hpp"
+#include "game/pose/PoseIntent.hpp"
 #include "systems/BallRemovalSystem.hpp"
 #include "ecs/system/ISystemGroup.hpp"
 #include "debug/Debug.hpp"
@@ -75,6 +76,7 @@ SystemExec GameImGuiSystem::update(GameContext* context) {
 
     context->inputBlocked = io.WantCaptureMouse || io.WantCaptureKeyboard;
 
+    drawPoseIntentHistory(context);
     drawDeveloperPanel(context);
     drawRacketDebug(context);
     drawControllerDebug(context);
@@ -802,4 +804,49 @@ void GameImGuiSystem::drawBoneInspector(Pose& pose) {
     ImGui::SliderFloat("  Rot Z", &c.restRotation_rad.z, -3.14, 3.14, "%.2f");
 
     ImGui::End();
+}
+void GameImGuiSystem::drawPoseIntentHistory(GameContext* context)
+{
+    for (auto [ePlayer, cBuffer, cPlayer] : context->registry.getEntitiesWithComponents<CPoseIntentBuffer, Player>()) {
+
+        ImGui::Begin("Pose Intent History##Dev", nullptr, ImGuiWindowFlags_AlwaysVerticalScrollbar);
+
+        static bool autoScroll = true;
+
+        if (ImGui::Button("Clear History")) {
+            cBuffer->clear();
+        }
+        ImGui::SameLine();
+        ImGui::Checkbox("Auto-scroll", &autoScroll);
+
+        ImGui::Separator();
+
+        ImGui::BeginChild("IntentHistoryScroll", ImVec2(0, 300), true, ImGuiWindowFlags_HorizontalScrollbar);
+
+        // Show all intents
+        for (size_t i = 0; i < cBuffer->history.size(); ++i) {
+            const PoseIntent& intent = cBuffer->history[i];
+
+            const char* phaseName = kPoseIntentPhaseNames[(int)intent.phase];
+
+            // Format text
+            ImGui::Text("[%zu] Stage %d | Phase %s | Joint %s | Type %s | Delta: (%.2f, %.2f, %.2f)",
+                i,
+                intent.stage,
+                phaseName,
+                PoseJointIDNames[(int)intent.joint],
+                PoseIntentTypeIDNames[(int)intent.type],
+                intent.worldTargetShift.x,
+                intent.worldTargetShift.y,
+                intent.worldTargetShift.z
+            );
+        }
+
+        // Auto-scroll to bottom if enabled
+        if (autoScroll && ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
+            ImGui::SetScrollHereY(1.0f);
+
+        ImGui::EndChild();
+        ImGui::End();
+    }
 }

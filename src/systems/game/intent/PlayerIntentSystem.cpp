@@ -91,7 +91,7 @@ SystemExec PlayerIntentSystem::update(GameContext* context)
         // -------------------------------------------------
         cInput->actions["StartBackswing"] = (raw.isAxisJustPressed("LT") || raw.isKeyJustPressed(sf::Keyboard::Z));
         cInput->actions["EnableBackswing"] = (raw.isAxisDown("RT") || raw.isKeyDown(sf::Keyboard::C));
-        cInput->actions["StartAttack"] = raw.isAxisReleased("LT");
+        cInput->actions["StartAttack"] = (raw.isAxisReleased("LT") || raw.isKeyReleased(sf::Keyboard::Z));
         cInput->actions["StopPush"] = raw.isAxisReleased("LT");
         cInput->actions["StopBackswing"] = (raw.isAxisReleased("RT") || raw.isKeyReleased(sf::Keyboard::C));
 

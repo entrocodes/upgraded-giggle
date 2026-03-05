@@ -72,11 +72,13 @@ SystemExec PoseIntentConsumerSystem::update(GameContext* context) {
 
         for (PoseIntentPhase ph : kPhaseOrder) {
             for (const PoseIntent& it : cBuffer->intents) {
+                cBuffer->history.push_back(it);
                 if (it.stage != stage) continue;
                 if (it.phase != ph) continue;
                 applyIntent(it, pose);
             }
         }
+
         // Remove intents that were consumed in this stage
         auto& v = cBuffer->intents;
         v.erase(std::remove_if(v.begin(), v.end(),

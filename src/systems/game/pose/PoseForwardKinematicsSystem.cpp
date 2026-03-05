@@ -8,7 +8,10 @@ static constexpr PoseBoneID kSolveDownOrder[] = {
     PoseBoneID::LeftShoulder, PoseBoneID::LeftUpperArm,
     PoseBoneID::LeftLowerArm, PoseBoneID::RacketHand,
     PoseBoneID::RightShoulder, PoseBoneID::RightUpperArm,
-    PoseBoneID::RightLowerArm,
+    PoseBoneID::RightLowerArm, PoseBoneID::RightHipBone,
+    PoseBoneID::LeftHipBone, PoseBoneID::RightUpperLeg,
+    PoseBoneID::LeftUpperLeg, PoseBoneID::RightLowerLeg,
+    PoseBoneID::LeftLowerLeg
 };
 
 SystemExec PoseForwardKinematicsSystem::update(GameContext* context) {
@@ -31,16 +34,10 @@ SystemExec PoseForwardKinematicsSystem::update(GameContext* context) {
 
             Vec3 localRot = child.restRotation_rad + child.deltaRotation_rad;
             child.rotWorld_rad = parent.rotWorld_rad + localRot;
-
             Vec3 localOffset = child.baseOffset_m;
-            if (b.joint1 == PoseJointID::CenterPelvis)
-                localOffset += child.deltaOffset_m;
-
-            Vec3 rotated =
-                MathHelpers::rotateByEuler(localOffset, parent.rotWorld_rad);
-
-            child.pos_m =
-                parent.pos_m + MathHelpers::compMul(rotated, pose.scale);
+            if (b.joint1 == PoseJointID::CenterPelvis) localOffset += child.deltaOffset_m;
+            Vec3 rotated = MathHelpers::rotateByEuler(localOffset, parent.rotWorld_rad);
+            child.pos_m = parent.pos_m + MathHelpers::compMul(rotated, pose.scale);
         }
 
         //// --------------------------------------------------
