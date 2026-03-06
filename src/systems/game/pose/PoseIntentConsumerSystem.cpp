@@ -17,6 +17,7 @@ static void applyIntent(const PoseIntent& intent, Pose& pose) {
             PoseJoint& j = pose.joint(intent.joint);
 
             j.targetOffsetFromBind += intent.worldTargetShift;
+            //Debug::debugPrint("target offset from bind", j.targetOffsetFromBind);
             j.ikTargetActive = true;
 
         }

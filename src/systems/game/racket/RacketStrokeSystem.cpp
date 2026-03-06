@@ -103,7 +103,6 @@ SystemExec RacketStrokeSystem::update(GameContext* context) {
             if (cRacketHandle->freeOffset_m.z <= 0.0f && cRacketHandle->pushOffset_m.z <= 0.0f) strokeState = StrokeState::Idle;
         }
         if (strokeState == StrokeState::Swing) {
-
             float chargePct = cRacketSwing->backswingTime / cRacketSwing->maxBackswing;
             cRacketSwing->swingSpeed = (0.5f + chargePct + totalTorsoLoad) * context->physicsDebug.strokeSettings.swingSpeedFactor;
             cRacketSwing->strokeTime_ms += dt * 1000.0f;
@@ -132,7 +131,7 @@ SystemExec RacketStrokeSystem::update(GameContext* context) {
             if (cRacketSwing->swingDelta_m.length() > cArm->maxReach_m)
                 cRacketSwing->swingDelta_m = cRacketSwing->swingDelta_m.normalized() * cArm->maxReach_m;
             
-
+            cPoseIntentBuffer->intents.push_back(PoseIntent{ PoseJointID::LeftWrist, PoseIntentPhase::Translate, 0, PoseIntentType::Translate, cRacketSwing->swingDelta_m});
 
             if (ms > 300.0f) strokeState = StrokeState::SwingRecovery;
         }
@@ -140,7 +139,12 @@ SystemExec RacketStrokeSystem::update(GameContext* context) {
         if (strokeState == StrokeState::SwingRecovery) {
             cRacketHandle->strokeWeight = std::clamp(cRacketHandle->strokeWeight - dt * 4.0f, 0.0f, 1.0f);
             cRacketSwing->swingDelta_m *= (1.0f - dt * 8.0f);
-            if (cRacketHandle->strokeWeight == 0.0f) { cRacketSwing->swingDelta_m = Vec3{ 0,0,0 }; strokeState = StrokeState::Idle; }
+   
+            if (cRacketHandle->strokeWeight == 0.0f){
+                cRacketSwing->swingDelta_m = Vec3{ 0,0,0 };
+                strokeState = StrokeState::Idle;
+            }
+            cPoseIntentBuffer->intents.push_back(PoseIntent{ PoseJointID::LeftWrist, PoseIntentPhase::Translate, 0, PoseIntentType::Translate, cRacketSwing->swingDelta_m });
         }
     }
 

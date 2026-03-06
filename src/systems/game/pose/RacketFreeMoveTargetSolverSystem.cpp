@@ -10,7 +10,7 @@ SystemExec RacketFreeMoveTargetSolverSystem::update(GameContext* context) {
         float constraintY = .25;
         float constraintX = .75;
         float constraintZ = 1.25;
-        float negConstraintZ = -.05;
+        float negConstraintZ = -.35; //IMPORTANT:: This is what determines how far back the desired wrist offset can be
         if (desiredOffset.x < -constraintX) {
             desiredOffset.x = -constraintX;
         }

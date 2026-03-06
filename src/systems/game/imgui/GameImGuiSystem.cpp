@@ -839,6 +839,7 @@ void GameImGuiSystem::drawPoseIntentHistory(GameContext* context)
                 intent.worldTargetShift.x,
                 intent.worldTargetShift.y,
                 intent.worldTargetShift.z
+
             );
         }
 

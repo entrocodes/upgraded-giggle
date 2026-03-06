@@ -34,18 +34,13 @@ SystemExec PoseArmIKSystem::update(GameContext* context) {
         PoseJoint& sh = pose.leftShoulder();
         PoseJoint& el = pose.leftElbow();
         PoseJoint& wr = pose.leftWrist();
-
-        // --------------------------------------------------
         // Build world-space IK target
-        // --------------------------------------------------
         const Vec3 elbowWorldPos = el.lastPos_m;
-        const Vec3 wristBindOffsetWorld =
-            MathHelpers::compMul(wr.baseOffset_m + wr.restOffset_m, pose.scale);
-
+        const Vec3 wristBindOffsetWorld = MathHelpers::compMul(wr.baseOffset_m + wr.restOffset_m, pose.scale);
         const Vec3 wristBindWorldPos = elbowWorldPos + wristBindOffsetWorld;
-        const Vec3 ikTargetWorld =
-            wristBindWorldPos + MathHelpers::compMul(wr.targetOffsetFromBind, pose.scale);
-
+        const Vec3 ikTargetWorld = wristBindWorldPos + MathHelpers::compMul(wr.targetOffsetFromBind, pose.scale);
+        Debug::debugPrint("wrist target offset from bind", wr.targetOffsetFromBind);
+        Debug::debugPrint("ik wrist target", ikTargetWorld);
         Debug::queueSphere3D(ikTargetWorld, 0.06f, sf::Color::Red);
 
         // --------------------------------------------------
