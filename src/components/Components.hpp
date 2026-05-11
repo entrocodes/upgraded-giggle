@@ -17,7 +17,6 @@
 #include "CRacketPhysical.hpp"
 #include "CRacketHandle.hpp"
 #include "CRacketSwing.hpp"
-#include "CArm.hpp"
 #include "CText.hpp"
 #include "CTextButton.hpp"
 #include "CFootworkIntent.hpp"

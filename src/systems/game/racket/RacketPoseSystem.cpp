@@ -4,7 +4,7 @@
 #include <algorithm>
 
 SystemExec RacketPoseSystem::update(GameContext* context) {
-    for (auto [entity, cArm, cHandle, cPose] : context->registry.getEntitiesWithComponents<CArm, CRacketHandle, CPose>()) {
+    for (auto [entity, cHandle, cPose] : context->registry.getEntitiesWithComponents<CRacketHandle, CPose>()) {
 
         Entity eRacket = cHandle->racketEntity;
         auto [cRacketPhysical, cRacketTransform3D, cRacketVel, cRacketBoundingBox3D, cRacketSwing] = context->registry.getComponents<CRacketPhysical, CTransform3D, CVelocity3D, CBoundingBox3D, CRacketSwing>(eRacket);

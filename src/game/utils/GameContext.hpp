@@ -22,6 +22,10 @@ struct Versioning {
     int patch = 02;
 };
 
+struct PoseIK {
+    Vec3 wristWorldTarget = { 0,0,0 };
+    bool debugDisableConstraints = false;
+};
 struct PoseRuntime {
     float currentStage = 0;
     float lastLeftAnkleErr = 0;
@@ -97,12 +101,9 @@ struct RacketOrientation {
     float max_euler_x = 18;
 
 };
-struct StrokeSettings {
-    float swingSpeedFactor = 6.0f;
-};
 struct PhysicsDebugSettings {
+    PoseIK poseIK;
     RacketOrientation racketOrientation;
-    StrokeSettings strokeSettings;
     // X is back/top, Y is Cork, Z is side
     Vec3 debugBallSpin = { -6.0, 0.0f, 0.0f };
     float debugBallHeight = .5f;

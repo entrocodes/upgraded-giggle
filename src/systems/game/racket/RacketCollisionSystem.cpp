@@ -28,19 +28,10 @@ SystemExec RacketCollisionSystem::update(GameContext* context)
 
         for (auto eRacket : racketEntities)
         {
-            auto [cRacketPhysical, cRacketSwing, cRacketTransform3D, cRacketVelocity3D] = context->registry.getComponents<CRacketPhysical, CRacketSwing, CTransform3D, CVelocity3D>(eRacket);
+            auto [cRacketPhysical, cRacketSwing, cRacketTransform3D, cRacketVelocity3D, cPose] = context->registry.getComponents<CRacketPhysical, CRacketSwing, CTransform3D, CVelocity3D, CPose>(eRacket);
             Vec3 rStart = cRacketTransform3D->lastPos_m;
             Vec3 rEnd = cRacketTransform3D->pos_m;
-            //Debug::event(
-            //    Debug::Channel::RacketContact,
-            //    "Racket Disposition",
-            //    {},
-            //    {
-            //        {"Start", rStart},
-            //        {"End",rEnd},
-            //        {"Disposition",rStart - rEnd}
-            //    });
-            // 1. CCD closest approach
+
             MathHelpers::ClosestPoints cp = MathHelpers::findClosestPoints(bStart, bEnd, rStart, rEnd);
             if ((rEnd - rStart).lengthSq() < .00001) //if racket is still
             {
@@ -85,8 +76,7 @@ SystemExec RacketCollisionSystem::update(GameContext* context)
             Vec3 vNormalOut = n * jn;
             Vec3 vTanBall = vBall - n * vDotN;
             // 6. Racket push
-            float powerMult = 1.0f + (cRacketSwing->torsoLeftLoad + cRacketSwing->torsoRightLoad) * 0.75f;
-            Vec3 push =  n * std::max(0.0f, vRacket.dot(n)) * powerMult * 1.3f;
+            Vec3 push =  n * std::max(0.0f, vRacket.dot(n)) * 1.3f;
             // 7. Spin computation
             Vec3 vTanRacket = vRacket - n * vRacket.dot(n);
             Vec3 omegaRad = cBall->spin * (2.0f * PI);
@@ -153,7 +143,7 @@ SystemExec RacketCollisionSystem::update(GameContext* context)
             cBallVelocity3D->vel_mps = vNormalOut + vTanBall + push + vTanRel * (0.15f + 0.1f * authority);
 
             float stickiness = std::clamp(authority * spinGain, 0.0f, 1.0f);
-            Vec3 targetSpin = cBall->spin + spinRev * powerMult;
+            Vec3 targetSpin = cBall->spin + spinRev;
 
             //// blend: low authority => keep old spin, high => approach target spin
             //cBall->spin = cBall->spin * (1.0f - stickiness) + targetSpin * stickiness;

@@ -6,8 +6,7 @@
 
 SystemExec RacketOrientationSystem::update(GameContext* context) {
     for (auto e : context->registry.getEntitiesWith<CAuthorization>()) {
-        auto [cRacketHandle, cAuthorization] =
-            context->registry.getComponents<CRacketHandle, CAuthorization>(e);
+        auto [cRacketHandle, cAuthorization] = context->registry.getComponents<CRacketHandle, CAuthorization>(e);
 
         Entity eRacket = cRacketHandle->racketEntity;
 

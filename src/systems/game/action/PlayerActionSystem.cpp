@@ -52,10 +52,6 @@ SystemExec PlayerActionSystem::update(GameContext* context) {
         }
 
 
-        // 2. Authorize Racket/Torso State
-        cPlayerAuthorization->floatMap["TorsoLeftLoad"] = static_cast<float>(cPlayerInput->holdTime["TorsoLeft"]);
-        cPlayerAuthorization->floatMap["TorsoRightLoad"] = static_cast<float>(cPlayerInput->holdTime["TorsoRight"]);
-
         // The "Three Gear" Authorization
         cPlayerAuthorization->floatMap["ManualReachZ"] = cPlayerInput->axes["ReachZ"];
 

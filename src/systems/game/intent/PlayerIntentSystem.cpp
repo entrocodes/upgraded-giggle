@@ -69,15 +69,6 @@ SystemExec PlayerIntentSystem::update(GameContext* context)
             sf::Keyboard::Down,
             "MoveBackward");
 
-        // Optional torso rotation
-        mapHold(SDL_CONTROLLER_BUTTON_X,
-            sf::Keyboard::Comma,
-            "TorsoLeft");
-
-        mapHold(SDL_CONTROLLER_BUTTON_B,
-            sf::Keyboard::Period,
-            "TorsoRight");
-
         // -------------------------------------------------
         // Analog axes
         // -------------------------------------------------

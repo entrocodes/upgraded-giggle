@@ -139,14 +139,6 @@ Entity EntityFactory::createPlayer() {
 
     // Player world position
     cPlayerTransform3D.pos_m = startPlayerPos_m;
-
-    auto& cPlayerArm = m_registry.addComponent<CArm>(ePlayer);
-
-    // Shoulder height relative to player position
-    cPlayerArm.shoulderPos_m =
-        cPlayerTransform3D.pos_m + Vec3(0.f, 0.45f, 0.f);
-
-    cPlayerArm.maxReach_m = 0.65f; // realistic adult reach
     
 
     return ePlayer;
@@ -226,13 +218,6 @@ Entity EntityFactory::createOpponent() {
         m_tableParameters.tableLength + 0.3f
     };
 
-    auto& cOpponentArm = m_registry.addComponent<CArm>(eOpponent);
-
-    // Shoulder height relative to player position
-    cOpponentArm.shoulderPos_m =
-        cOpponentTransform3D.pos_m + Vec3(0.f, 0.45f, 0.f);
-
-    cOpponentArm.maxReach_m = 0.65f; // realistic adult reach
 
 
     return eOpponent;

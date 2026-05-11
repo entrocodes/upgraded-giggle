@@ -262,7 +262,6 @@ void GameImGuiSystem::drawDeveloperPanel(GameContext* context) {
                     // Showing the actual hold timers for the movement keys
                     ImGui::Text("Move L Hold: %d frames", cPlayerInput->holdTime["MoveLeft"]);
                     ImGui::Text("Move R Hold: %d frames", cPlayerInput->holdTime["MoveRight"]);
-                    ImGui::Text("Torso L Load: %d frames", cPlayerInput->holdTime["TorsoLeft"]);
                     ImGui::TreePop();
                 }
             }
@@ -331,8 +330,8 @@ void GameImGuiSystem::drawRacketDebug(GameContext* context) {
         return;
     }
 
-    auto [cPlayerHandle, cPlayerState, cPlayerInput, cPlayerArm, cPlayerAuthorization, cPlayerTransform3D] =
-        context->registry.getComponents<CRacketHandle, CState, CInput, CArm, CAuthorization, CTransform3D>(*ePlayer);
+    auto [cPose, cPlayerHandle, cPlayerState, cPlayerInput, cPlayerAuthorization, cPlayerTransform3D] =
+        context->registry.getComponents<CPose, CRacketHandle, CState, CInput, CAuthorization, CTransform3D>(*ePlayer);
 
     if (cPlayerHandle) {
         auto eRacket = cPlayerHandle->racketEntity;
@@ -341,11 +340,12 @@ void GameImGuiSystem::drawRacketDebug(GameContext* context) {
         if (cPlayerAuthorization) {
             if (ImGui::CollapsingHeader("Racket Position")) {
                 ImGui::Text("Player Position: %.2f, %.2f, %.2f", cPlayerTransform3D->pos_m.x, cPlayerTransform3D->pos_m.y, cPlayerTransform3D->pos_m.z);
-                ImGui::Text("Shoulder Position: %.2f, %.2f, %.2f", cPlayerArm->shoulderPos_m.x, cPlayerArm->shoulderPos_m.y, cPlayerArm->shoulderPos_m.z);
+                ImGui::Text("IK Target Active: %s", cPose->pose.leftWrist().ikTargetActive ? "ACTIVE" : "INACTIVE");
+                ImGui::Text("Wrist Target Offset: %.2f, %.2f, %.2f", cPose->pose.leftWrist().ikTargetWorldPos.x, cPose->pose.leftWrist().ikTargetWorldPos.y, cPose->pose.leftWrist().ikTargetWorldPos.z);
+                ImGui::Text("Wrist Target Offset from Bind: %.2f, %.2f, %.2f", cPose->pose.leftWrist().targetOffsetFromBind.x, cPose->pose.leftWrist().targetOffsetFromBind.y, cPose->pose.leftWrist().targetOffsetFromBind.z);
+                ImGui::Text("Wrist Target Position: %.2f, %.2f, %.2f", context->physicsDebug.poseIK.wristWorldTarget.x, context->physicsDebug.poseIK.wristWorldTarget.y, context->physicsDebug.poseIK.wristWorldTarget.z);
                 ImGui::Text("Racket Position: %.2f, %.2f, %.2f", cRacketTransform3D->pos_m.x, cRacketTransform3D->pos_m.y, cRacketTransform3D->pos_m.z);
                 ImGui::Text("Racket Movement: %.2f, %.2f, %.2f", cPlayerAuthorization->vec2Map["SteerIntent"].x, cPlayerAuthorization->vec2Map["SteerIntent"].y, cPlayerAuthorization->floatMap["ManualReachZ"]);
-                ImGui::Text("Racket Free Offset: %.2f, %.2f, %.2f", cPlayerHandle->freeOffset_m.x, cPlayerHandle->freeOffset_m.y, cPlayerHandle->freeOffset_m.z);
-                ImGui::Text("Racket Push Offset: %.2f, %.2f, %.2f", cPlayerHandle->pushOffset_m.x, cPlayerHandle->pushOffset_m.y, cPlayerHandle->pushOffset_m.z);
             }
         }
         if (cRacketPhysical && cRacketRotation3D) {
@@ -395,48 +395,21 @@ void GameImGuiSystem::drawRacketDebug(GameContext* context) {
         if (cRacketSwing && cPlayerState) {
             if (ImGui::CollapsingHeader("Stroke Lifecycle")) {
                 // 1. Display the Current State Name
-                const char* stateNames[] = { "Idle", "Backswing", "Swing", "Swing Recovery", "Push", "Push Recovery", "Braked Backswing"};
+                const char* stateNames[] = { "Idle", "Backswing", "Swing", "Swing Recovery", "Push", "Push Recovery", "Braked Backswing" };
                 int currentStateIdx = (int)cRacketSwing->strokeState;
                 ImGui::Text("CURRENT STATE: %s", stateNames[currentStateIdx]);
-                ImGui::Text("Braking: %s", cRacketSwing->isBraking ? "Yes" : "No");
                 // 2. Specialized Feedback per Phase
-                float ms = cRacketSwing->strokeTime_ms;
-
-                if (cRacketSwing->strokeState == StrokeState::Swing) {
-                    if (ms < 80.0f)
-                        ImGui::TextColored(ImVec4(0, 1, 1, 1), "PHASE: COMMIT WINDOW (Steer Enabled)");
-                    else if (ms < 180.0f)
-                        ImGui::TextColored(ImVec4(1, 0.5f, 0, 1), "PHASE: ACCELERATION");
-                    else
-                        ImGui::Text("PHASE: FOLLOW-THROUGH");
-
-                    // Progress toward end of swing (300ms)
-                    ImGui::ProgressBar(ms / 300.0f, ImVec2(-1, 0), (std::to_string((int)ms) + " / 300 ms").c_str());
+                ImGui::Text("Active Toros Rotation: %.2f", cRacketSwing->forwardTorsoRotation);
+                ImGui::Text("Backswing Torso Rotation: %.2f", cRacketSwing->backswingTorsoRotation);
+                ImGui::Text("Extra Torso Rotation: .2f", cRacketSwing->maxBackSwingTorsoRotation);
+                ImGui::SliderFloat("Maximum BS Torso Rotation: %.2f", &cRacketSwing->maxBackSwingTorsoRotation, 0.3, 4.0, "%.1f");
+                if (currentStateIdx == 1 || currentStateIdx == 6) {
+                    ImGui::Text("Backswing Time: %.2f", cRacketSwing->backswingDuration_ms);
                 }
-                else if (cRacketSwing->strokeState == StrokeState::Backswing) {
-                    float chargePct = cRacketSwing->backswingTime / cRacketSwing->maxBackswing;
-                    ImGui::ProgressBar(chargePct, ImVec2(-1, 0), "CHARGING BACKSWING");
-                }
-                else if (cRacketSwing->strokeState == StrokeState::Push) {
-                    ImGui::TextColored(ImVec4(0.5f, 1.0f, 0.5f, 1.0f), "MANUAL PUSH ACTIVE");
-                }
-                else {
-                    ImGui::TextDisabled("System Ready...");
+                else if (currentStateIdx == 2) {
+                    ImGui::Text("Swing Time: %.2f", cRacketSwing->swingTime_ms);
                 }
 
-                // 3. Weight Monitoring (For Smoothing Debug)
-                ImGui::Separator();
-                ImGui::Value("Stroke Weight", cPlayerHandle->strokeWeight);
-            }
-
-            if (ImGui::CollapsingHeader("Ability & Reach", ImGuiTreeNodeFlags_DefaultOpen)) {
-                float currentExt = cRacketSwing->swingDelta_m.length();
-                float reachRatio = currentExt / (cPlayerArm ? cPlayerArm->maxReach_m : 1.0f);
-                ImGui::ProgressBar(cPlayerHandle->currentStrokeQuality, ImVec2(-1, 0), "Stroke Quality");
-                ImGui::Text("Extension: %.2fm", currentExt);
-            }
-            if (ImGui::CollapsingHeader("Stroke Settings")) {
-                ImGui::SliderFloat("Stroke Speed", &context->physicsDebug.strokeSettings.swingSpeedFactor, .50f, 15.0f);
             }
         }
         if (cRacketPhysical) {
@@ -645,11 +618,13 @@ void GameImGuiSystem::drawPoseIntentTest(GameContext* context)
     ImGui::Separator();
     ImGui::Text("Runtime Pose State");
 
+    ImGui::Checkbox("Enable Pose History", &enablePoseHistory);
     ImGui::Text("Current Stage: %d", context->poseRuntime.currentStage);
     ImGui::Text("Support Mode: %d", (int)pose.supportMode);
 
     ImGui::Text("Left Ankle: %s", pose.leftAnkle().locked ? "Locked" : "Unlocked");
     ImGui::Text("Right Ankle: %s", pose.rightAnkle().locked ? "Locked" : "Unlocked");
+    ImGui::Checkbox("Disable IK", &pose.debugDisableIK);
 
     // C) INTENT BUFFER INSPECTOR
     ImGui::Separator();
@@ -673,7 +648,7 @@ void GameImGuiSystem::drawPoseIntentTest(GameContext* context)
     // D) JOINT DEBUG
     ImGui::Separator();
     ImGui::Text("Pose Joints");
-
+    ImGui::Checkbox("Disable Constraints", &context->physicsDebug.poseIK.debugDisableConstraints);
     if (ImGui::TreeNode("Joints")) {
         pose.forEachJoint([&](PoseJoint& j, PoseJointID id) {
             if (ImGui::TreeNode(PoseJointIDNames[(int)id])) {
@@ -807,6 +782,9 @@ void GameImGuiSystem::drawBoneInspector(Pose& pose) {
 }
 void GameImGuiSystem::drawPoseIntentHistory(GameContext* context)
 {
+    if (!enablePoseHistory) {
+        return;
+    }
     for (auto [ePlayer, cBuffer, cPlayer] : context->registry.getEntitiesWithComponents<CPoseIntentBuffer, Player>()) {
 
         ImGui::Begin("Pose Intent History##Dev", nullptr, ImGuiWindowFlags_AlwaysVerticalScrollbar);

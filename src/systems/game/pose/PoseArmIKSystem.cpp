@@ -23,25 +23,51 @@ static Vec3 safeNormalized(const Vec3& v, const Vec3& fallback) {
 }
 
 SystemExec PoseArmIKSystem::update(GameContext* context) {
-
     const float straightEnter = 0.015f;
     const float straightExit = 0.030f;
 
-    for (auto [e, cPose] : context->registry.getEntitiesWithComponents<CPose>()) {
+    for (auto [e, cPose, cRacket] : context->registry.getEntitiesWithComponents<CPose, CRacketHandle>()) {
 
         Pose& pose = cPose->pose;
-
+        auto eRacket = cRacket->racketEntity;
+        auto cRacketSwing = context->registry.getComponent<CRacketSwing>(eRacket);
         PoseJoint& sh = pose.leftShoulder();
         PoseJoint& el = pose.leftElbow();
         PoseJoint& wr = pose.leftWrist();
+        StrokeState& strokeState = cRacketSwing->strokeState;
+        if (pose.debugDisableIK == true) continue;
+        if (strokeState == StrokeState::Idle) {
+            if (wr.targetOffsetFromBind.z > 0) {
+                wr.targetOffsetFromBind.z -= wr.targetOffsetFromBind.z * .015; //PLACEHOLDER
+            } 
+            if (wr.targetOffsetFromBind.z < -.45) {
+                wr.targetOffsetFromBind.z += wr.targetOffsetFromBind.z * .075; //PLACEHOLDER
+            }
+
+        }
+        if (strokeState == StrokeState::SwingRecovery) {
+            if (wr.targetOffsetFromBind.z > 0) {
+                wr.targetOffsetFromBind.z = 0; //PLACEHOLDER
+            } 
+            if (wr.targetOffsetFromBind.z < -.45) {
+                wr.targetOffsetFromBind.z += wr.targetOffsetFromBind.z * .075; //PLACEHOLDER
+            }
+
+        }
+        if (pose.resetWristOffset) {
+            wr.targetOffsetFromBind = cRacketSwing->preStrokeWristTarget;
+            pose.resetWristOffset = false;
+            Debug::debugPrint("resetting wrist offset", wr.targetOffsetFromBind);
+            Debug::debugPrint("target", cRacketSwing->preStrokeWristTarget);
+        }
         // Build world-space IK target
         const Vec3 elbowWorldPos = el.lastPos_m;
         const Vec3 wristBindOffsetWorld = MathHelpers::compMul(wr.baseOffset_m + wr.restOffset_m, pose.scale);
         const Vec3 wristBindWorldPos = elbowWorldPos + wristBindOffsetWorld;
         const Vec3 ikTargetWorld = wristBindWorldPos + MathHelpers::compMul(wr.targetOffsetFromBind, pose.scale);
-        Debug::debugPrint("wrist target offset from bind", wr.targetOffsetFromBind);
-        Debug::debugPrint("ik wrist target", ikTargetWorld);
         Debug::queueSphere3D(ikTargetWorld, 0.06f, sf::Color::Red);
+        //debug
+        context->physicsDebug.poseIK.wristWorldTarget = ikTargetWorld;
 
         // --------------------------------------------------
         // Geometry
@@ -55,9 +81,6 @@ SystemExec PoseArmIKSystem::update(GameContext* context) {
         float dist = toTarget.length();
         if (dist < 1e-6f) continue;
 
-        const float minReach = std::fabs(L1 - L2) + 1e-4f;
-        const float maxReach = (L1 + L2) - 1e-4f;
-        dist = std::clamp(dist, minReach, maxReach);
 
         const Vec3 dir = toTarget.normalized();
 
@@ -118,7 +141,9 @@ SystemExec PoseArmIKSystem::update(GameContext* context) {
 
         if (bendDir.dot(el.lockBendDirW) < 0.0f)
             bendDir = -bendDir;
-
+        if (pose.armState == ArmState::SwingStroke) {
+            bendDir = -bendDir;
+        }
         el.lockBendDirW = bendDir;
 
         // --------------------------------------------------

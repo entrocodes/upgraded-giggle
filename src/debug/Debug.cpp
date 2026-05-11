@@ -215,6 +215,12 @@ namespace Debug {
         std::cout << str << "\n";
     }
 
+    void debugPrint(std::string str, bool varValue, bool checkLast) {
+        static std::string last;
+        if (last == str && checkLast) return;
+        last = str;
+        std::cout << str << varValue << "\n";
+    }
     void debugPrint(std::string varName, const sf::Transform& transform) {
         const float* m = transform.getMatrix();
         std::cout << varName << ":\n";

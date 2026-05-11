@@ -10,6 +10,7 @@ public:
     SystemExec update(GameContext* context) override;
 
 private:
+    bool enablePoseHistory = false;
     void drawDeveloperPanel(GameContext* context);
     void drawRacketDebug(GameContext* context);
     void drawControllerDebug(GameContext* context);

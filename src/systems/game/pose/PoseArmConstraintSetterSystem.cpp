@@ -17,7 +17,7 @@ SystemExec PoseArmConstraintSetterSystem::update(GameContext* context) {
             elbow.configure(Vec3(-0.15f, -0.4f, -0.6f), Vec3(.12f, 0.4f, 0.12f), 0.01f, 0.6f);
             shoulder.configure(Vec3(-0.15f, -0.8f, -0.6f), Vec3(.25f, 0.8f, 0.9f), 0.04f, 0.4f);
         }
-        else if (armState == ArmState::Backswing) {
+        else if (armState == ArmState::SwingStroke) {
             elbow.configure(Vec3(-1.2f, -1.2f, -1.2f), Vec3(1.2f, 1.2f, 1.2f), 0.01f, 0.6f);
             shoulder.configure(Vec3(-1.2f, -1.2f, -1.2f), Vec3(1.2f, 1.2f, 1.2f), 0.04f, 0.4f);
         }

@@ -6,9 +6,8 @@
 #include "math/Vec3.hpp"
 enum class ArmState {
     FreeMove,
-    Swing,
-    Push,
-    Backswing
+    SwingStroke,
+    Push
 };
 struct Pose {
     ArmState armState = ArmState::FreeMove;
@@ -20,7 +19,8 @@ struct Pose {
     PoseBone  bones[(int)PoseBoneID::BoneCount];
     Vec3      scale = { 1, 1, 1 };
     bool      resetRest = false;
-
+    bool debugDisableIK = false;
+    bool resetWristOffset = false;
     PoseJoint& joint(PoseJointID id) { return joints[id]; }
     PoseBone& bone(PoseBoneID id) { return bones[(int)id]; }
 

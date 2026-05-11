@@ -18,7 +18,10 @@ static inline Vec3 clampVec3(const Vec3& v, const Vec3& mn, const Vec3& mx) {
     };
 }
 SystemExec PoseConstraintSystem::update(GameContext* context) {
-    for (auto [e, cPose] : context->registry.getEntitiesWithComponents<CPose>()) {
+    if (context->physicsDebug.poseIK.debugDisableConstraints) {
+        return { SystemExecResult::EarlyExit, "Disabled for testing"};
+    }
+    for (auto [e, cPose, cRacketSwing] : context->registry.getEntitiesWithComponents<CPose, CRacketSwing>()) {
         Pose& pose = cPose->pose;
 
         // A) JOINT ROTATION + TRANSLATION CONSTRAINTS
@@ -83,6 +86,9 @@ SystemExec PoseConstraintSystem::update(GameContext* context) {
 
             if (rotCorrection.lengthSq() > 1e-8f) {
                 j.rotClampedThisFrame = true;
+                if (id == PoseJointID::CenterPelvis) {
+                    cRacketSwing->backswingTorsoRotation -= rotCorrection.y;
+                }
             }
             // --- Translation clamp ---
             

@@ -7,10 +7,10 @@ SystemExec RacketFreeMoveTargetSolverSystem::update(GameContext* context) {
         auto& pose = cPose->pose;
         auto& wrist = pose.leftWrist();
         auto& desiredOffset = wrist.targetOffsetFromBind;
-        float constraintY = .25;
-        float constraintX = .75;
-        float constraintZ = 1.25;
-        float negConstraintZ = -.35; //IMPORTANT:: This is what determines how far back the desired wrist offset can be
+        float constraintY = .2;
+        float constraintX = .3;
+        float constraintZ = 3;
+        float negConstraintZ = -.05; //IMPORTANT:: This is what determines how far back the desired wrist offset can be
         if (desiredOffset.x < -constraintX) {
             desiredOffset.x = -constraintX;
         }
@@ -29,7 +29,7 @@ SystemExec RacketFreeMoveTargetSolverSystem::update(GameContext* context) {
         else if (desiredOffset.z > constraintZ) {
             desiredOffset.z = constraintZ;
         }
-        Debug::event(Debug::Channel::Pose, "Desired Racket Offset", {}, { { "Offset", desiredOffset } });
+        Debug::event(Debug::Channel::Pose, "Desired Racket Offset", {}, { { "Offset", desiredOffset }, {"Current Racket Position", wrist.pos_m} });
     }
     return { SystemExecResult::Ran };
 }
