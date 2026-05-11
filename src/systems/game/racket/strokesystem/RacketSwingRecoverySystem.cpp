@@ -44,6 +44,7 @@ SystemExec RacketSwingRecoverySystem::update(GameContext* context) {
             cRacketSwing->forwardTorsoRotation = 0;
             cRacketSwing->extraTorsoRotation = 0;
             strokeState = StrokeState::Idle;
+            cPose->pose.armState = ArmState::FreeMove;
         }
     }
     return { SystemExecResult::Ran };

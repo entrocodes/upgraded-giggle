@@ -373,6 +373,14 @@ void GameImGuiSystem::drawRacketDebug(GameContext* context) {
                 ImGui::Text("Y: %.1f", cRacketRotation3D->euler_deg.y);
                 ImGui::Columns(1);
             }
+            if (ImGui::CollapsingHeader("Free Move Constraints")) {
+                ImGui::SliderFloat("Pos Constraint X", &context->physicsDebug.freeMoveConstraints.posConstraintX, 0, 2);
+                ImGui::SliderFloat("Neg Constraint X", &context->physicsDebug.freeMoveConstraints.negConstraintX, -2, 0);
+                ImGui::SliderFloat("Pos Constraint Y", &context->physicsDebug.freeMoveConstraints.posConstraintY, 0, 2);
+                ImGui::SliderFloat("Neg Constraint Y", &context->physicsDebug.freeMoveConstraints.negConstraintY, -2, 0);
+                ImGui::SliderFloat("Pos Constraint Z", &context->physicsDebug.freeMoveConstraints.posConstraintZ, 0, 2);
+                ImGui::SliderFloat("Neg Constraint Z", &context->physicsDebug.freeMoveConstraints.negConstraintZ, -.5, 0);
+            }
             if (ImGui::CollapsingHeader("Orientation Settings")) {
                 ImGui::SliderFloat("Max Y Degrees", &context->physicsDebug.racketOrientation.max_euler_y, 10.0f, 75.0f);
                 ImGui::SliderFloat("Max X Degrees", &context->physicsDebug.racketOrientation.max_euler_x, 10.0f, 75.0f);
@@ -624,6 +632,7 @@ void GameImGuiSystem::drawPoseIntentTest(GameContext* context)
 
     ImGui::Text("Left Ankle: %s", pose.leftAnkle().locked ? "Locked" : "Unlocked");
     ImGui::Text("Right Ankle: %s", pose.rightAnkle().locked ? "Locked" : "Unlocked");
+    ImGui::Checkbox("Skip Accumulate", &context->physicsDebug.ikJointsNoAccumulate);
     ImGui::Checkbox("Disable IK", &pose.debugDisableIK);
 
     // C) INTENT BUFFER INSPECTOR

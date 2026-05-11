@@ -15,6 +15,7 @@
 #include "BallSpawnDebug.hpp"
 #include "ecs/SceneManager.hpp"
 
+
 struct Versioning {
     std::string stage = "Pre-Alpha";
     int major = 0;
@@ -22,6 +23,14 @@ struct Versioning {
     int patch = 02;
 };
 
+struct FreeMoveConstraints {
+    float posConstraintY = .2;
+    float negConstraintY = -.2;
+    float posConstraintX = .05;
+    float negConstraintX = -.3;
+    float posConstraintZ = 3;
+    float negConstraintZ = -.05; //IMPORTANT:: This is what determines how far back the desired wrist offset can be
+};
 struct PoseIK {
     Vec3 wristWorldTarget = { 0,0,0 };
     bool debugDisableConstraints = false;
@@ -102,6 +111,7 @@ struct RacketOrientation {
 
 };
 struct PhysicsDebugSettings {
+    FreeMoveConstraints freeMoveConstraints;
     PoseIK poseIK;
     RacketOrientation racketOrientation;
     // X is back/top, Y is Cork, Z is side
@@ -133,6 +143,7 @@ struct PhysicsDebugSettings {
     float kSpinResistance = 4.f;
     float jnMin = .2f;
     float jnMax = .8f;
+    bool ikJointsNoAccumulate = true;
 };
 
 struct MetaInputState {

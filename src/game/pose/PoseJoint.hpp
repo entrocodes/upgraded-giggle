@@ -32,6 +32,7 @@ struct PoseJoint {
     Vec3 lastTargetOffsetFromBind{ 0,0,0 };
     Vec3 lastWristWorldPos{ 0,0,0 };
     Vec3 targetOffsetFromBind{ 0,0,0 };
+    Vec3 absoluteWorldTarget{ 0,0,0 };
     Vec3 deltaRotation_rad{ 0,0,0 };
 
     // --- Solver outputs (computed) ---

@@ -136,12 +136,52 @@ public:
     static Vec3 rotationFromToEuler(const Vec3& from, const Vec3& to) {
         Vec3 f = from.normalized();
         Vec3 t = to.normalized();
-        Vec3 axis = f.cross(t);
+
         float d = std::clamp(f.dot(t), -1.f, 1.f);
         float angle = std::acos(d);
-        if (axis.lengthSq() < 1e-6f || angle < 1e-6f) return { 0,0,0 };
-        axis = axis.normalized();
-        return axis * angle;
+
+        if (angle < 1e-6f) return { 0, 0, 0 };
+
+        Vec3 axis = f.cross(t);
+        if (axis.lengthSq() < 1e-10f) {
+            // Vectors are antiparallel — pick a perpendicular axis
+            Vec3 perp = std::fabs(f.x) < 0.9f ? Vec3(1, 0, 0) : Vec3(0, 1, 0);
+            axis = f.cross(perp).normalized();
+            angle = 3.14159265f;
+        }
+        else {
+            axis = axis.normalized();
+        }
+
+        // Convert axis-angle to euler YXZ
+        float s = std::sin(angle);
+        float c = std::cos(angle);
+        float t1 = 1.f - c;
+
+        // Rotation matrix from axis-angle
+        float m00 = t1 * axis.x * axis.x + c;
+        float m01 = t1 * axis.x * axis.y - s * axis.z;
+        float m02 = t1 * axis.x * axis.z + s * axis.y;
+        float m10 = t1 * axis.x * axis.y + s * axis.z;
+        float m11 = t1 * axis.y * axis.y + c;
+        float m12 = t1 * axis.y * axis.z - s * axis.x;
+        float m20 = t1 * axis.x * axis.z - s * axis.y;
+        float m21 = t1 * axis.y * axis.z + s * axis.x;
+        float m22 = t1 * axis.z * axis.z + c;
+
+        // Extract YXZ euler angles (matching your rotateByEuler order: Y then X then Z)
+        float eulerX, eulerY, eulerZ;
+        eulerX = std::asin(std::clamp(-m12, -1.f, 1.f));
+        if (std::cos(eulerX) > 1e-6f) {
+            eulerY = std::atan2(m02, m22);
+            eulerZ = std::atan2(m10, m11);
+        }
+        else {
+            eulerY = std::atan2(-m20, m00);
+            eulerZ = 0;
+        }
+
+        return { eulerX, eulerY, eulerZ };
     }
 
 };

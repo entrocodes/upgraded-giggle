@@ -5,16 +5,14 @@
 #include "systems/game/pose/PoseRootMotionSystem.hpp"
 #include "systems/game/pose/PoseAnkleLockIKSystem.hpp"
 #include "systems/game/pose/PoseDeltaClearerSystem.hpp"
-#include "systems/game/pose/PoseStageDeltaClearSystem.hpp"
 #include "systems/game/pose/PoseConstraintSystem.hpp"
 #include "systems/game/pose/PoseOverflowPropagationSystem.hpp"
 #include "systems/game/pose/PoseForceIntegrationSystem.hpp"
 #include "systems/game/pose/PoseCommitSystem.hpp"
 #include "systems/game/pose/SupportResolutionSystem.hpp"
-#include "systems/game/pose/PoseArmIKSystem.hpp"
 #include "systems/game/pose/PoseArmConstraintSetterSystem.hpp"
 #include "systems/game/pose/RacketFreeMoveTargetSolverSystem.hpp"
-#include "systems/game/racket/strokesystem/RacketSwingIKTargetSystem.hpp"
+#include "systems/game/pose/RacketSwingIKTargetSystem.hpp"
 #include "systems/game/pose/PoseDebugLogSystem.hpp"
 
 PoseSystemGroup::PoseSystemGroup(SystemFactory& factory)
@@ -28,7 +26,6 @@ PoseSystemGroup::PoseSystemGroup(SystemFactory& factory)
     m_stagedGraph.add<PoseRootMotionSystem>(m_factory, 30, TickPhase::Fixed); // moves pelvis
     m_stagedGraph.add<PoseAnkleLockIKSystem>(m_factory, 60, TickPhase::Fixed);
     m_stagedGraph.add<PoseConstraintSystem>(m_factory, 62, TickPhase::Fixed);
-    m_stagedGraph.add<PoseArmIKSystem>(m_factory, 64, TickPhase::Fixed);
     m_stagedGraph.add<PoseConstraintSystem>(m_factory, 65, TickPhase::Fixed);
     m_stagedGraph.add<PoseOverflowPropagationSystem>(m_factory, 66, TickPhase::Fixed);
     m_stagedGraph.add<PoseConstraintSystem>(m_factory, 67, TickPhase::Fixed);
