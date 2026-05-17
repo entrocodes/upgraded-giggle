@@ -16,7 +16,6 @@ SystemExec PoseDebugLogSystem::update(GameContext* context) {
         std::string stateStr;
         switch (strokeState) {
         case StrokeState::Backswing:       stateStr = "Backswing"; break;
-        case StrokeState::BrakedBackswing: stateStr = "BrakedBackswing"; break;
         case StrokeState::Swing:           stateStr = "Swing"; break;
         case StrokeState::SwingRecovery:   stateStr = "SwingRecovery"; break;
         default:                           stateStr = "Other"; break;

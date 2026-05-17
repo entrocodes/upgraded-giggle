@@ -136,12 +136,12 @@ static void solveArmIK(Pose& pose, GameContext* context) {
     sh.deltaRotation_rad = shoulderErr;
     el.deltaRotation_rad = elbowErr - el.restRotation_rad;
 
-    if (pose.armState == ArmState::SwingStroke) {
-        Debug::setChannelEnabled(Debug::Channel::IK, true);
-    }
-    else {
-        Debug::setChannelEnabled(Debug::Channel::IK, false);
-    }
+    //if (pose.armState == ArmState::SwingStroke) {
+    //    Debug::setChannelEnabled(Debug::Channel::IK, true);
+    //}
+    //else {
+    //    Debug::setChannelEnabled(Debug::Channel::IK, false);
+    //}
 }
 
 SystemExec PoseForwardKinematicsSystem::update(GameContext* context) {

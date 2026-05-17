@@ -26,7 +26,6 @@ SystemExec RacketPelvisSwingSystem::update(GameContext* context) {
 
             if (forwardTorsoRotation < finishTorsoRotation) {
                 cPoseIntentBuffer->intents.push_back(PoseIntent{ PoseJointID::CenterPelvis, PoseIntentPhase::Translate, 0, PoseIntentType::Rotate, {0, swingSpeed, 0} });
-                cPoseIntentBuffer->intents.push_back(PoseIntent{ PoseJointID::LeftElbow, PoseIntentPhase::Translate, 1, PoseIntentType::Rotate, {0, swingSpeed, 0}});
                 cRacketSwing->forwardTorsoRotation += swingSpeed;
             }
             else {

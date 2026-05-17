@@ -13,11 +13,15 @@ SystemExec RacketFreeMoveTargetSolverSystem::update(GameContext* context) {
         auto cRacketSwing = context->registry.getComponent<CRacketSwing>(eRacket);
         if (!cRacketSwing) continue;
 
+        if (pose.resetWristOffset) {
+            cRacketHandle->freeOffset_m = cRacketSwing->preStrokeWristTarget;
+            pose.resetWristOffset = false;
+        }
+
         StrokeState& strokeState = cRacketSwing->strokeState;
         if (strokeState == StrokeState::Swing ||
             strokeState == StrokeState::SwingRecovery ||
-            strokeState == StrokeState::Backswing ||
-            strokeState == StrokeState::BrakedBackswing) continue;
+            strokeState == StrokeState::Backswing) continue;
 
         wrist.targetOffsetFromBind += cRacketHandle->freeOffset_m;
 

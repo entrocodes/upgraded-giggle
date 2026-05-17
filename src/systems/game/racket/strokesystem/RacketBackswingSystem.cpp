@@ -21,9 +21,11 @@ SystemExec RacketBackswingSystem::update(GameContext* context) {
                 cRacketSwing->backswingDuration_ms += dt * 1000.0f;
                 cRacketSwing->backswingTorsoRotation += swingRotationSpeedConstant;
                 cPoseIntentBuffer->intents.push_back(PoseIntent{ PoseJointID::CenterPelvis, PoseIntentPhase::Translate, 0, PoseIntentType::Rotate, {0, swingRotationSpeedConstant, 0} });
-            }
-            else {
-                strokeState = StrokeState::BrakedBackswing;
+
+                float jx = cRacketSwing->steerIntent.x;
+                float jy = cRacketSwing->steerIntent.y;
+                cRacketSwing->backswingShLocal.x = context->physicsDebug.strokeDebug.backswingShLocal.x + (jx * 0.10f);
+                cRacketSwing->backswingShLocal.y = context->physicsDebug.strokeDebug.backswingShLocal.y + (-jy * 0.10f);
             }
         }
     }

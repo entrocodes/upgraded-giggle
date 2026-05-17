@@ -1,4 +1,4 @@
-#include "RacketSwingRecoverySystem.hpp"
+﻿#include "RacketSwingRecoverySystem.hpp"
 #include "game/pose/PoseIntent.hpp"
 #include "components/Components.hpp"
 #include "debug/Debug.hpp"
@@ -26,6 +26,7 @@ SystemExec RacketSwingRecoverySystem::update(GameContext* context) {
                 cRacketSwing->recoveryTime_ms = 0;
                 cRacketSwing->forwardTorsoRotation = 0;
                 strokeState = StrokeState::Idle;
+                cPose->pose.armState = ArmState::FreeMove;
                 cPose->pose.resetWristOffset = true; // restore
             }
             else {

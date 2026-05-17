@@ -1,6 +1,6 @@
 #pragma once
 #include "ecs/Component.hpp"
-enum class StrokeState {Idle, Backswing, Swing, SwingRecovery, Push, PushRecovery, BrakedBackswing};
+enum class StrokeState {Idle, Backswing, Swing, SwingRecovery, Push, PushRecovery};
 
 struct CRacketSwing : public Component {
     StrokeState strokeState = StrokeState::Idle;
@@ -15,6 +15,11 @@ struct CRacketSwing : public Component {
     // Tuning parameters
     Vec3 swingBaseOffset_m = { 0,0,0 };
     Vec3 backswingOffset_m = { 0,0,0 };
+
+    Vec3 backswingShLocal = { 0,0,0 };
+    Vec3 contactShLocal = { 0,0,0 };
+    bool contactZSet = false;
+
     Vec3 swingDelta_m = { 0,0,0 };
     Vec2 steerIntent;
     bool requestBackswing;

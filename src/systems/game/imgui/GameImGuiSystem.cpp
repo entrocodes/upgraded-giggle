@@ -115,7 +115,6 @@ void GameImGuiSystem::drawDeveloperPanel(GameContext* context) {
 
     if (ImGui::CollapsingHeader("Physics Visualizers")) {
         ImGui::Checkbox("Draw Reach Quality", &context->renderSettings.debugDrawReachStiffness);
-        ImGui::Checkbox("Draw Intended Arc Path", &context->renderSettings.debugDrawArcPath);
         ImGui::Checkbox("Draw Player Body", &context->renderSettings.debugDrawPlayerBody);
         ImGui::Checkbox("Draw Shoulder-to-Racket Line", &context->renderSettings.debugDrawArmLine);
         ImGui::Checkbox("Draw Blade Normal Arrow", &context->renderSettings.debugDrawBladeNormal);
@@ -417,7 +416,25 @@ void GameImGuiSystem::drawRacketDebug(GameContext* context) {
                 else if (currentStateIdx == 2) {
                     ImGui::Text("Swing Time: %.2f", cRacketSwing->swingTime_ms);
                 }
+            }
+            if (ImGui::CollapsingHeader("Stroke Trajectory")) {
+                ImGui::Text("Backswing (adjusted): %.2f, %.2f, %.2f", cRacketSwing->backswingShLocal.x, cRacketSwing->backswingShLocal.y, cRacketSwing->backswingShLocal.z);
+                ImGui::Text("Contact (adjusted): %.2f, %.2f, %.2f", cRacketSwing->contactShLocal.x, cRacketSwing->contactShLocal.y, cRacketSwing->contactShLocal.z);
 
+                auto vec3Drag = [](const char* label, Vec3& v) {
+                    ImGui::Text("%s", label);
+                    ImGui::SameLine();
+                    ImGui::PushID(label);
+                    ImGui::SetNextItemWidth(55); ImGui::DragFloat("##x", &v.x, 0.01f, -0.5f, 0.5f, "X %.2f");
+                    ImGui::SameLine();
+                    ImGui::SetNextItemWidth(55); ImGui::DragFloat("##y", &v.y, 0.01f, -0.5f, 0.5f, "Y %.2f");
+                    ImGui::SameLine();
+                    ImGui::SetNextItemWidth(55); ImGui::DragFloat("##z", &v.z, 0.01f, -0.5f, 0.5f, "Z %.2f");
+                    ImGui::PopID();
+                    };
+
+                vec3Drag("Backswing", context->physicsDebug.strokeDebug.backswingShLocal);
+                vec3Drag("Contact (base)", context->physicsDebug.strokeDebug.contactShLocal);
             }
         }
         if (cRacketPhysical) {

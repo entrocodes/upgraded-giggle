@@ -26,16 +26,19 @@ SystemExec RacketStrokeStateSystem::update(GameContext* context) {
             cRacketSwing->forwardTorsoRotation = 0.0f;
         }
 
-        //brake backswing
-        if (cRacketSwing->requestStopBackswing && strokeState == StrokeState::Backswing) {
-            strokeState = StrokeState::BrakedBackswing;
-        }
         // release swing after backswing
         if (cRacketSwing->requestReleaseSwing &&
-            (strokeState == StrokeState::Backswing || strokeState == StrokeState::BrakedBackswing)) {
+            (strokeState == StrokeState::Backswing)) {
             strokeState = StrokeState::Swing;
             cRacketSwing->swingTime_ms = 0.0f;
+
+            float jy = cRacketSwing->steerIntent.y;
+            cRacketSwing->contactShLocal.y = context->physicsDebug.strokeDebug.contactShLocal.y + (-jy * 0.12f);
+            cRacketSwing->contactShLocal.x = context->physicsDebug.strokeDebug.contactShLocal.x;
+            cRacketSwing->contactZSet = false;
+
             cRacketSwing->backswingOffset_m = Vec3{ 0,0,0 };
+            cRacketSwing->backswingShLocal = cPose->pose.leftWrist().targetOffsetFromBind;
         }
 
     }

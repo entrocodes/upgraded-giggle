@@ -23,6 +23,11 @@ struct Versioning {
     int patch = 02;
 };
 
+struct StrokeDebug {
+    Vec3 contactShLocal = { 0.05f,  0.08f,  0.2f };
+    Vec3 backswingShLocal = { -0.1f, -0.16f, -0.08f };
+};
+
 struct FreeMoveConstraints {
     float posConstraintY = .2;
     float negConstraintY = -.2;
@@ -35,15 +40,18 @@ struct PoseIK {
     Vec3 wristWorldTarget = { 0,0,0 };
     bool debugDisableConstraints = false;
 };
+
 struct PoseRuntime {
     float currentStage = 0;
     float lastLeftAnkleErr = 0;
     float ankleErr = 0;
 };
+
 struct DebugFootworkIntent {
     float leftHoldTime = 0.0f;
     float rightHoldTime = 0.0f;
 };
+
 struct FootworkMovement {
     DebugFootworkIntent debugFootworkIntent;
     float tapStrength = .5f;
@@ -111,6 +119,7 @@ struct RacketOrientation {
 
 };
 struct PhysicsDebugSettings {
+    StrokeDebug strokeDebug;
     FreeMoveConstraints freeMoveConstraints;
     PoseIK poseIK;
     RacketOrientation racketOrientation;
@@ -177,7 +186,6 @@ struct RenderSettings {
     bool debugDrawArmLine = false;
     bool debugDrawBladeNormal = false;
     bool debugDrawTorsoIndicator = false;
-    bool debugDrawArcPath = false;
     bool debugDrawReachStiffness = false;
 
     float pixelsPerMeter = 212.f;
